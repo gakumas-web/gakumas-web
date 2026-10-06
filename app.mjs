@@ -1,4 +1,5 @@
-import {markLoading} from './application/loading-metrics.mjs';
+import {markLoading,createViewTiming} from './application/loading-metrics.mjs';
+import {contentManager} from './application/content-manager.mjs';
 import {beginImageView} from './resources.mjs';
 import {showSelectionDetails,closeSelectionDetails} from './ui/selection-details.mjs';
 import {renderAchievementBrowser} from './ui/achievement-browser.mjs';
@@ -17,7 +18,7 @@ import {restoreSelectionSnapshot,selectionEntries,withoutSecondExclusiveSkills,w
 import {setupSelectionOptions,renderSelectionChoices,renderLoadoutChoices,renderInheritanceChoices,selectionCapacity,selectionMemoryEntry} from './ui/selection-memories.mjs';
 import {loadMaster,masterReadyFor,masterLoadingFor} from './application/master-loader.mjs';
 import {setupContentControls} from './ui/content-controls.mjs';
-import {defaults,createView,createViews,activeFilterKeys,resetFilters,FILTER_BINDINGS,CHOICE_GROUPS,PROFILE_PREFERENCE_KEY,normalizeProfile,restoreIdolArt} from './application/view-state.mjs';
+import {defaults,createView,createViews,parsePreferences,activeFilterKeys,resetFilters,FILTER_BINDINGS,CHOICE_GROUPS,PROFILE_PREFERENCE_KEY,normalizeProfile,restoreIdolArt} from './application/view-state.mjs';
 import {setupFilterOptions,syncMemoryFilterOptions,syncFilterControls,renderFilterChoices,renderTabCount,renderActiveFilters} from './ui/filters.mjs';
 import {t,locale,setLocale,onLocaleChange,staticTranslations} from './i18n.mjs';
 import {title, memoryUse, selectedValues} from './domain/model.mjs';
@@ -55,13 +56,21 @@ async function activateSnapshotAccount(snapshot){
   if(state.snapshot&&!snapshotFitsProfile(state.snapshot,profile)||state.selectionSnapshot&&!snapshotFitsProfile(state.selectionSnapshot,profile)){
     state.snapshot=null;state.selectionSnapshot=null;throw new AccountImportError(t('档案中的游戏账号 ID 不匹配，已停止载入。'));
   }
-  const preferences=JSON.parse(localStorage.getItem(`gakumas-web:view:${profile}`)??'null');
+  const preferences=readPreferences(profile);
   state.views=createViews(preferences?.views);state.idolArt=restoreIdolArt(preferences?.idolArt);state.selected.clear();state.detail=null;
   loadLibrary();return true;
+}
+function readPreferences(profile){
+  let raw;try{raw=localStorage.getItem(`gakumas-web:view:${profile}`);}catch{}
+  const preferences=parsePreferences(raw);
+  if(preferences.recovered)message(t('视图偏好已恢复默认，账号数据保留。'),true);
+  return preferences;
 }
 function savedProfile(){try{return normalizeProfile(localStorage.getItem(PROFILE_PREFERENCE_KEY));}catch{return null;}}
 const state={profile:savedProfile(),tab:'memories',views:createViews(),snapshot:null,selectionSnapshot:null,library:null,selected:new Set(),detail:null,supportTargets:new Map(),idolTargets:new Map(),idolArt:{}};
 const pageSize=40;
+let viewRun=0;
+const viewTiming=createViewTiming({ready:masterReadyFor,version:()=>contentManager.status().version});
 const expandedFilters=new Set();
 let loading=false,searchTimer,controlsPending=false;
 const masterTasks=new Map();
@@ -197,7 +206,7 @@ function confirmFilterReset(button,action){
 document.addEventListener('pointerdown',event=>{if(pendingFilterReset&&!pendingFilterReset.contains(event.target))cancelFilterReset();},true);
 document.addEventListener('keydown',event=>{if(event.key==='Escape'&&pendingFilterReset){cancelFilterReset();event.preventDefault();}},true);
 function render(){
-  beginImageView();
+  beginImageView(state.tab);
   cancelFilterReset();
   clearTimeout(searchTimer);resetDeferredContent();
   if($('data-dialog').open)renderAccountOverview();
@@ -350,17 +359,17 @@ async function restoreProfile(){
   loading=true;$('profile').disabled=true;render();
   try{
     const {ordinary:saved,selection:selectionSaved}=await profileData(state.profile);
-    const preferences=JSON.parse(localStorage.getItem(`gakumas-web:view:${state.profile}`)??'null');
+    const preferences=readPreferences(state.profile);
     state.snapshot=saved?.snapshot??null;
     state.selectionSnapshot=selectionSaved?.snapshot?restoreSelectionSnapshot(selectionSaved.snapshot):null;
     if(state.snapshot&&!snapshotFitsProfile(state.snapshot,state.profile)||state.selectionSnapshot&&!snapshotFitsProfile(state.selectionSnapshot,state.profile)){state.snapshot=null;state.selectionSnapshot=null;throw new AccountImportError(t('档案中的游戏账号 ID 不匹配，已停止载入。'));}
-    state.views=createViews(preferences?.views);state.tab=preferences?.tab??'memories';state.idolArt=restoreIdolArt(preferences?.idolArt);
+    state.views=createViews(preferences?.views);state.tab=preferences?.tab??'memories';viewRun++;state.idolArt=restoreIdolArt(preferences?.idolArt);
     loadLibrary();setup();syncControls();render();if(state.snapshot||state.selectionSnapshot||state.tab==='achievements')void ensureMaster();
   }catch(error){message(error instanceof AccountImportError?error.message:t('浏览器工作副本无法恢复，请重新载入快照。'),true);}
   finally{loading=false;$('profile').disabled=false;render();openMemoryLink();}
 }
 $('profile').onchange=async()=>{persist();state.profile=normalizeProfile($('profile').value);try{localStorage.setItem(PROFILE_PREFERENCE_KEY,state.profile);}catch{message(t('视图偏好保存失败，刷新后可能需要重新筛选。'),true);}state.snapshot=null;state.selectionSnapshot=null;state.library=null;state.selected.clear();resetDetail();await restoreProfile();};
-for(const button of document.querySelectorAll('[data-tab]'))button.onclick=()=>{state.tab=button.dataset.tab;resetDetail();syncControls();render();persist();if(state.snapshot||state.selectionSnapshot||state.tab==='achievements')void ensureMaster();};
+for(const button of document.querySelectorAll('[data-tab]'))button.onclick=()=>{state.tab=button.dataset.tab;viewRun++;resetDetail();syncControls();render();persist();if(state.snapshot||state.selectionSnapshot||state.tab==='achievements')void ensureMaster();};
 for(const [id,key] of FILTER_BINDINGS)$(id).addEventListener($(id).matches('button[role=switch]')?'click':id==='search'?'input':'change',()=>{view()[key]=$(id).matches('button[role=switch]')?!view()[key]:$(id).type==='checkbox'?$(id).checked:$(id).value;view().page=0;
   if(id==='purpose')resetDetail();
   if(id==='search'){
@@ -398,13 +407,14 @@ function linkedMasterScope(){
 }
 async function ensureMaster(forLink=false){
   const scope=forLink===true||location.hash?linkedMasterScope():state.tab;
-  if(masterReadyFor(scope)){$('load-master').hidden=true;$('master-status').textContent=t('主数据已载入 · 公开插图按需缓存');openCatalogLink();return;}
+  viewTiming.begin(state.tab,viewRun);
+  if(masterReadyFor(scope)){viewTiming.complete();$('load-master').hidden=true;$('master-status').textContent=t('主数据已载入 · 公开插图按需缓存');openCatalogLink();return;}
   if(masterTasks.has(scope))return masterTasks.get(scope);
   $('load-master').disabled=true;$('master-status').textContent=t('正在读取本地主数据…');
   const task=loadMaster(scope).then(()=>{
     if(masterReadyFor(state.tab)){$('load-master').hidden=true;$('master-status').textContent=t('主数据已载入 · 公开插图按需缓存');}
-    markLoading('view-ready');setup();syncControls();render();openCatalogLink();if(masterReadyFor('memories')&&state.detail)openDetail(state.snapshot.memories.find(m=>m.key===state.detail));
-  }).catch(()=>{if(!masterReadyFor(state.tab)){$('master-status').textContent=t('主数据暂不可用，仍可查看库存数值。');$('load-master').disabled=false;$('load-master').hidden=false;}}).finally(()=>{masterTasks.delete(scope);renderPendingCatalogCounts();});
+    markLoading('package-ready',{scope});viewTiming.complete();setup();syncControls();render();openCatalogLink();if(masterReadyFor('memories')&&state.detail)openDetail(state.snapshot.memories.find(m=>m.key===state.detail));
+  }).catch(()=>{viewTiming.fail(scope);if(!masterReadyFor(state.tab)){$('master-status').textContent=t('主数据暂不可用，仍可查看库存数值。');$('load-master').disabled=false;$('load-master').hidden=false;}}).finally(()=>{masterTasks.delete(scope);renderPendingCatalogCounts();});
   masterTasks.set(scope,task);renderPendingCatalogCounts();return task;
 }
 $('load-master').onclick=ensureMaster;

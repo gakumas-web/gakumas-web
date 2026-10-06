@@ -25,6 +25,7 @@ jobs:
       - run: python -m playwright install --with-deps chromium
       - run: python -B tests/browser_content_updates.py
       - run: python -B tests/browser_image_delivery.py
+      - run: python -B tests/browser_review_regressions.py
       - uses: actions/upload-artifact@v4
         with:
           name: static-site

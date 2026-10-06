@@ -2375,3 +2375,10 @@ button.danger-confirm:hover:enabled{color:white;background:#952a23}
 #resource-bytes,#resource-stage{font-size:12px;font-variant-numeric:tabular-nums}
 #resource-details>.actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
 @media(max-width:600px){.startup-status,.resource-status{margin:8px 12px;padding:10px 12px}.resource-status-line{align-items:flex-start}.resource-status-line p{font-size:13px}.resource-status-line button{font-size:12px}#resource-details>.actions button{flex:1 1 auto}}
+
+/* 角色占位头像保持小图标尺寸，不受原图和立绘的放大布局影响。 */
+.illustration .character-image-fallback{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:6px;z-index:1;pointer-events:none}
+.illustration .character-image-fallback>img.character-fallback-icon{position:static;inset:auto;width:32px;height:32px;max-width:100%;max-height:100%;object-fit:scale-down;object-position:center;transform:none;filter:none;flex:none}
+.illustration .character-image-fallback[hidden],.illustration .character-image-fallback>img[hidden]{display:none}
+.ending-state-trigger{padding:0;border:0;background:transparent;border-radius:8px;min-height:0}
+.ending-state-trigger:focus-visible{outline:2px solid var(--accent);outline-offset:3px}

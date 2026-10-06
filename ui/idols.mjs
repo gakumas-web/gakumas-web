@@ -69,7 +69,7 @@ export function idolEntry({held,info},{favorite=false,onFavorite=()=>{},favorite
   artToggle.onchange=()=>{selectedArt=artToggle.checked?'upgraded':'base';drawArt();persist();onArt(selectedArt);};
   function drawArt(){
     const art=variants.find(art=>art.id===selectedArt)??{image:info.image,label:info.label};
-    artButton.replaceChildren(illustration(art.image,`${info.character} · ${info.name} · ${art.label}`,'idol-art'));
+    artButton.replaceChildren(illustration(art.image,`${info.character} · ${info.name} · ${art.label}`,'idol-art',{characterId:info.characterId}));
     artButton.setAttribute('aria-label',t('查看卡面：{0}',[info.name]));
     artToggle.checked=selectedArt==='upgraded';
     const locked=art.unlockRank!==undefined&&(isReference(held)||held.levelLimitRank<art.unlockRank);
@@ -136,6 +136,6 @@ function showIdolArt(held,selected,onArt){
   $('idol-title').textContent=info.name;
   const body=el('div','','idol-art-viewer'),image=el('div'),label=el('label','','idol-art-control idol-card-art-options'),toggle=el('input');toggle.type='checkbox';toggle.setAttribute('role','switch');toggle.setAttribute('aria-label',t('特训后卡面'));toggle.checked=selected==='upgraded';
   const caption=el('p','','small muted');label.append(toggle,el('span',t('特训后卡面')));body.append(image);if(variants.length>1)body.append(label);body.append(caption);
-  const render=()=>{const art=variants.find(art=>art.id===selected)??{image:info.image,label:info.label};image.replaceChildren(illustration(art.image,`${info.character} · ${info.name} · ${art.label}`,'idol-full'));caption.textContent=art.unlockRank!==undefined&&(isReference(held)||held.levelLimitRank<art.unlockRank)?t('特训 {0} 解锁 · 仅预览',[art.unlockRank]):'';caption.hidden=!caption.textContent;};
+  const render=()=>{const art=variants.find(art=>art.id===selected)??{image:info.image,label:info.label};image.replaceChildren(illustration(art.image,`${info.character} · ${info.name} · ${art.label}`,'idol-full',{characterId:info.characterId}));caption.textContent=art.unlockRank!==undefined&&(isReference(held)||held.levelLimitRank<art.unlockRank)?t('特训 {0} 解锁 · 仅预览',[art.unlockRank]):'';caption.hidden=!caption.textContent;};
   toggle.onchange=()=>{selected=toggle.checked?'upgraded':'base';render();onArt(selected);};render();$('idol-content').replaceChildren(body);openCatalogDialog();
 }

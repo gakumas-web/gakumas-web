@@ -186,7 +186,7 @@ function selectionAttributes(entry){
 function selectionHero(entry,collapsed,{detail,favorite=false,onFavorite=()=>{},favoriteDisabled=false,tags=[],editTags,removeTag,tagsDisabled=false}={}){
   const {memory:m,info,expired}=entry,hero=el('div','','selection-hero');
   const artwork=el('div','','selection-artwork'),art=el('div','','selection-memory-portrait');
-  art.append(illustration(info.image,info.name,'selection-memory-art'));artwork.append(art);copySelectionKey(artwork,m,info.name);
+  art.append(illustration(info.image,info.name,'selection-memory-art',{characterId:m.characterId}));artwork.append(art);copySelectionKey(artwork,m,info.name);
   const overlay=el('div','','selection-art-overlay'),plan=el('span','','selection-art-plan'),symbol=filterSymbol(({2:'Plan1',3:'Plan2',4:'Plan3'})[m.planType]);
   const planKind=el('span','','idol-plan-kind');if(symbol)planKind.append(symbol);planKind.append(el('span',planLabel(m.planType)));plan.append(planKind);
   for(const [type,label] of [['ExamParameterBuff','好调'],['ExamLessonBuff','集中'],['ExamReview','好印象'],['ExamCardPlayAggressive','干劲'],['ExamConcentration','强气'],['ExamFullPower','全力']]){

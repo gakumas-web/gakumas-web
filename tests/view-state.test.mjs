@@ -91,3 +91,15 @@ test('选拔两组默认同时满足，保存的任一匹配仍保留',()=>{
   const view=createView({selectionSkillAll:false,selectionItemAll:false});
   assert.equal(view.selectionSkillAll,false);assert.equal(view.selectionItemAll,false);
 });
+
+
+test('损坏的本地偏好单独降级，不再把非法字段带入页面',async()=>{
+  const {parsePreferences}=await import('../application/view-state.mjs');
+  for(const raw of ['{','null','[]',JSON.stringify({tab:'retired',views:null}),JSON.stringify({views:{achievements:{query:[],page:'bad-page'}}})]){
+    const restored=parsePreferences(raw);assert.equal(restored.recovered,true);assert.equal(restored.tab,'memories');assert.equal(restored.views.achievements.query,'');assert.equal(restored.views.achievements.page,0);
+  }
+  for(const page of [NaN,Infinity,-1,'2'])assert.equal(createView({page}).page,0);
+  assert.equal(createViews(null).achievements.query,'');assert.equal(createView(null).page,0);
+  const restored=parsePreferences(JSON.stringify({tab:'achievements',views:{achievements:{query:'保留',page:2}}}));
+  assert.equal(restored.recovered,false);assert.equal(restored.tab,'achievements');assert.equal(restored.views.achievements.query,'保留');assert.equal(restored.views.achievements.page,2);
+});

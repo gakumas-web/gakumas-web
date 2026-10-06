@@ -21,7 +21,14 @@ export const CHOICE_GROUPS=[
     ['support-effect-chips','support-effect','supportEffect',false,'supportCards'],
     ['support-effect-attribute-chips','support-effect-attribute','supportEffectAttribute',false,'supportCards']];
 
+const object=value=>value!==null&&typeof value==='object'&&!Array.isArray(value);
 export function normalizeView(v){
+  for(const [key,value] of Object.entries(defaults()))if(typeof value==='string'&&typeof v[key]!=='string'||typeof value==='boolean'&&typeof v[key]!=='boolean')v[key]=value;
+  if(!Number.isSafeInteger(v.page)||v.page<0)v.page=0;
+  if(!['all','owned','unowned','favorites'].includes(v.ownership))v.ownership='owned';
+  if(!['ordinal','shotTime','power','vocal','dance','visual','stamina'].includes(v.sort))v.sort='ordinal';
+  if(!['original','clearedTime','lastUsedTime','grade','vocal','dance','visual','character'].includes(v.selectionSort))v.selectionSort='original';
+  if(!['original','rarity','level','levelAsc','potential','potentialAsc','plan','character','rank','rankAsc','levelGap','type','theme','release','releaseAsc'].includes(v.catalogSort))v.catalogSort='original';
   for(const key of ['achievementCharacter','achievementFocus'])if(typeof v[key]!=='string')v[key]='';
   v.achievementScope=v.achievementScope==='card'?'card':'common';
   v.achievementSection=v.achievementSection==='achievement'?'achievement':'ending';
@@ -55,9 +62,11 @@ export function normalizeView(v){
 
 // 当前字段白名单同时用于档案恢复和已保存视图，不重新引入退役字段。
 export function createView(saved={}){
+  if(!object(saved))saved={};
   return normalizeView(Object.fromEntries(Object.entries(defaults()).map(([key,value])=>[key,saved[key]??value])));
 }
 export function createViews(saved={}){
+  if(!object(saved))saved={};
   return Object.fromEntries(['memories','selectionMemories','idolCards','supportCards','idolCardSkins','achievements'].map(tab=>{
     const view=createView(saved[tab]);
     if(tab==='supportCards'){if(view.ownership!=='favorites')view.ownership='all';view.page=0;}
@@ -93,7 +102,7 @@ export const normalizeProfile=value=>validProfile(value)?value:null;
 
 // 卡面偏好只保存图片版本，培养阶段仍为会话内预览。
 export function restoreIdolArt(saved={}){
-  return Object.fromEntries(Object.entries(saved??{}).filter(([,value])=>value==='base'||value==='upgraded'));
+  return Object.fromEntries(Object.entries(object(saved)?saved:{}).filter(([,value])=>value==='base'||value==='upgraded'));
 }
 
 // 每类目录只提供有明确数据依据的排序；箭头表示数值／时间方向。
@@ -102,3 +111,20 @@ export const CATALOG_SORTS={
   supportCards:[['original','快照顺序'],['rarity','稀有度 ↓'],['level','等级 ↓'],['levelAsc','等级 ↑'],['rank','突破数 ↓'],['rankAsc','突破数 ↑'],['levelGap','距当前突破上限的等级差 ↓'],['type','属性 → 稀有度 → 等级']],
   idolCardSkins:[['original','快照顺序'],['theme','主题顺序 → 角色'],['release','实装时间：新到旧'],['releaseAsc','实装时间：旧到新'],['character','角色顺序']],
 };
+
+// 本地偏好是独立输入边界；损坏时只恢复显示默认值，不影响账号数据。
+export function parsePreferences(raw){
+  let saved={},recovered=false;
+  try{saved=typeof raw==='string'?JSON.parse(raw):raw??{};if(!object(saved)){saved={};recovered=true;}}catch{recovered=true;}
+  const views=createViews(saved.views),tab=Object.hasOwn(views,saved.tab)?saved.tab:'memories';
+  if(saved.tab!==undefined&&tab!==saved.tab)recovered=true;
+  if(saved.views!==undefined){
+    if(!object(saved.views))recovered=true;
+    else for(const [name,value] of Object.entries(saved.views)){
+      if(!Object.hasOwn(views,name)||!object(value)){recovered=true;continue;}
+      const normalized=createView(value);
+      for(const key of Object.keys(defaults()))if(Object.hasOwn(value,key)&&JSON.stringify(value[key])!==JSON.stringify(normalized[key]))recovered=true;
+    }
+  }
+  return {views,tab,idolArt:restoreIdolArt(saved.idolArt),recovered};
+}

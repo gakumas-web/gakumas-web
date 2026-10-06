@@ -23,7 +23,7 @@ function progressSummary(entry){
 let stageDialog,activeEntry;
 function drawStages(){
   const entry=activeEntry,head=el('div','','dialog-head'),title=el('h2',entry.name),close=el('button',t('关闭'));
-  const titleGroup=el('div','','achievement-dialog-title'),shown=achievedCardStage(entry)??entry.current??entry.stages[0],icon=achievementArt(shown?.image,entry.name);
+  const titleGroup=el('div','','achievement-dialog-title'),shown=achievedCardStage(entry)??entry.current??entry.stages[0],icon=achievementArt(shown?.image,entry.name,achievementOwner(entry));
   icon.setAttribute('aria-hidden','true');titleGroup.append(icon,title);
   title.id='achievement-stages-title';close.onclick=()=>stageDialog.close();head.append(titleGroup,close);
   const intro=el('div','','achievement-detail-summary');
@@ -35,7 +35,7 @@ function drawStages(){
     const current=entry.record&&stage===entry.current&&entry.status!=='received';
     const row=el('li','','achievement-stage'+(current?' is-current':''));row.dataset.stageIndex=String(index);
     if(current)row.setAttribute('aria-current','step');
-    const heading=el('div','','achievement-stage-head');if(entry.idolCardId)heading.append(illustration(stage.image,stage.name??entry.name,'achievement-art'));heading.append(el('strong',t(current?'第 {0} 阶段 · 当前':'第 {0} 阶段',[index+1])));
+    const heading=el('div','','achievement-stage-head');if(entry.idolCardId)heading.append(illustration(stage.image,stage.name??entry.name,'achievement-art',{characterId:achievementOwner(entry)}));heading.append(el('strong',t(current?'第 {0} 阶段 · 当前':'第 {0} 阶段',[index+1])));
     heading.append(statusBadge(stage.status));
     row.append(heading,el('p',stage.description),rewardsFor(stage));list.append(row);
   }
@@ -70,8 +70,8 @@ export function stageHint(entry){
   body.append(el('p',progress.next?t('距离下一级还差 {0}',[progress.remaining??'—']):t(entry.status==='received'?'全部阶段已领取':'已达到全部阶段门槛')));
   return body;
 }
-function achievementArt(image,name){
-  const art=illustration(image,name,'achievement-art');art.removeAttribute('title');
+function achievementArt(image,name,characterId){
+  const art=illustration(image,name,'achievement-art',{characterId});art.removeAttribute('title');
   // 本页小图标有分页上限，立即加载并提示同步解码，减少正文先绘制、图片随后补上的间隔。
   const img=art.querySelector('img');if(img){img.loading='eager';img.decoding='sync';}return art;
 }
@@ -81,7 +81,7 @@ export function achievementEntry(entry){
   const card=characterAccent(el('article','','achievement-card achievement-icon-card'),achievementOwner(entry));card.dataset.achievementId=entry.id;
   const achieved=achievedCardStage(entry),shown=achieved??entry.current,progress=achievementProgressInfo(entry);
   const button=el('button','','achievement-stages achievement-icon-trigger');button.type='button';button.dataset.achieved=String(Boolean(achieved));button.setAttribute('aria-label',entry.name);button.setAttribute('aria-haspopup','dialog');
-  const art=achievementArt(shown?.image,entry.name);
+  const art=achievementArt(shown?.image,entry.name,achievementOwner(entry));
   const title=el('span',entry.name,'achievement-icon-title'),footer=el('span','','achievement-icon-progress');
   if(achievementIsComplete(entry)){
     footer.append(el('span',`✓ ${t('已达成')}`,'achievement-icon-complete'));
@@ -99,7 +99,7 @@ export function cardAchievementIcon(entry,container){
   const achieved=achievedCardStage(entry),shown=achieved??entry.stages[0],button=el('button','','card-achievement-icon');
   button.type='button';button.dataset.achievementId=entry.id;button.dataset.achieved=String(Boolean(achieved));button.dataset.missionType=entry.missionType;
   const label=shown?.name??entry.name;button.setAttribute('aria-label',`${label} · ${t(achieved?'已达成':'未达成')}`);button.setAttribute('aria-haspopup','dialog');
-  button.append(achievementArt(shown?.image,label));
+  button.append(achievementArt(shown?.image,label,achievementOwner(entry)));
   supportHint(button,()=>stageHint(entry),{container,followPointer:true});
   if(entry.sourceEntries&&achieved)button.append(el('span',String(achieved.threshold),'achievement-training-rank'));
   button.onclick=()=>{closeRewardPopover();showStages(entry,()=>suppressRewardHintFocus(document.querySelector(`.card-achievement-icon[data-achievement-id="${CSS.escape(entry.id)}"]`)));};return button;

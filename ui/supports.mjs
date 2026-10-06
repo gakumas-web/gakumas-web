@@ -32,7 +32,7 @@ function compactEvents(held,info,target=held.level){
 function supportFace(held,info,immersive=false){
   const face=el('div','','support-face'),art=el('button','','support-art-open');
   art.setAttribute('aria-label',t('查看卡面：{0}',[info.name]));art.onclick=()=>showSupportArt(info);
-  art.append(illustration(info.image,info.name,'support-cover'));face.append(art);
+  art.append(illustration(info.image,info.name,'support-cover',{characterId:info.characterIds?.length===1?info.characterIds[0]:undefined}));face.append(art);
   if(immersive)return face;
   const typeName=({Vocal:'vocal',Dance:'dance',Visual:'visual',[t('辅助')]:'assist'})[info.type];
   if(typeName){const type=el('img','','support-type-icon');type.src=uiIconURL(`${typeName}.webp`);type.alt=info.type;face.append(type);}
@@ -134,6 +134,6 @@ function showSupportArt(info){
   setCatalogRefresh(()=>showSupportArt(info));
   $('idol-title').textContent=info.name;
   const body=el('div','','support-art-viewer');
-  body.append(illustration(info.image,info.name,'support-full'));
+  body.append(illustration(info.image,info.name,'support-full',{characterId:info.characterIds?.length===1?info.characterIds[0]:undefined}));
   $('idol-content').replaceChildren(body);openCatalogDialog();
 }

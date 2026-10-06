@@ -93,3 +93,12 @@ test('当前格式 1 的变化分包失败时，已复用的部分不会形成�
   await manager.initialize();await assert.rejects(manager.refresh(),/content_(hash_mismatch|too_large)/);
   assert.equal(store.writes,0);assert.equal(store.value.manifest_sha256,old.bundle.manifest_sha256);
 });
+
+
+test('公开资料进度按响应正文计数，整套校验保存后才就绪',async()=>{
+  const fixture=await contentFixture(),states=[],manager=createContentManager({...options,fetcher:contentTransport(fixture),store:memoryContentStore()});
+  manager.subscribe(state=>states.push(state));await manager.initialize();
+  const state=manager.status();assert.equal(state.bytes,state.totalBytes);assert.ok(state.bytes>0);
+  assert.ok(states.some(row=>row.phase==='downloading'&&row.bytes>0));assert.ok(states.some(row=>row.phase==='saving'));
+  assert.ok(states.filter(row=>row.phase==='downloading').every(row=>row.bytes<=row.totalBytes));
+});

@@ -9,7 +9,7 @@ import {contentLimits,ContentError} from '../domain/content-contract.mjs';
 export function setupContentControls({loaded=()=>{},canReload=()=>true}={}){
   let busy=false,importError='';
   function render(){
-    const state=contentManager.status(),working=busy||['checking','downloading'].includes(state.phase);
+    const state=contentManager.status(),working=busy||['checking','downloading','verifying','saving'].includes(state.phase);
     $('content-version').textContent=state.version?t('当前资料版本：{0}',[state.version]):t('尚未安装卡片资料');
     let status=state.local?t('使用本地导入的资料。'):t('公开卡片资料与账号库存分开更新。');
     if(state.phase==='checking')status=t('正在检查资料更新…');
@@ -23,41 +23,63 @@ export function setupContentControls({loaded=()=>{},canReload=()=>true}={}){
     $('content-import').disabled=busy;
     $('content-apply').hidden=!state.availableVersion;
   }
-  let timer,lastPhase='',expanded=true,autoCollapsed=false;
+  let timer,lastPhase='',expanded=true,autoCollapsed=false,imageError='',actionBusy=false,lastCompleted='';
+  const contentPhases={checking:'正在检查公开资料…',downloading:'正在下载公开资料…',verifying:'正在校验公开资料…',saving:'正在保存公开资料…'};
   const phases={checking:'正在检查已保存图片…',downloading:'正在下载图片…',verifying:'正在校验图片…',waiting:'正在等待处理图片…',unpacking:'正在解包图片…',saving:'正在保存图片…'};
   const errors={image_storage_full:'浏览器空间不足，请清理公共图片缓存后重试。账号数据会保留。',image_hash_mismatch:'图片校验失败，已保留其它成功项。',image_not_found:'图片文件不存在，请刷新页面检查版本。',image_timeout:'图片下载超时，可以重试失败项。',image_source_not_allowed:'图片来源与当前程序不匹配，请刷新页面。'};
   function renderImages(){
     clearTimeout(timer);timer=null;
-    const state=imageManager.status(),working=Boolean(phases[state.phase]);
-    if(state.phase==='ready'&&!autoCollapsed){expanded=false;autoCollapsed=true;}
+    const state=imageManager.status(),content=contentManager.status(),contentWorking=Boolean(contentPhases[content.phase]),working=Boolean(phases[state.phase]);
+    const contentText=content.error?t('公开资料准备失败，已有资料保留，请重试。'):contentWorking?t(contentPhases[content.phase]):content.version?t('公开资料已就绪。'):'';
+    $('resource-content-status').textContent=contentText+(content.totalBytes?' '+t('已读取 {0} / {1} MiB',[(content.bytes/1048576).toFixed(1),(content.totalBytes/1048576).toFixed(1)]):'');
+    $('resource-content-progress').hidden=!contentWorking;
+    if(content.totalBytes){$('resource-content-progress').max=content.totalBytes;$('resource-content-progress').value=content.bytes;}else $('resource-content-progress').removeAttribute('value');
+    $('resource-content-retry').hidden=!content.error;$('resource-content-retry').disabled=contentWorking;
+    if(state.phase==='ready'&&!contentWorking&&!content.error&&!autoCollapsed){expanded=false;autoCollapsed=true;}
     let text=working?t(phases[state.phase]):state.phase==='ready'?t(state.full?'图片已保存到本机，后续只补充缺失图片。':'当前所需图片已准备好。'):state.phase==='cancelled'?t('图片下载已停止，已完成部分保留。'):'';
     if(state.failed||state.error)text=t(errors[state.error]??'部分图片准备失败，已完成部分保留，可重试。');
+    if(imageError)text=imageError;
     if($('image-status').textContent!==text)$('image-status').textContent=text;
     $('image-retry').hidden=!(state.failed||state.phase==='cancelled');
-    $('resource-status').hidden=state.phase==='idle';
-    if($('image-notice').textContent!==text)$('image-notice').textContent=text;
+    $('resource-status').hidden=state.phase==='idle'&&!contentWorking&&!content.error;
+    if($('image-notice').textContent!==(contentWorking||content.error?contentText:text))$('image-notice').textContent=contentWorking||content.error?contentText:text;
     $('resource-progress').hidden=!state.totalBytes;
     if(state.totalBytes){$('resource-progress').max=state.totalBytes;$('resource-progress').value=state.bytes;}
     $('resource-bytes').textContent=state.totalBytes?t('本次任务有效下载 {0} / {1} MiB',[(state.bytes/1048576).toFixed(1),(state.totalBytes/1048576).toFixed(1)]):'';
     const counts=Object.entries(phases).map(([phase,label])=>{const count=state.tasks.filter(task=>task.phase===phase).length;return count?t(label)+' '+count:'';}).filter(Boolean);
     $('resource-stage').textContent=[...counts,...(state.total?[t('已就绪 {0} / {1} 个图片对象',[state.completed,state.total])]:[])].join(' · ');
+    $('resource-refresh').hidden=!['image_not_found','image_source_not_allowed'].includes(state.error);
     $('resource-stop').hidden=!working;$('resource-retry').hidden=!(state.failed||state.phase==='cancelled');
-    $('resource-complete').disabled=state.full&&working;
+    $('resource-complete').disabled=actionBusy||!content.version||state.full&&working;
+    $('image-clear').disabled=actionBusy;$('resource-retry').disabled=actionBusy;$('image-retry').disabled=actionBusy;
     $('resource-complete').textContent=t('准备完整图片 · 约 {0} MiB',[Math.ceil(completeImageBytes()/1048576)]);
     $('resource-details').hidden=!expanded;$('resource-toggle').textContent=t(expanded?'收起详情':'查看详情');$('resource-toggle').setAttribute('aria-expanded',String(expanded));
-    if(state.phase==='ready')markLoading('image-task-complete');
+    const completedKey=[state.version,state.runId,state.total].join(':');
+    if(state.phase==='ready'&&lastCompleted!==completedKey){lastCompleted=completedKey;markLoading('image-task-complete',{run:state.runId,version:state.version,total:state.total,full:state.full});}
   }
-  imageManager.subscribe(state=>{if(state.phase!==lastPhase){lastPhase=state.phase;renderImages();}else if(!timer)timer=setTimeout(renderImages,150);});onLocaleChange(renderImages);
+  function schedule(){
+    const phase=imageManager.status().phase+':'+contentManager.status().phase;
+    if(phase!==lastPhase){lastPhase=phase;if(imageManager.status().error||contentManager.status().error)expanded=true;renderImages();}else if(!timer)timer=setTimeout(renderImages,150);
+  }
+  imageManager.subscribe(schedule);onLocaleChange(renderImages);
+  async function imageAction(action){
+    if(!canReload()||actionBusy)return;
+    actionBusy=true;imageError='';renderImages();
+    try{await action();}catch{imageError=t('图片操作失败，已保存的账号数据保留，请重试。');}
+    finally{actionBusy=false;renderImages();}
+  }
   $('resource-toggle').onclick=()=>{autoCollapsed=true;expanded=!expanded;renderImages();};
-  $('image-retry').onclick=$('resource-retry').onclick=()=>{if(canReload())void retryContentImages();};
+  $('image-retry').onclick=$('resource-retry').onclick=()=>imageAction(retryContentImages);
+  $('resource-refresh').onclick=()=>{if(canReload())location.reload();};
   $('resource-stop').onclick=()=>imageManager.cancel();
-  $('resource-complete').onclick=()=>{if(canReload())void imageManager.complete();};
-  $('image-clear').onclick=async()=>{if(canReload()&&confirm(t('清除公共图片缓存？账号数据和笔记会保留。'))){await imageManager.clear();location.reload();}};
+  $('resource-complete').onclick=()=>imageAction(()=>imageManager.complete());
+  $('image-clear').onclick=()=>{if(canReload()&&confirm(t('清除公共图片缓存？账号数据和笔记会保留。')))return imageAction(async()=>{await imageManager.clear();location.reload();});};
+  $('resource-content-retry').onclick=async()=>{try{await contentManager.refresh();if(contentManager.status().version)await loaded();}catch{}finally{renderImages();}};
   $('resource-diagnostics').onclick=()=>{
     const body={format:'gakumas-loading-diagnostics',version:WEB_VERSION,content_version:contentManager.status().version,...loadingMetrics(),images:imageManager.status()};
     const url=URL.createObjectURL(new Blob([JSON.stringify(body,null,2)],{type:'application/json'}));const link=document.createElement('a');link.href=url;link.download='gakumas-loading-diagnostics.json';link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
   };
-  contentManager.subscribe(render);onLocaleChange(render);
+  contentManager.subscribe(()=>{render();schedule();});onLocaleChange(render);
   $('content-check').onclick=async()=>{
     importError='';busy=true;render();
     try{await contentManager.refresh();if(contentManager.status().version)await loaded();}catch{}

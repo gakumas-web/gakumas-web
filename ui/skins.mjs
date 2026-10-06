@@ -17,7 +17,7 @@ function skinArtwork(held,info,options,kind){
   label.append(toggle,el('span',t('特训后卡面')));
   function draw(){
     const art=variants.find(value=>value.id===selected)??variants[0];
-    image.replaceChildren(illustration(art?.image??info.image,`${info.character} · ${info.name}`,kind));toggle.checked=art?.id==='upgraded';
+    image.replaceChildren(illustration(art?.image??info.image,`${info.character} · ${info.name}`,kind,{characterId:info.characterId}));toggle.checked=art?.id==='upgraded';
   }
   toggle.onchange=()=>{selected=toggle.checked?'upgraded':'base';draw();onArt(selected);};draw();
   return {image,control:variants.some(art=>art.id==='upgraded')?label:null};

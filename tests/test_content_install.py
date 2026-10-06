@@ -13,9 +13,9 @@ from build import build
 from install_content import install
 
 
-def fixture(root,version,asset_index=None,*,changed=None):
+def fixture(root,version,asset_index=None,*,changed=None,characters=None):
     folder=root/version;folder.mkdir()
-    bodies={'catalog':{'characters':{'test':'合成角色'},'idols':{'cards':[],'skins':[]},'supports':{'cards':[]}},
+    bodies={'catalog':{'characters':characters or {'test':'合成角色'},'idols':{'cards':[],'skins':[]},'supports':{'cards':[]}},
             'effects':{'tables':{'ProduceCard':[],'ProduceItem':[],'ProduceExamEffect':[]}},
             'abilities':{'tables':{'MemoryAbility':[],'ProduceSkill':[],'ProduceEffect':[]}},
             'progression':{'progression':{'tables':{'IdolCard':[],'SupportCard':[]}}},
@@ -38,6 +38,9 @@ def fixture(root,version,asset_index=None,*,changed=None):
 
 
 class ContentInstallTest(unittest.TestCase):
+    def setUp(self):
+        (ROOT/'local').mkdir(exist_ok=True)
+
     def test_old_program_and_old_channel_are_not_reused(self):
         with TemporaryDirectory(dir=ROOT/'local') as temp:
             root=Path(temp);site=root/'dist';build(site);lock,_=fixture(root,'one')

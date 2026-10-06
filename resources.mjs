@@ -12,21 +12,25 @@ export const imageManager=createImageManager({
   allowedOrigins:[...(imageConfig.allowedOrigins??[]),...(Object.keys(downloadURLs).length||imageConfig.loadingPlan?[root.origin]:[])],downloadURLs,
 });
 let lastDelivery,totalImageBytes=0;
-export const beginImageView=()=>imageManager.prioritizeView();
+export const beginImageView=view=>imageManager.prioritizeView(view);
 export const completeImageBytes=()=>totalImageBytes;
-function applyCachedImages(index,urls){
-  const images=[],icons=[],imageURLs={},iconURLs={};
-  for(const path of Object.keys(index.files)){const [folder,name]=path.split('/');if(!urls[path])continue;
-    if(folder==='images'){images.push(name);imageURLs[name]=urls[path];}else{icons.push(name);iconURLs[name]=urls[path];}}
-  Object.assign(imageConfig,{images,icons,imageURLs,iconURLs});
+// 只合并本批就绪的资源名，避免每次通知重建整套图片目录。
+const imageNames=new Set(imageConfig.images??[]),iconNames=new Set(imageConfig.icons??[]);
+function applyCachedImages(changes){
+  const imageURLs=imageConfig.imageURLs??={},iconURLs=imageConfig.iconURLs??={};
+  for(const [path,url] of Object.entries(changes)){
+    const [folder,name]=path.split('/'),names=folder==='images'?imageNames:iconNames,urls=folder==='images'?imageURLs:iconURLs;
+    if(url){names.add(name);urls[name]=url;}else{names.delete(name);delete urls[name];}
+  }
+  imageConfig.images=[...imageNames];imageConfig.icons=[...iconNames];
   if(typeof document!=='undefined')for(const node of document.querySelectorAll('img[src*="#resource="],image[href*="#resource="]')){
     const attribute=node.tagName.toLowerCase()==='image'?'href':'src';
     const name=decodeURIComponent(new URL(node.getAttribute(attribute),root).hash.slice('#resource='.length));
-    if(urls[name])node.setAttribute(attribute,urls[name]);
+    if(changes[name])node.setAttribute(attribute,changes[name]);
   }
-  if(typeof document!=='undefined')document.documentElement.style.setProperty('--effect-positive-bg',`url("${assetURL('img_general_icon_produce-effect_bg-positive.webp')}")`);
+  if(typeof document!=='undefined'&&changes['images/img_general_icon_produce-effect_bg-positive.webp'])document.documentElement.style.setProperty('--effect-positive-bg',`url("${assetURL('img_general_icon_produce-effect_bg-positive.webp')}")`);
 }
-imageManager.onAvailable(urls=>{if(lastDelivery)applyCachedImages(lastDelivery,urls);});
+imageManager.onAvailable(changes=>{if(lastDelivery)applyCachedImages(changes);},{incremental:true});
 imageManager.subscribe(state=>{
   if(typeof document==='undefined'||!['error','cancelled'].includes(state.phase))return;
   for(const node of document.querySelectorAll('img[src*="#resource="]'))node.dispatchEvent(new Event('resource-error'));
@@ -43,6 +47,7 @@ export function installContentResources(index){
     if(plan.version!==index.version||Object.entries(index.files).some(([name,row])=>plan.files[name]?.sha256!==row.sha256||plan.files[name]?.bytes!==row.bytes))throw new Error('image_program_update_required');
     index=validateImageDelivery({...index,files:plan.files,baseline:{version:index.baseline.version,packages:plan.packages.map(pack=>({...pack,url:new URL(pack.url,root).href}))},cdn_objects:[]});
   }
+  if(lastDelivery!==index){imageNames.clear();iconNames.clear();Object.assign(imageConfig,{images:[],icons:[],imageURLs:{},iconURLs:{}});}
   lastDelivery=index;
   const objects=new Map(Object.entries(index.files).map(([name,row])=>[row.sha256+'.'+name.split('.').at(-1),row.bytes]));
   totalImageBytes=index.baseline.packages.reduce((sum,pack)=>sum+pack.bytes,0)+index.cdn_objects.reduce((sum,key)=>sum+(objects.get(key)??0),0);

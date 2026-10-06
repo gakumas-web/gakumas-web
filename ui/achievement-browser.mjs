@@ -8,6 +8,7 @@ import {characterAccent,characterArt,illustration} from './illustrations.mjs';
 import {achievementEntry,cardAchievementIcon,stageHint} from './achievements.mjs';
 import {endingBadges} from './ending-rewards.mjs';
 import {characterQuotes} from './character-quotes.mjs';
+import {watchImage} from './image-loading.mjs';
 import {portraitLayout,tallestPortrait} from './character-portrait-layout.mjs';
 
 import {achievementOwner,achievementDetailScope,achievementSummary,mergeCardAchievements,achievedCardStage} from '../domain/achievements.mjs';
@@ -21,7 +22,8 @@ function entryFace(id){
 function portrait(id,eager=false){
   let frame;
   if(id==='nasr'){
-    frame=el('span','','illustration portrait');const img=el('img');img.src=uiIconURL('neo-asari-full.png');img.alt=entryName(id);frame.append(img);
+    frame=characterArt(id,true);const img=el('img');img.hidden=true;img.src=uiIconURL('neo-asari-full.png');img.alt=entryName(id);
+    watchImage(img,()=>{frame.querySelector('.art-fallback').hidden=true;},()=>{frame.querySelector('.art-fallback').hidden=false;});frame.prepend(img);
   }else frame=characterArt(id,true);
   if(eager){const image=frame.querySelector('img');if(image){image.loading='eager';image.fetchPriority='high';}}
   const layout=portraitLayout(id);
@@ -127,7 +129,7 @@ export function renderAchievementBrowser(root,{snapshot,view,ready,change}){
     if(!cardMode){list.append(achievementEntry(unit));continue;}
     const [id,values]=unit,held=heldCards.get(id)??{idolCardId:id,ownership:'unknown'},info=idolInfo({...held,idolCardSkinId:''}),group=el('article','','achievement-idol-group');group.dataset.achievementIdol=id;group.dataset.ownership=held.ownership;
     group.append(collectionState(held));
-    group.append(illustration(info.image,info.name,'achievement-card-art'));
+    group.append(illustration(info.image,info.name,'achievement-card-art',{characterId:info.characterId}));
     const icons=el('div','','card-achievement-icons'),matching=new Set(values.map(entry=>entry.id));
     const order={MissionType_IncrementProduceIdolCardClearCount:1,MissionType_AbsoluteIdolCardLevelLimitRank:3,MissionType_IncrementProduceIdolCardPlayCount:2};
     for(const entry of mergeCardAchievements(cardEntries.filter(row=>row.idolCardId===id)).sort((a,b)=>(order[a.missionType]??99)-(order[b.missionType]??99))){

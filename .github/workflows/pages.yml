@@ -32,6 +32,7 @@ jobs:
       - run: python -m playwright install --with-deps chromium
       - run: python -B tests/browser_content_updates.py
       - run: python -B tests/browser_image_delivery.py
+      - run: python -B tests/browser_review_regressions.py
       - run: python -B tools/build_pages.py
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v4

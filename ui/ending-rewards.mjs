@@ -13,15 +13,28 @@ function explanation(calculation,growth,remaining=false){
   }
   return body;
 }
-export function endingBadges(entry){
+export function endingBadges(entry,{interactive=false}={}){
   const box=el('div','','character-ending-badges');
-  for(const row of entry?.rows??[]){const achieved=row.recorded===true,badge=illustration(row.image,`【${chapters[row.type]}】${row.achievementName??chapters[row.type]}`,'ending-icon');badge.dataset.endingType=row.type;badge.dataset.achieved=String(achieved);box.append(badge);}
+  for(const row of entry?.rows??[]){
+    const achieved=row.recorded===true,state=t(row.recorded===undefined?'未导入该角色记录，以下为奖励参考。':achieved?'已达成':'未达成');
+    const label=`【${chapters[row.type]}】${row.achievementName??chapters[row.type]} · ${state}`;
+    const badge=illustration(row.image,label,'ending-icon',{characterId:entry.characterId});
+    badge.dataset.endingType=row.type;badge.dataset.achieved=row.recorded===undefined?'unknown':String(achieved);
+    badge.dataset.recorded=row.recorded===undefined?'unknown':achieved?'recorded':'not-recorded';
+    badge.setAttribute('role','img');badge.setAttribute('aria-label',label);
+    if(interactive){
+      badge.setAttribute('aria-hidden','true');const button=el('button','','ending-state-trigger');button.setAttribute('aria-label',label);button.append(badge);
+      box.append(supportHint(button,()=>el('p',label),{followPointer:false}));
+    }else box.append(badge);
+  }
   return box;
 }
 export function endingRewardCard(entry){
   const card=el('article','','ending-reward-card'),head=el('header');card.dataset.characterId=entry.characterId;
-  const title=el('h2',t('Ending 奖励'));const mark=el('span','✦','ending-heading-mark');mark.setAttribute('aria-hidden','true');const identity=el('div','','ending-heading-identity');identity.append(mark,title,endingBadges(entry));head.append(identity);card.append(head);
-  const model=endingRewardStats(entry),stats=idolStats(model,{explain:explanation,remainingLabel:t('未达成')});
+  const title=el('h2',t('Ending 奖励'));const mark=el('span','✦','ending-heading-mark');mark.setAttribute('aria-hidden','true');const identity=el('div','','ending-heading-identity');identity.append(mark,title,endingBadges(entry,{interactive:true}));head.append(identity);card.append(head);
+  const unknown=entry.rows.some(row=>row.recorded===undefined);
+  if(unknown)card.append(el('p',t('未导入该角色记录，以下为奖励参考。'),'muted'));
+  const model=endingRewardStats(entry),stats=idolStats(model,{explain:explanation,remainingLabel:t(unknown?'奖励参考':'未达成')});
   for(const [index,key] of ['Vocal','Dance','Visual'].entries()){
     const meter=stats.querySelectorAll('.idol-stat-meter')[index],gauge=stats.querySelectorAll('.idol-growth-gauge')[index];
     meter.dataset.earned=model.calculations['初始 '+key].value;meter.dataset.pending=model.calculations['初始 '+key].remaining;
@@ -29,7 +42,7 @@ export function endingRewardCard(entry){
   }
   const stamina=model.calculations['体力'],summary=stats.querySelector('.idol-stat-summary');summary.replaceChildren(el('small',t('体力')));
   for(const [remaining,amount] of [[false,stamina.value],[true,stamina.remaining]]){
-    const button=el('button',`+${amount}`,remaining?'ending-stamina-pending':'ending-stamina-earned');button.setAttribute('aria-label',`${t('体力')} · ${t(remaining?'未达成':'已达成')} +${amount}`);
+    const button=el('button',`+${amount}`,remaining?'ending-stamina-pending':'ending-stamina-earned');button.setAttribute('aria-label',`${t('体力')} · ${t(unknown?'奖励参考':remaining?'未达成':'已达成')} +${amount}`);
     if(amount>0)summary.append(supportHint(button,()=>explanation(stamina,false,remaining),{followPointer:true}));else if(!remaining)summary.append(el('strong','+0'));
   }
   const meters=[...stats.querySelectorAll('.idol-stat-meter')],gauges=[...stats.querySelectorAll('.idol-growth-gauge')],panels=[];

@@ -8,18 +8,25 @@ function node(tag, text, className = '') {
   const element = document.createElement(tag); element.textContent = text; element.className = className;
   return element;
 }
-export function illustration(filename, label, variant = '') {
+export function illustration(filename, label, variant = '', {characterId} = {}) {
   const frame = node('span', '', `illustration ${variant}`);
   frame.title = label;
   const fallback = node('span', filename ? t('插图载入中') : t('未解析插图'), 'art-fallback');
-  frame.append(fallback);
+  const face=characterId?characterInfo(characterId).face:null;
+  if(face&&face!==filename){
+    fallback.classList.add('character-image-fallback');fallback.setAttribute('role','img');fallback.setAttribute('aria-label',label);
+    const text=node('span',fallback.textContent),icon=document.createElement('img');
+    icon.className='character-fallback-icon';icon.alt='';icon.width=32;icon.height=32;icon.hidden=true;
+    watchImage(icon,()=>{if(icon.src.endsWith('/ui-icons/unavailable.svg')){icon.hidden=true;return;}text.hidden=true;},()=>{text.hidden=false;});
+    icon.src=assetURL(face);fallback.replaceChildren(icon,text);
+  }
   if (filename) {
     const image = document.createElement('img'); image.alt = label;
-    image.width = variant === 'portrait' ? 112 : 128; image.height = variant === 'portrait' ? 160 : 128; image.loading = imageLoading(); image.decoding = 'async';
-    watchImage(image,()=>{fallback.hidden=true;},willRetry=>{fallback.hidden=false;fallback.textContent=t(willRetry?'插图暂不可用，稍后自动重试':'插图暂不可用');});
+    image.hidden=true;image.width = variant === 'portrait' ? 112 : 128; image.height = variant === 'portrait' ? 160 : 128; image.loading = imageLoading(); image.decoding = 'async';
+    watchImage(image,()=>{if(image.src.endsWith('/ui-icons/unavailable.svg')){image.hidden=true;fallback.hidden=false;return;}fallback.hidden=true;},willRetry=>{fallback.hidden=false;const text=fallback.querySelector('span')??fallback;text.textContent=t(willRetry?'插图暂不可用，稍后自动重试':'插图暂不可用');});
     image.src = assetURL(filename,!variant.includes('full')); frame.append(image);
   }
-  return frame;
+  frame.append(fallback);return frame;
 }
 export function characterAccent(element,id){
   const color=characterInfo(id).color;
@@ -28,7 +35,7 @@ export function characterAccent(element,id){
 }
 export function characterArt(id, portrait = false) {
   const c = characterInfo(id);
-  return characterAccent(illustration(portrait ? c.portrait : c.face, t("{0} · 角色插图（非回忆照片）",[c.name]), portrait ? 'portrait' : 'face'),id);
+  return characterAccent(illustration(portrait ? c.portrait : c.face, t("{0} · 角色插图（非回忆照片）",[c.name]), portrait ? 'portrait' : 'face',{characterId:id}),id);
 }
 export function skillArt(card, characterId, compact = false, showRarity = false) {
   const info = cardInfo(card, characterId);
