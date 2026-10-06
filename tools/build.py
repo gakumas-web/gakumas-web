@@ -43,7 +43,7 @@ def build(output, asset_lock=None, content_lock=None, mirror_images=False):
     if staging.exists():
         shutil.rmtree(staging)
     staging.mkdir()
-    for name in ('index.html', 'style.css', 'app.mjs', 'i18n.mjs', 'resources.mjs', 'image-config.mjs', 'content-config.mjs'):
+    for name in ('index.html', 'style.css', 'startup.js', 'app.mjs', 'i18n.mjs', 'resources.mjs', 'image-config.mjs', 'content-config.mjs'):
         shutil.copyfile(ROOT / name, staging / name)
     shutil.copyfile(ROOT/'LICENSE', staging/'LICENSE.txt')
     shutil.copyfile(ROOT/'THIRD_PARTY.md', staging/'ATTRIBUTION.txt')

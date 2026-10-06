@@ -18,6 +18,7 @@ jobs:
       - run: node --test tests/*.test.mjs
       - run: python -B tools/check_public.py
       - run: python -B tools/build.py
+      - run: pip install -r requirements-build.txt
       - run: python -B -m unittest discover -s tests -p 'test_*.py'
       - run: docker build -t gakumas-web:check .
       - run: pip install -r requirements-test.txt

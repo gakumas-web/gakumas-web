@@ -2364,3 +2364,14 @@ button.danger-confirm:hover:enabled{color:white;background:#952a23}
 #comparison thead th{padding-top:5px;padding-bottom:5px}
 
 @media(max-width:599px){.comparison-pairs{--comparison-item-size:38px;--comparison-skill-size:56px;--comparison-slot-size:64px}}
+
+/* 公共资源状态独立于账号面板；阶段播报与高频字节数字分开。 */
+.startup-status,.resource-status{margin:12px 28px;padding:12px 16px;border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:10px;background:var(--paper);color:var(--ink)}
+.startup-status p,.resource-status p{margin:4px 0;line-height:1.6}
+.startup-status a{color:var(--accent);text-decoration:underline}
+.resource-status-line{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:36px}
+.resource-status-line p{font-weight:600}.resource-status-line button{flex-shrink:0}
+#resource-details{padding-top:6px}#resource-progress{width:100%;height:8px;accent-color:var(--accent)}
+#resource-bytes,#resource-stage{font-size:12px;font-variant-numeric:tabular-nums}
+#resource-details>.actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+@media(max-width:600px){.startup-status,.resource-status{margin:8px 12px;padding:10px 12px}.resource-status-line{align-items:flex-start}.resource-status-line p{font-size:13px}.resource-status-line button{font-size:12px}#resource-details>.actions button{flex:1 1 auto}}

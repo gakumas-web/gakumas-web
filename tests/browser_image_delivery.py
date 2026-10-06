@@ -4,6 +4,7 @@ import base64
 from functools import partial
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer, BaseHTTPRequestHandler
 import json
+import re
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from threading import Thread
@@ -51,7 +52,7 @@ def check(browser_path=None):
             site_thread=Thread(target=site_server.serve_forever,daemon=True);site_thread.start()
             url=f'http://127.0.0.1:{site_server.server_port}/dist/'
             def ready(page):
-                expect(page.locator('#image-status')).to_contain_text('图片已保存到本机',timeout=20000)
+                expect(page.locator('#image-status')).to_contain_text(re.compile('图片已保存到本机|当前所需图片已准备好'),timeout=20000)
             def show_image(page,name):
                 return page.evaluate('''async name=>{
                     const {uiIconURL}=await import('./resources.mjs');const url=uiIconURL(name);
@@ -68,7 +69,16 @@ def check(browser_path=None):
                 context=browser.new_context();page=context.new_page();errors=[];requests=[]
                 page.on('pageerror',lambda error:errors.append(str(error)))
                 context.on('request',lambda request:requests.append((request.url,request.method,request.post_data)))
-                page.goto(url,wait_until='networkidle');page.locator('#data-open').click();ready(page)
+                held=[]
+                context.route(image_origin+'/**',lambda route:held.append(route))
+                page.goto(url,wait_until='domcontentloaded')
+                expect(page.locator('#content-version')).to_contain_text('one',timeout=20000)
+                expect(page.locator('#empty-import-account')).to_be_enabled()
+                expect(page.locator('#startup-status')).to_be_hidden()
+                expect(page.locator('#image-status')).to_contain_text('正在下载',timeout=20000)
+                for route in held:route.continue_()
+                context.unroute(image_origin+'/**')
+                page.locator('#data-open').click();ready(page)
                 first=show_image(page,'first.png');assert first['width']==1 and first['url'].startswith('blob:')
                 assert len(requested)==1 and requested[0].startswith('/release/one/')
                 page.reload(wait_until='networkidle');page.locator('#data-open').click();ready(page);assert len(requested)==1
@@ -84,7 +94,7 @@ def check(browser_path=None):
                 retry_context=browser.new_context();retry_page=retry_context.new_page();retry_page.goto(url,wait_until='networkidle');retry_page.locator('#data-open').click()
                 expect(retry_page.locator('#image-retry')).to_be_visible(timeout=20000)
                 before=len(requested);blocked.clear();retry_page.locator('#image-retry').click();retry_page.wait_for_load_state('networkidle')
-                retry_page.locator('#data-open').click();ready(retry_page)
+                ready(retry_page)
                 assert requested[before:]==[second_path]
                 assert show_image(retry_page,'second.png')['width']==1
                 retry_context.close()
@@ -103,11 +113,20 @@ def check(browser_path=None):
                 assert show_image(mirror_page,'second.png')['width']==1
                 assert len(requested)==before
                 downloads=[address for address,_,_ in same_origin if '/image-files/' in address]
-                assert len(downloads)==2 and all('/mirror/dist/image-files/' in address for address in downloads)
+                assert len(downloads)==1 and all('/mirror/dist/image-files/' in address for address in downloads)
                 assert all((address.startswith('blob:') or urlsplit(address).netloc==f'127.0.0.1:{site_server.server_port}') and method in ('GET','HEAD') and not body for address,method,body in same_origin),same_origin
                 mirror_page.reload(wait_until='networkidle');mirror_page.locator('#data-open').click();ready(mirror_page)
-                assert len([address for address,_,_ in same_origin if '/image-files/' in address])==2
+                assert len([address for address,_,_ in same_origin if '/image-files/' in address])==1
+                mirror_page.locator('#close-data').click();mirror_page.set_viewport_size({'width':375,'height':812})
+                mirror_page.locator('#language').select_option('ja')
+                expect(mirror_page.locator('#image-notice')).to_contain_text('画像')
+                assert mirror_page.evaluate('document.documentElement.scrollWidth<=innerWidth'), '移动端资源状态溢出'
                 mirrored.close()
+                failed=browser.new_context();failed.route('**/app.mjs',lambda route:route.abort())
+                failed_page=failed.new_page();failed_page.goto(url,wait_until='networkidle')
+                expect(failed_page.locator('#startup-status')).to_contain_text('启动失败')
+                expect(failed_page.locator('#startup-status a')).to_have_attribute('href','./')
+                failed.close()
                 # 回源字节损坏必须停止，且保留此前成功产物。
                 previous=(mirror/'release.json').read_bytes()
                 first_path=urlsplit(index('two')['baseline']['packages'][0]['url']).path
@@ -120,7 +139,7 @@ def check(browser_path=None):
                 browser.close()
             return {'initial_release_only':True,'reload_offline_images':True,'incremental_cdn_only':True,
                     'existing_client_skips_new_baseline':True,'new_client_uses_latest_baseline':True,
-                    'segment_resume':True,'cross_origin':True,'same_origin_subpath':True,'mirror_hash_failure_preserves_site':True,'decoded_images':True,'page_errors':len(errors)}
+                    'segment_resume':True,'cross_origin':True,'same_origin_subpath':True,'content_before_images':True,'boot_failure':True,'mobile_japanese':True,'mirror_hash_failure_preserves_site':True,'decoded_images':True,'page_errors':len(errors)}
     finally:
         if site_server:site_server.shutdown();site_server.server_close();site_thread.join()
         images.shutdown();images.server_close();image_thread.join()

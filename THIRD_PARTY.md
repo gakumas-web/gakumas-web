@@ -7,3 +7,7 @@
 - 游戏图片由可选的独立资源包或 CDN 提供；来源记录在资源项目清单中。Web 默认不加载游戏位图，也不自动访问第三方图片源。来源记录不等于再分发授权，是否打包或托管图片由部署者核对相应条件。
 - 角色台词引用来源保存在 `ui/character-quotes.mjs`，相关角色与作品权利不属于本项目。
 - 本项目没有官方关联，不包含或提供游戏登录凭据、CA、协议材料、安装包或真实用户库存。
+
+## 构建缩略图
+
+Pillow 用于 Pages 构建阶段的图片缩放与 WebP 编码，版本固定在 `requirements-build.txt`。Pillow 采用 MIT-CMU 许可证，见 [项目许可证](https://github.com/python-pillow/Pillow/blob/main/LICENSE)。该 Python 依赖不在浏览器中运行；生成缩略图不改变原游戏素材的权利归属。

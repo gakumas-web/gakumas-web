@@ -5,6 +5,7 @@
 !THIRD_PARTY.md
 !index.html
 !app.mjs
+!startup.js
 !style.css
 !application/
 !application/*.mjs

@@ -17,7 +17,7 @@ export function illustration(filename, label, variant = '') {
     const image = document.createElement('img'); image.alt = label;
     image.width = variant === 'portrait' ? 112 : 128; image.height = variant === 'portrait' ? 160 : 128; image.loading = imageLoading(); image.decoding = 'async';
     watchImage(image,()=>{fallback.hidden=true;},willRetry=>{fallback.hidden=false;fallback.textContent=t(willRetry?'插图暂不可用，稍后自动重试':'插图暂不可用');});
-    image.src = assetURL(filename); frame.append(image);
+    image.src = assetURL(filename,!variant.includes('full')); frame.append(image);
   }
   return frame;
 }

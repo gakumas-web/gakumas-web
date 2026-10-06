@@ -26,6 +26,7 @@ jobs:
           node-version: '22'
       - run: node --test tests/*.test.mjs
       - run: python -B tools/check_public.py
+      - run: pip install -r requirements-build.txt
       - run: python -B tools/build_pages.py
       - run: python -B -m unittest discover -s tests -p 'test_*.py'
       - run: pip install -r requirements-test.txt

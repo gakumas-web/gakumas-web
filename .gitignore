@@ -11,6 +11,7 @@
 !/package.json
 !/index.html
 !/app.mjs
+!/startup.js
 !/style.css
 !/application/
 !/domain/
@@ -44,3 +45,4 @@ node_modules/
 !/content-config.mjs
 
 !/requirements-test.txt
+!/requirements-build.txt

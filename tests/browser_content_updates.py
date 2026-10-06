@@ -52,6 +52,14 @@ def check(browser_path=None):
                 page.locator('#content-apply').click();page.wait_for_load_state('networkidle')
                 page.locator('#data-open').click();expect(page.locator('#content-version')).to_contain_text('two')
                 expect(page.locator('#profile')).to_have_value('account-'+ACCOUNT)
+                # 公共图片清理不能删除当前账号；使用独立数据库的合成对象验证。
+                await_marker=page.evaluate("""async()=>{const {createImageStore}=await import('./application/image-store.mjs');await createImageStore().put('synthetic-public-object',new Blob(['synthetic']));return true;}""")
+                assert await_marker
+                page.once('dialog',lambda dialog:dialog.accept())
+                page.locator('#image-clear').click();page.wait_for_load_state('networkidle')
+                expect(page.locator('#profile')).to_have_value('account-'+ACCOUNT)
+                assert page.evaluate("""async()=>{const {createImageStore}=await import('./application/image-store.mjs');return !await createImageStore().get('synthetic-public-object');}""")
+                page.locator('#data-open').click()
                 # 发布后模拟分包损坏，浏览器必须拒绝它并保留已验证版本。
                 install(site,three)
                 (site/'content/releases/three/effects.json').write_text('broken')

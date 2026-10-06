@@ -1,3 +1,5 @@
+import {markLoading} from './application/loading-metrics.mjs';
+import {beginImageView} from './resources.mjs';
 import {showSelectionDetails,closeSelectionDetails} from './ui/selection-details.mjs';
 import {renderAchievementBrowser} from './ui/achievement-browser.mjs';
 import {PersonalLibrary} from './application/personal-library.mjs';
@@ -195,6 +197,7 @@ function confirmFilterReset(button,action){
 document.addEventListener('pointerdown',event=>{if(pendingFilterReset&&!pendingFilterReset.contains(event.target))cancelFilterReset();},true);
 document.addEventListener('keydown',event=>{if(event.key==='Escape'&&pendingFilterReset){cancelFilterReset();event.preventDefault();}},true);
 function render(){
+  beginImageView();
   cancelFilterReset();
   clearTimeout(searchTimer);resetDeferredContent();
   if($('data-dialog').open)renderAccountOverview();
@@ -400,7 +403,7 @@ async function ensureMaster(forLink=false){
   $('load-master').disabled=true;$('master-status').textContent=t('正在读取本地主数据…');
   const task=loadMaster(scope).then(()=>{
     if(masterReadyFor(state.tab)){$('load-master').hidden=true;$('master-status').textContent=t('主数据已载入 · 公开插图按需缓存');}
-    setup();syncControls();render();openCatalogLink();if(masterReadyFor('memories')&&state.detail)openDetail(state.snapshot.memories.find(m=>m.key===state.detail));
+    markLoading('view-ready');setup();syncControls();render();openCatalogLink();if(masterReadyFor('memories')&&state.detail)openDetail(state.snapshot.memories.find(m=>m.key===state.detail));
   }).catch(()=>{if(!masterReadyFor(state.tab)){$('master-status').textContent=t('主数据暂不可用，仍可查看库存数值。');$('load-master').disabled=false;$('load-master').hidden=false;}}).finally(()=>{masterTasks.delete(scope);renderPendingCatalogCounts();});
   masterTasks.set(scope,task);renderPendingCatalogCounts();return task;
 }
@@ -478,6 +481,7 @@ setupAccountCleanup({
 await refreshProfileOptions();
 $('profile').value=state.profile??'';
 await restoreProfile();
+if(state.snapshot||state.selectionSnapshot)markLoading('account-restored');
 
 function skinOptions(held){
   const info=skinInfo(held),id=info.idolCardId;
@@ -566,3 +570,4 @@ const navigationEdges=new IntersectionObserver(entries=>{
 navigationEdges.observe(navigationFirst);navigationEdges.observe(navigationLast);
 $('navigation-prev').onclick=()=>navigation.scrollBy({left:-navigationWidth*.7});
 $('navigation-next').onclick=()=>navigation.scrollBy({left:navigationWidth*.7});
+window.dispatchEvent(new Event('gakumas-ready'));

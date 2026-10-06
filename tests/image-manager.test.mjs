@@ -66,7 +66,7 @@ test('增量失败保留旧图，重试只下载缺失图片；缓存对象损�
 
 test('空间不足不宣称就绪，也不继续消耗增量流量',async()=>{
   const store=memory(),net=network(),images=manager({...store,pack:async()=>{throw new DOMException('full','QuotaExceededError');}},net);
-  await images.prepare(fixture.versions.two);assert.equal(images.status().error,'image_storage_full');assert.equal(net.calls.length,1);images.dispose();
+  await images.prepare(fixture.versions.two);assert.equal(images.status().error,'image_storage_full');assert.ok(net.calls.length<=2);assert.equal(store.metadata.get('initialized'),undefined);images.dispose();
 });
 
 test('未允许的来源和不匹配的基础包不能进入缓存',async()=>{
@@ -84,4 +84,31 @@ test('基础图片未重复存到 CDN，局部缓存丢失从相关基础分段�
   const before=net.calls.length;await images.prepare(fixture.versions.two);
   assert.equal(images.status().phase,'ready');assert.equal(net.calls.length,before+1);assert.match(net.calls.at(-1),/release/);
   images.dispose();
+});
+
+test('两个下载槽与单写入队列有界，后处理结束前不积压第三个包',async()=>{
+  const index=clone(fixture.versions.multi),store=memory(),calls=[],gates=new Map();
+  const third=new Uint8Array([1,2,3]);const hash=await crypto.subtle.digest('SHA-256',third);const sha=Buffer.from(hash).toString('hex');
+  index.files['ui-icons/third.png']={sha256:sha,bytes:3};index.cdn_objects.push(sha+'.png');
+  let writing=0,maxWriting=0,unlock;const saving=new Promise(resolve=>{unlock=resolve;});
+  const images=createImageManager({store:{...store,pack:async(...args)=>{writing++;maxWriting=Math.max(maxWriting,writing);await saving;await store.pack(...args);writing--;}},
+    allowedOrigins:['https://release.example.invalid','https://cdn.example.invalid'],
+    fetcher:async url=>{calls.push(url);if(calls.length<=2)await new Promise(resolve=>gates.set(url,resolve));return new Response(fixture.packages[url]?Buffer.from(fixture.packages[url],'base64'):third);}});
+  const done=images.prepare(index);
+  for(let i=0;i<100&&calls.length<2;i++)await new Promise(resolve=>setTimeout(resolve,1));
+  assert.equal(calls.length,2);for(const resolve of gates.values())resolve();
+  for(let i=0;i<100&&!writing;i++)await new Promise(resolve=>setTimeout(resolve,1));
+  assert.equal(calls.length,2);assert.equal(writing,1);unlock();await done;
+  assert.equal(maxWriting,1);assert.equal(calls.length,3);assert.equal(images.status().phase,'ready');
+  assert.equal(images.status().bytes,images.status().totalBytes);assert.ok(images.status().tasks.every(task=>task.times.download>=0));images.dispose();
+});
+
+test('停止任务可结束等待，重试只获取未成功对象',async()=>{
+  const store=memory(),index=clone(fixture.versions.multi);let first=true;
+  const images=createImageManager({store,allowedOrigins:['https://release.example.invalid'],fetcher:async(url,options)=>{
+    if(first)await new Promise((_,reject)=>options.signal.addEventListener('abort',()=>reject(new DOMException('stopped','AbortError')),{once:true}));
+    return new Response(Buffer.from(fixture.packages[url],'base64'));
+  }});
+  const task=images.prepare(index);await new Promise(resolve=>setTimeout(resolve,5));images.cancel();await task;
+  assert.equal(images.status().phase,'cancelled');first=false;await images.retry();assert.equal(images.status().phase,'ready');images.dispose();
 });

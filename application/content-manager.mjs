@@ -1,3 +1,4 @@
+import {markLoading} from './loading-metrics.mjs';
 import {contentConfig} from '../content-config.mjs';
 import {appURL,installContentResources} from '../resources.mjs';
 import {WEB_VERSION} from './version.mjs';
@@ -24,7 +25,7 @@ export function createContentManager({channelURL,webVersion=WEB_VERSION,fetcher=
   async function activate(bundle,manifest,cached,epoch=generation){
     await install(JSON.parse(bundle.files['assets-index.json']));
     if(epoch!==generation)return;
-    current={bundle,manifest};parsed.clear();
+    current={bundle,manifest};parsed.clear();markLoading('content-ready');
     notify({phase:'ready',version:manifest.version,availableVersion:null,cached,error:null,local:bundle.origin==='local'});
   }
   async function refresh(){

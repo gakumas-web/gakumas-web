@@ -19,6 +19,7 @@ export function createImageStore(){
     });
   }
   return {
+    clear:()=>transaction(['objects','meta'],'readwrite',tx=>{tx.objectStore('objects').clear();return tx.objectStore('meta').clear();}),
     get:key=>transaction(['objects'],'readonly',tx=>tx.objectStore('objects').get(key)),
     meta:key=>transaction(['meta'],'readonly',tx=>tx.objectStore('meta').get(key)),
     put:(key,blob)=>transaction(['objects'],'readwrite',tx=>tx.objectStore('objects').put(blob,key)),

@@ -78,7 +78,9 @@ def prepare(lock_path, staging, requirements, mirror_images=False):
             if target.stat().st_size!=row['bytes'] or hashlib.sha256(target.read_bytes()).hexdigest()!=row['sha256']:
                 raise ValueError('同源图片副本大小或 SHA-256 不匹配')
             mapping[url]='./image-files/'+name
-        return {**empty,'mode':'managed','version':index['version'],'allowedOrigins':[],'downloadURLs':mapping}, {'mode':'managed','version':index['version'],'baseline_version':index['baseline']['version'],'files':len(index['files']),'mirrored_downloads':len(mapping)}, []
+        from image_plan import build_plan
+        plan=build_plan(index,folder)
+        return {**empty,'mode':'managed','version':index['version'],'allowedOrigins':[],'downloadURLs':mapping,'loadingPlan':plan}, {'mode':'managed','version':index['version'],'baseline_version':index['baseline']['version'],'files':len(index['files']),'mirrored_downloads':len(mapping)}, []
     origins={source_origin(url) for url in [index['cdn_base_url'],*[pack['url'] for pack in index['baseline']['packages']]]}
     for origin in lock.get('download_origins',[]):
         url=public_url(origin)

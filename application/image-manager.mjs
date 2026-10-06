@@ -3,96 +3,138 @@ import {contentHash} from '../domain/content-contract.mjs';
 import {unpackImageBase} from '../domain/image-archive.mjs';
 import {createImageStore} from './image-store.mjs';
 
-export function createImageManager({store=createImageStore(),fetcher=(...args)=>fetch(...args),allowedOrigins=[],downloadURLs={}}={}){
-  const listeners=new Set(),urls=new Map();let active,controller,installedIndex;
-  let state={phase:'idle',completed:0,total:0,bytes:0,totalBytes:0,error:null};
-  function notify(value){state={...state,...value};for(const listener of listeners)listener({...state});}
-  async function download(url,row){
-    const target=imageSourceURL(downloadURLs[url]??url);
-    if(!allowedOrigins.includes(target.origin))throw new Error('image_source_not_allowed');
-    const response=await fetcher(target.href,{credentials:'omit',referrerPolicy:'no-referrer',signal:AbortSignal.any([controller.signal,AbortSignal.timeout(120000)])});
-    if(!response.ok)throw new Error('image_download_failed');
-    if(response.url&&!allowedOrigins.includes(new URL(response.url).origin))throw new Error('image_source_not_allowed');
-    const reader=response.body.getReader(),chunks=[];let size=0;
-    try{
-      while(true){const {done,value}=await reader.read();if(done)break;size+=value.length;
-        if(size>row.bytes){await reader.cancel();throw new Error('image_hash_mismatch');}
-        chunks.push(value);notify({bytes:size});
-      }
-    }finally{reader.releaseLock();}
-    const bytes=new Uint8Array(size);let offset=0;for(const chunk of chunks){bytes.set(chunk,offset);offset+=chunk.length;}
-    if(size!==row.bytes||await contentHash(bytes)!==row.sha256)throw new Error('image_hash_mismatch');
-    return bytes;
+// 下载槽同时约束待处理包；最多两个包在途，一次只解包、保存一个包。
+export function createImageManager({store=createImageStore(),fetcher=(...args)=>fetch(...args),allowedOrigins=[],downloadURLs={},concurrency=2}={}){
+  const listeners=new Set(),available=new Set(),verified=new Map(),urls=new Map(),jobs=new Map(),pending=new Map(),requested=new Set();
+  let index,rows=new Map(),packs=new Map(),active=0,checking=0,paused=false,processing=Promise.resolve(),epoch=0,networkBytes=0,cacheMs=0,cacheError=null,full=false;
+  const clock=()=>performance.now();
+  const errorCode=error=>error?.name==='QuotaExceededError'?'image_storage_full':error?.name==='TimeoutError'?'image_timeout':error?.name==='AbortError'?'image_cancelled':String(error?.message??'image_cache_failed');
+  function status(){
+    const tasks=[...jobs.values()],working=tasks.filter(job=>!['done','failed','cancelled','queued'].includes(job.phase));
+    const failed=tasks.filter(job=>job.phase==='failed');
+    const busy=checking||tasks.some(job=>job.phase==='queued')||working.length;
+    const phase=paused?'cancelled':busy?(working[0]?.phase??'checking'):failed.length||cacheError?'error':index&&requested.size?'ready':'idle';
+    return {phase,completed:[...requested].filter(key=>verified.has(key)).length,total:requested.size,
+      bytes:tasks.reduce((sum,job)=>sum+(['failed','cancelled'].includes(job.phase)?0:job.bytes),0),
+      totalBytes:tasks.reduce((sum,job)=>sum+job.row.bytes,0),networkBytes,cacheCheckMs:Math.round(cacheMs),checking,failed:failed.length+(cacheError?1:0),
+      error:cacheError??failed[0]?.error??null,full,
+      tasks:tasks.map(({id,phase,bytes,row,error,times,processed})=>({id,phase,bytes,totalBytes:row.bytes,error,times:{...times},processed:processed??0,objects:Object.keys(row.objects??{}).length}))};
   }
-  async function perform(index){
-    validateImageDelivery(index);installedIndex=index;controller=new AbortController();
-    const required=new Map(Object.entries(index.files).map(([name,row])=>[imageObjectKey(name,row),row]));
-    const verified=new Map();
-    async function cached(key,row){
-      if(verified.has(key))return verified.get(key);
-      const blob=await store.get(key);
-      const valid=blob instanceof Blob&&blob.size===row.bytes&&await contentHash(await blob.arrayBuffer())===row.sha256;
-      verified.set(key,valid?blob:null);return valid?blob:null;
+  function notify(){const state=status();for(const listener of listeners)listener(state);}
+  function expose(){
+    const result={};
+    for(const [name,row] of Object.entries(index?.files??{})){
+      const key=imageObjectKey(name,row),blob=verified.get(key);
+      if(blob){if(!urls.has(key))urls.set(key,URL.createObjectURL(blob));result[name]=urls.get(key);}
     }
-    function expose(){
-      const result={};
-      for(const [name,row] of Object.entries(index.files)){
-        const key=imageObjectKey(name,row),blob=verified.get(key);
-        if(blob){if(!urls.has(key))urls.set(key,URL.createObjectURL(blob));result[name]=urls.get(key);}
-      }
-      return result;
-    }
-    notify({phase:'checking',completed:0,total:required.size,bytes:0,totalBytes:0,error:null});
+    return result;
+  }
+  function publish(){const result=expose();for(const listener of available)listener(result);notify();}
+  function configure(value){
+    validateImageDelivery(value);if(index===value)return;
+    for(const job of jobs.values())job.controller?.abort();
+    epoch++;index=value;rows=new Map(Object.entries(value.files).map(([name,row])=>[imageObjectKey(name,row),row]));
+    packs=new Map();for(const pack of value.baseline.packages)for(const key of Object.keys(pack.objects))packs.set(key,pack);
+    jobs.clear();pending.clear();requested.clear();paused=false;cacheError=null;full=false;networkBytes=0;cacheMs=0;notify();
+  }
+  async function download(job){
+    const target=imageSourceURL(downloadURLs[job.url]??job.url);
+    if(!allowedOrigins.includes(target.origin))throw new Error('image_source_not_allowed');
+    const started=clock();job.phase='downloading';notify();
+    const response=await fetcher(target.href,{credentials:'omit',referrerPolicy:'no-referrer',signal:AbortSignal.any([job.controller.signal,AbortSignal.timeout(120000)])});
+    if(!response.ok)throw new Error(response.status===404?'image_not_found':'image_download_failed');
+    if(response.url&&!allowedOrigins.includes(new URL(response.url).origin))throw new Error('image_source_not_allowed');
+    const reader=response.body.getReader(),chunks=[];
+    try{while(true){const {done,value}=await reader.read();if(done)break;job.bytes+=value.length;networkBytes+=value.length;
+      if(job.bytes>job.row.bytes){await reader.cancel();throw new Error('image_hash_mismatch');}chunks.push(value);notify();
+    }}finally{reader.releaseLock();}
+    job.times.download=clock()-started;job.phase='verifying';notify();const checkingAt=clock();
+    const bytes=new Uint8Array(job.bytes);let offset=0;for(const chunk of chunks){bytes.set(chunk,offset);offset+=chunk.length;}
+    if(bytes.length!==job.row.bytes||await contentHash(bytes)!==job.row.sha256)throw new Error('image_hash_mismatch');
+    job.times.verify=clock()-checkingAt;return bytes;
+  }
+  async function run(job,generation){
     try{
-      // 本机首次准备必须先完成基础包，失败不转为数千次 CDN 请求。
-      if(!await store.meta('initialized')){
-        let completed=0;
-        for(const pack of index.baseline.packages){
-          let complete=Boolean(await store.meta('pack:'+pack.sha256));
-          if(complete)for(const [key,row] of Object.entries(pack.objects))if(!await cached(key,row)){complete=false;break;}
-          if(!complete){
-            notify({phase:'baseline',completed,total:index.baseline.packages.length,bytes:0,totalBytes:pack.bytes});
-            const entries=await unpackImageBase(await download(pack.url,pack),pack);
-            await store.pack(pack.sha256,entries);
-            for(const [key,blob] of entries)verified.set(key,blob);
-          }
-          completed++;notify({completed});
-        }
-        await store.setMeta('initialized',true);
-      }
-      const cdn=new Set(index.cdn_objects),repair=new Set();
-      for(const [key,row] of required)if(!await cached(key,row)&&!cdn.has(key))repair.add(key);
-      // 基础图片未上传 CDN；浏览器局部清理缓存时只修复相关基础分段。
-      for(const pack of index.baseline.packages){
-        if(!Object.keys(pack.objects).some(key=>repair.has(key)))continue;
-        notify({phase:'baseline',completed:0,total:1,bytes:0,totalBytes:pack.bytes});
-        const entries=await unpackImageBase(await download(pack.url,pack),pack);
-        await store.pack(pack.sha256,entries);for(const [key,blob] of entries)verified.set(key,blob);
-      }
-      const missing=[];
-      for(const [key,row] of required)if(!await cached(key,row))missing.push([key,row]);
-      let completed=0;
-      for(const [key,row] of missing){
-        notify({phase:'incremental',completed,total:missing.length,bytes:0,totalBytes:row.bytes});
-        const bytes=await download(index.cdn_base_url+'objects/'+key,row);
-        const blob=new Blob([bytes],{type:key.endsWith('.png')?'image/png':'image/webp'});
-        await store.put(key,blob);verified.set(key,blob);completed++;
-      }
-      notify({phase:'ready',completed:required.size,total:required.size,bytes:0,totalBytes:0});
-      return expose();
+      const bytes=await download(job);
+      // 已下载包仍占一个槽，避免快网把整套资源堆在待处理队列。
+      job.phase='waiting';notify();const previous=processing;let release;
+      processing=new Promise(resolve=>{release=resolve;});await previous;
+      try{
+        if(job.controller.signal.aborted||generation!==epoch)throw new DOMException('stopped','AbortError');
+        let entries;const unpackAt=clock();
+        if(job.row.objects){job.phase='unpacking';notify();entries=await unpackImageBase(bytes,job.row,processed=>{job.processed=processed;notify();});}
+        else entries=new Map([[job.id,new Blob([bytes],{type:job.id.endsWith('.png')?'image/png':'image/webp'})]]);
+        job.times.unpack=clock()-unpackAt;job.phase='saving';notify();const savingAt=clock();
+        if(job.row.objects)await store.pack(job.id,entries);else await store.put(job.id,entries.get(job.id));
+        job.times.save=clock()-savingAt;
+        for(const [key,blob] of entries)verified.set(key,blob);
+        job.phase='done';if(generation===epoch)publish();
+      }finally{release();}
     }catch(error){
-      // 已验证的分段与对象保留，重试只补齐缺失部分。
-      notify({phase:'error',error:error?.name==='QuotaExceededError'?'image_storage_full':String(error?.message??'image_cache_failed')});
-      return expose();
+      job.error=errorCode(error);job.phase=job.error==='image_cancelled'?'cancelled':'failed';
+      if(job.error==='image_storage_full'){cancel();cacheError=job.error;}
+    }finally{active--;job.resolve();if(generation===epoch)notify();pump();}
+  }
+  function pump(){
+    if(paused)return;
+    while(active<Math.max(1,Math.min(2,concurrency))){
+      const job=[...jobs.values()].filter(job=>job.phase==='queued').sort((a,b)=>a.priority-b.priority)[0];
+      if(!job)break;
+      active++;job.controller=new AbortController();job.phase='downloading';void run(job,epoch);
     }
+  }
+  async function need(key,priority){
+    requested.add(key);if(verified.has(key))return;
+    const waiting=jobs.get(packs.get(key)?.sha256??key);if(waiting)waiting.priority=Math.min(waiting.priority,priority);
+    if(pending.has(key))return pending.get(key);
+    const generation=epoch;
+    const task=(async()=>{
+      checking++;notify();let blob;const cacheAt=clock();
+      try{const saved=await store.get(key),row=rows.get(key);if(saved instanceof Blob&&saved.size===row.bytes&&await contentHash(await saved.arrayBuffer())===row.sha256)blob=saved;}
+      finally{checking--;cacheMs+=clock()-cacheAt;notify();}
+      if(generation!==epoch)return;
+      if(blob){verified.set(key,blob);publish();return;}
+      if(paused)return;
+      const pack=packs.get(key),id=pack?.sha256??key;
+      let job=jobs.get(id);
+      if(!job){
+        let resolve;const promise=new Promise(done=>{resolve=done;});
+        job={id,url:pack?.url??index.cdn_base_url+'objects/'+key,row:pack??rows.get(key),phase:'queued',priority,bytes:0,times:{},promise,resolve};jobs.set(id,job);
+      }else job.priority=Math.min(job.priority,priority);
+      if(!paused)pump();
+      return job.promise;
+    })().catch(error=>{cacheError=errorCode(error);notify();}).finally(()=>{if(pending.get(key)===task)pending.delete(key);});
+    pending.set(key,task);return task;
+  }
+  async function request(names,{priority=1,complete=false}={}){
+    if(!index)return {};
+    const generation=epoch;
+    if(complete)full=true;
+    await Promise.all(names.filter(name=>index.files[name]).map(name=>need(imageObjectKey(name,index.files[name]),priority)));
+    if(generation!==epoch)return {};
+    if(complete&&[...rows.keys()].every(key=>verified.has(key)))await store.setMeta('initialized',true);
+    notify();return expose();
+  }
+  function cancel(){
+    paused=true;for(const job of jobs.values()){
+      if(job.phase==='queued'){job.phase='cancelled';job.resolve();}
+      else job.controller?.abort();
+    }notify();
   }
   return {
-    prepare(index){
-      if(active)return installedIndex===index?active:active.then(()=>this.prepare(index));
-      const task=perform(index).finally(()=>{if(active===task)active=null;});active=task;return task;
+    configure,request,
+    prioritizeView(){for(const job of jobs.values())if(job.phase==='queued'&&job.priority>0)job.priority=Math.max(2,job.priority);},
+    async prepare(value){configure(value);await Promise.all([...jobs.values()].map(job=>job.promise));jobs.clear();pending.clear();requested.clear();paused=false;cacheError=null;verified.clear();return request(Object.keys(value.files),{complete:true});},
+    async retry(){
+      await Promise.all([...pending.values()]);
+      paused=false;cacheError=null;
+      for(const [id,job] of jobs)if(['failed','cancelled'].includes(job.phase))jobs.delete(id);
+      return request(Object.keys(index?.files??{}).filter(name=>requested.has(imageObjectKey(name,index.files[name]))),{complete:full});
     },
-    retry(){if(!installedIndex)return Promise.resolve({});return this.prepare(installedIndex);},
-    status:()=>({...state}),subscribe(listener){listeners.add(listener);listener({...state});return()=>listeners.delete(listener);},
-    dispose(){controller?.abort();for(const url of urls.values())URL.revokeObjectURL(url);urls.clear();},
+    complete:()=>{paused=false;return request(Object.keys(index?.files??{}),{priority:3,complete:true});},cancel,
+    async clear(){cancel();await Promise.all([...pending.values()]);await store.clear();verified.clear();for(const url of urls.values())URL.revokeObjectURL(url);urls.clear();publish();},
+    status,subscribe(listener){listeners.add(listener);listener(status());return()=>listeners.delete(listener);},
+    onAvailable(listener){available.add(listener);return()=>available.delete(listener);},
+    dispose(){cancel();for(const url of urls.values())URL.revokeObjectURL(url);urls.clear();},
   };
 }

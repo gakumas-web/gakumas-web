@@ -2,6 +2,7 @@
 import argparse
 import hashlib
 import json
+import os
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
@@ -30,7 +31,21 @@ def build_pages(source, output):
         count=build(Path(output),locks/'asset-lock.json',locks/'content-lock.json',mirror_images=True)
     total=sum(path.stat().st_size for path in Path(output).rglob('*') if path.is_file())
     if total>1_000_000_000:raise ValueError('Pages 站点超过 1 GB，停止发布')
-    return {'version':source['version'],'program_files':count,'site_bytes':total,'image_delivery':'same-origin'}
+    config=json.loads((Path(output)/'image-config.mjs').read_text().split('export const imageConfig=',1)[1].strip().removesuffix(';'))
+    groups=config['loadingPlan']['groups']
+    program=sum(path.stat().st_size for path in Path(output).rglob('*') if path.is_file() and path.relative_to(output).parts[0] not in ('content','image-files'))
+    content=sum(path.stat().st_size for path in (Path(output)/'content').rglob('*') if path.is_file())
+    report={'version':source['version'],'program_files':count,'program_bytes':program,'content_bytes':content,'site_bytes':total,
+            'image_delivery':'same-origin-on-demand','groups':groups,'initial_image_bytes':sum(row['bytes'] for row in groups if row['group']=='core'),
+            'complete_image_bytes':sum(row['bytes'] for row in groups),'compatibility_archives':'保留当前源版本的原始分段，供此前已打开的页面完成下载；新页面只请求用途包。'}
+    (Path(output)/'build-report.json').write_text(json.dumps(report,ensure_ascii=False,indent=2)+'\n')
+    if os.environ.get('GITHUB_STEP_SUMMARY'):
+        with open(os.environ['GITHUB_STEP_SUMMARY'],'a') as summary:
+            summary.write('## Pages 构建体积\n\n| 项目 | MiB |\n| --- | ---: |\n')
+            for name,key in [('程序','program_bytes'),('公共资料','content_bytes'),('无账号首次图片','initial_image_bytes'),('可选完整图片','complete_image_bytes'),('发布目录','site_bytes')]:
+                summary.write(f"| {name} | {report[key]/1048576:.2f} |\n")
+            summary.write('\n已有账号的首屏图片取决于当前视图；用途包和原始兼容分段分别保留，不把二者总量当作首次下载量。\n')
+    return report
 
 
 if __name__=='__main__':
