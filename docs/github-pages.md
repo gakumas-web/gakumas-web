@@ -52,3 +52,17 @@ python3 -B tools/build_pages.py --image-cache local/pages-image-cache --output l
 ```
 
 手动工作流的 `publish` 默认开启；关闭时只执行检查、构建及缓存读写，并保存构建报告，不进入 Pages 部署任务。可以用连续两次关闭发布的运行测量冷构建与缓存命中耗时。
+
+### 云端冷暖构建对照
+
+同一图片输入及生成工具链的两次构建验证结果：
+
+| 指标 | 冷构建 | 缓存命中 |
+| --- | ---: | ---: |
+| 构建器耗时 | 388.764 秒 | 2.575 秒 |
+| Actions 缓存恢复步骤 | 1 秒（未命中） | 4 秒 |
+| 构建验证任务总耗时 | 474 秒 | 73 秒 |
+
+冷暖两轮的 `release.json` 完全一致，所列 164 个文件的哈希全部相同；有效命中没有重复保存缓存。这是单次云端对照，任务总耗时包含检查、依赖安装及构建，但两次均关闭发布，不包含 Pages 制品上传和站点切换。
+
+证据：[冷构建](https://github.com/gakumas-web/gakumas-web/actions/runs/37465908670)、[缓存命中](https://github.com/gakumas-web/gakumas-web/actions/runs/37466983442)。构建报告作为各运行的 `pages-build-report` 制品保存。

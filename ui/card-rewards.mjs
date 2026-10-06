@@ -21,7 +21,8 @@ export function supportHint(button,body,{container,followPointer=false,hoverOnly
   if(followPointer)popup.classList.add('support-pointer-popover');
   let pinned=false,timer,focusSuppressed=false,focusReturnSuppressed=false;
   button.addEventListener('reward-suppress-focus',()=>{focusSuppressed=true;focusReturnSuppressed=true;if(popup.matches(':popover-open'))popup.hidePopover();});
-  popup.addEventListener('reward-dismiss',()=>{focusSuppressed=true;popup.hidePopover();});
+  // Escape 后抑制迟到的焦点及指针事件，直到离开入口或再次明确点击。
+  popup.addEventListener('reward-dismiss',()=>{focusSuppressed=true;focusReturnSuppressed=true;pinned=false;popup.hidePopover();button.setAttribute('aria-expanded','false');});
   function positionAtPointer(event){
     const bounds=popup.getBoundingClientRect();
     const left=event.clientX+12,top=event.clientY+14;

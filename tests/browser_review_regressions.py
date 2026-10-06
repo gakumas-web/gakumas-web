@@ -116,6 +116,9 @@ def check(browser_path=None):
                 trigger=page.locator('#ending-review .ending-state-trigger').first
                 trigger.focus();trigger.press('Enter');expect(trigger).to_have_attribute('aria-expanded','true')
                 page.keyboard.press('Escape');expect(trigger).to_have_attribute('aria-expanded','false')
+                trigger.dispatch_event('pointerenter',{'pointerType':'mouse'})
+                page.evaluate('()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)))')
+                expect(trigger).to_have_attribute('aria-expanded','false')
                 trigger.tap();expect(trigger).to_have_attribute('aria-expanded','true');page.keyboard.press('Escape')
                 assert '未导入' in trigger.get_attribute('aria-label')
                 # 角色占位只占 32px，天然小于 32px 的图标也不放大；图像到达不重建库存。
