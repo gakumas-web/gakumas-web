@@ -71,7 +71,8 @@ export function createImageManager({store=createImageStore(),fetcher=(...args)=>
         job.phase='done';if(generation===epoch)publish();
       }finally{release();}
     }catch(error){
-      job.error=errorCode(error);job.phase=job.error==='image_cancelled'?'cancelled':'failed';
+      job.error=error?.name==='AbortError'&&!job.controller.signal.aborted?'image_timeout':errorCode(error);
+      job.phase=job.error==='image_cancelled'?'cancelled':'failed';
       if(job.error==='image_storage_full'){cancel();cacheError=job.error;}
     }finally{active--;job.resolve();if(generation===epoch)notify();pump();}
   }
@@ -131,7 +132,7 @@ export function createImageManager({store=createImageStore(),fetcher=(...args)=>
       for(const [id,job] of jobs)if(['failed','cancelled'].includes(job.phase))jobs.delete(id);
       return request(Object.keys(index?.files??{}).filter(name=>requested.has(imageObjectKey(name,index.files[name]))),{complete:full});
     },
-    complete:()=>{paused=false;return request(Object.keys(index?.files??{}),{priority:3,complete:true});},cancel,
+    async complete(){if(paused||[...jobs.values()].some(job=>['failed','cancelled'].includes(job.phase)))await this.retry();return request(Object.keys(index?.files??{}),{priority:3,complete:true});},cancel,
     async clear(){cancel();await Promise.all([...pending.values()]);await store.clear();verified.clear();for(const url of urls.values())URL.revokeObjectURL(url);urls.clear();publish();},
     status,subscribe(listener){listeners.add(listener);listener(status());return()=>listeners.delete(listener);},
     onAvailable(listener){available.add(listener);return()=>available.delete(listener);},

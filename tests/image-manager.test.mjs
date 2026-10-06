@@ -112,3 +112,9 @@ test('停止任务可结束等待，重试只获取未成功对象',async()=>{
   const task=images.prepare(index);await new Promise(resolve=>setTimeout(resolve,5));images.cancel();await task;
   assert.equal(images.status().phase,'cancelled');first=false;await images.retry();assert.equal(images.status().phase,'ready');images.dispose();
 });
+
+test('响应流超时不能冒充用户停止或图片已经就绪',async()=>{
+  const images=createImageManager({store:memory(),allowedOrigins:['https://release.example.invalid'],fetcher:async()=>new Response(new ReadableStream({start(controller){controller.error(new DOMException('stream timeout','AbortError'));}}))});
+  await images.prepare(fixture.versions.one);
+  assert.equal(images.status().phase,'error');assert.equal(images.status().error,'image_timeout');assert.equal(images.status().completed,0);images.dispose();
+});
