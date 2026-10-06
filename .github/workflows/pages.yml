@@ -37,7 +37,9 @@ jobs:
       - run: python -B tests/browser_review_regressions.py
       - name: 计算图片缓存身份
         id: image-key
-        run: echo "key=$(python -B tools/build_pages.py --cache-key)" >> "$GITHUB_OUTPUT"
+        run: |
+          pages_image_key="$(python -B tools/build_pages.py --cache-key)"
+          echo "key=$pages_image_key" >> "$GITHUB_OUTPUT"
       - name: 恢复图片构建缓存
         uses: actions/cache/restore@v6
         continue-on-error: true
