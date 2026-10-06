@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 import sys
 from tempfile import TemporaryDirectory
-from threading import Thread
+from threading import Thread,Event,Lock
 from urllib.parse import urlsplit
 from playwright.sync_api import sync_playwright,expect
 from test_content_install import fixture,build,install,ROOT
@@ -22,7 +22,19 @@ def check(browser_path=None):
         root=Path(temp);site=root/'dist';build(site)
         one,bundle=fixture(root,'one');install(site,one)
         two,_=fixture(root,'two',changed='catalog');three,_=fixture(root,'three',changed='effects')
-        server=ThreadingHTTPServer(('127.0.0.1',0),partial(Handler,directory=str(root)))
+        siblings_done=Event();bodies_received=Event();response_lock=Lock();delivered=set();received=set();race={'fail':True,'failed_after_siblings':False}
+        class ParallelFailureHandler(Handler):
+            def do_GET(self):
+                if race['fail'] and self.path.endswith('/one/catalog.json'):
+                    race['failed_after_siblings']=siblings_done.wait(5) and bodies_received.wait(5)
+                    self.send_error(503);return
+                super().do_GET()
+                if self.path.endswith(('/one/effects.json','/one/abilities.json')):
+                    self.wfile.flush()
+                    with response_lock:
+                        delivered.add(self.path.rsplit('/',1)[-1])
+                        if len(delivered)==2:siblings_done.set()
+        server=ThreadingHTTPServer(('127.0.0.1',0),partial(ParallelFailureHandler,directory=str(root)))
         thread=Thread(target=server.serve_forever,daemon=True);thread.start()
         # 子目录同时验证模块相对路径、内容频道及离线导入没有逃逸站点根。
         url=f'http://127.0.0.1:{server.server_port}/dist/'
@@ -31,16 +43,37 @@ def check(browser_path=None):
                 browser=driver.chromium.launch(headless=True,**({'executable_path':browser_path} if browser_path else {}))
                 context=browser.new_context();page=context.new_page();errors=[];requests=[]
                 page.on('pageerror',lambda error:errors.append(str(error)))
+                def received_body(request):
+                    if request.url.endswith(('/one/effects.json','/one/abilities.json')):
+                        received.add(request.url.rsplit('/',1)[-1])
+                        if len(received)==2:bodies_received.set()
+                page.on('requestfinished',received_body)
                 context.on('request',lambda request:requests.append((request.url,request.method,request.post_data)))
                 page.goto(url,wait_until='networkidle')
-                page.locator('#data-open').click();expect(page.locator('#content-version')).to_contain_text('one')
-                page.locator('#close-data').click()
+                assert race['failed_after_siblings']
+                expect(page.locator('#content-readiness-retry')).to_be_enabled()
+                expect(page.locator('#content-readiness-text')).to_contain_text('暂不可用')
+                page.locator('#resources-open').click()
+                expect(page.locator('#resource-content-retry')).to_be_enabled()
+                expect(page.locator('#content-check')).to_be_enabled()
+                # 从真实下载入口检查失败诊断，不直接调用管理器代替用户重试。
+                with page.expect_download() as diagnostics:page.locator('#resource-diagnostics').click()
+                report=json.loads(Path(diagnostics.value.path()).read_text())
+                assert set(report['public_content'])=={'phase','version','availableVersion','cached','error_code','bytes','totalBytes'}
+                assert report['public_content']['phase']=='unavailable' and report['public_content']['version'] is None
+                assert report['public_content']['error_code']=='content_unavailable'
+                race['fail']=False;page.locator('#resource-content-retry').click()
+                expect(page.locator('#content-version')).to_contain_text('one')
+                page.locator('#close-resources').click()
+
+                page.locator('#resources-open').click();expect(page.locator('#content-version')).to_contain_text('one')
+                page.locator('#close-resources').click()
                 account=root/'account'
                 for name,document in fixtures().items():
                     target=account/name/'snapshot.json';target.parent.mkdir(parents=True);target.write_text(json.dumps(document))
                 page.locator('#account-directory-files').set_input_files(str(account))
                 expect(page.locator('#profile')).to_have_value('account-'+ACCOUNT)
-                page.locator('#data-open').click()
+                page.locator('#resources-open').click()
                 request_start=len(requests)
                 install(site,two)
                 page.locator('#content-check').click()
@@ -50,7 +83,7 @@ def check(browser_path=None):
                 downloaded=[urlsplit(value[0]).path.rsplit('/',1)[-1] for value in requests[request_start:] if '/releases/two/' in value[0]]
                 assert sorted(downloaded)==['catalog.json','manifest.json'],downloaded
                 page.locator('#content-apply').click();page.wait_for_load_state('networkidle')
-                page.locator('#data-open').click();expect(page.locator('#content-version')).to_contain_text('two')
+                page.locator('#resources-open').click();expect(page.locator('#content-version')).to_contain_text('two')
                 expect(page.locator('#profile')).to_have_value('account-'+ACCOUNT)
                 # 公共图片清理不能删除当前账号；使用独立数据库的合成对象验证。
                 await_marker=page.evaluate("""async()=>{const {createImageStore}=await import('./application/image-store.mjs');await createImageStore().put('synthetic-public-object',new Blob(['synthetic']));return true;}""")
@@ -60,7 +93,7 @@ def check(browser_path=None):
                     page.locator('#image-clear').click()
                 expect(page.locator('#profile')).to_have_value('account-'+ACCOUNT)
                 assert page.evaluate("""async()=>{const {createImageStore}=await import('./application/image-store.mjs');return !await createImageStore().get('synthetic-public-object');}""")
-                page.locator('#data-open').click()
+                page.locator('#resources-open').click()
                 # 发布后模拟分包损坏，浏览器必须拒绝它并保留已验证版本。
                 install(site,three)
                 (site/'content/releases/three/effects.json').write_text('broken')
@@ -69,13 +102,13 @@ def check(browser_path=None):
                 expect(page.locator('#content-version')).to_contain_text('two')
                 expect(page.locator('#content-apply')).to_be_hidden()
                 context.route('**/content/channel.json',lambda route:route.abort())
-                page.reload(wait_until='networkidle');page.locator('#data-open').click()
+                page.reload(wait_until='networkidle');page.locator('#resources-open').click()
                 expect(page.locator('#content-version')).to_contain_text('two')
                 expect(page.locator('#profile')).to_have_value('account-'+ACCOUNT)
                 page.locator('#content-file').set_input_files(str(bundle))
                 expect(page.locator('#content-apply')).to_be_visible()
                 page.locator('#content-apply').click();page.wait_for_load_state('networkidle')
-                page.locator('#data-open').click();expect(page.locator('#content-version')).to_contain_text('one')
+                page.locator('#resources-open').click();expect(page.locator('#content-version')).to_contain_text('one')
                 expect(page.locator('#content-status')).to_contain_text('本地导入')
                 expect(page.locator('#profile')).to_have_value('account-'+ACCOUNT)
                 assert not errors,errors
@@ -85,7 +118,7 @@ def check(browser_path=None):
                     target=urlsplit(request_url)
                     assert target.netloc==urlsplit(url).netloc and target.path.startswith('/dist/')
                 browser.close()
-            return {'content_format':1,'changed_parts_downloaded':['catalog.json'],'unchanged_parts_reused':5,'online_update':True,'failed_update_keeps_cache':True,'offline_cache':True,'local_bundle_import':True,
+            return {'parallel_failure_retry':True,'public_content_diagnostics':True,'content_format':1,'changed_parts_downloaded':['catalog.json'],'unchanged_parts_reused':5,'online_update':True,'failed_update_keeps_cache':True,'offline_cache':True,'local_bundle_import':True,
                     'account_preserved':True,'subdirectory':True,'inventory_uploads':0,'page_errors':0}
         finally:
             server.shutdown();server.server_close();thread.join()

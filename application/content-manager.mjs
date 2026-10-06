@@ -33,6 +33,8 @@ export function createContentManager({channelURL,webVersion=WEB_VERSION,fetcher=
     const epoch=generation;
     controller=new AbortController();const refreshController=controller;
     notify({phase:'checking',error:null,bytes:0,totalBytes:0});
+    // 同轮失败中止后，已收到正文的并行任务也失去发布进度的权限。
+    const canPublishProgress=()=>epoch===generation&&updating===task&&!refreshController.signal.aborted;
     const task=(async()=>{
       const channel=validateContentChannel(JSON.parse(decode(await request(channelURL,contentLimits.manifest,'no-store'))));
       if(current?.bundle.manifest_sha256===channel.sha256){notify({phase:'ready'});return state;}
@@ -47,10 +49,10 @@ export function createContentManager({channelURL,webVersion=WEB_VERSION,fetcher=
         await Promise.all(names.map(async name=>{
           const saved=current?.bundle.files[name];
           if(typeof saved==='string'&&current.manifest.files[name]?.sha256===manifest.files[name].sha256){
-            try{files[name]=(await validateContentPart(name,new TextEncoder().encode(saved),manifest)).text;if(epoch===generation&&updating===task)notify({totalBytes:state.totalBytes-manifest.files[name].bytes});return;}catch{}
+            try{files[name]=(await validateContentPart(name,new TextEncoder().encode(saved),manifest)).text;if(canPublishProgress())notify({totalBytes:state.totalBytes-manifest.files[name].bytes});return;}catch{}
           }
-          const bytes=await request(new URL(name,manifestURL).href,manifest.files[name].bytes,'default',bytes=>{if(epoch===generation&&updating===task)notify({phase:'downloading',bytes:state.bytes+bytes});});
-          if(epoch===generation&&updating===task)notify({phase:'verifying'});
+          const bytes=await request(new URL(name,manifestURL).href,manifest.files[name].bytes,'default',bytes=>{if(canPublishProgress())notify({phase:'downloading',bytes:state.bytes+bytes});});
+          if(canPublishProgress())notify({phase:'verifying'});
           files[name]=(await validateContentPart(name,bytes,manifest)).text;
         }));
       }

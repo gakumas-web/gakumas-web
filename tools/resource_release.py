@@ -51,7 +51,7 @@ def source_file(lock, key, parent, temporary, limit):
 def write_config(path, config):
     path.write_text('// 构建生成的资源定位；未配置的游戏图片只使用本站占位图。\nexport const imageConfig='+json.dumps(config, ensure_ascii=False, separators=(',', ':'))+';\n', encoding='utf-8')
 
-def prepare(lock_path, staging, requirements, mirror_images=False, image_cache=None, cache_report=None):
+def prepare(lock_path, staging, requirements, mirror_images=False, image_cache=None, cache_report=None, image_groups=None):
     lock_path=Path(lock_path);lock=json.loads(lock_path.read_text())
     if not isinstance(lock,dict) or lock.get('format')!='gakumas-web-assets-lock' or type(lock.get('schema_version')) is not int or lock['schema_version']!=1:
         raise ValueError('资源锁格式无效')
@@ -75,7 +75,7 @@ def prepare(lock_path, staging, requirements, mirror_images=False, image_cache=N
         plan=None;cache_state='disabled';identity=None
         if image_cache is not None:
             from image_cache import cache_identity,cache_key,restore,save
-            identity=cache_identity(lock['sha256']);plan,cache_state=restore(image_cache,identity,index,transfers,folder)
+            identity=cache_identity(lock['sha256'],image_groups);plan,cache_state=restore(image_cache,identity,index,transfers,folder,image_groups)
         if plan is None:
             for url,row,name in transfers:
                 target=folder/name
@@ -83,9 +83,9 @@ def prepare(lock_path, staging, requirements, mirror_images=False, image_cache=N
                 if target.stat().st_size!=row['bytes'] or hashlib.sha256(target.read_bytes()).hexdigest()!=row['sha256']:
                     raise ValueError('同源图片副本大小或 SHA-256 不匹配')
             from image_plan import build_plan
-            plan=build_plan(index,folder)
+            plan=build_plan(index,folder,image_groups)
             if identity is not None:
-                try:save(image_cache,identity,index,transfers,plan,folder)
+                try:save(image_cache,identity,index,transfers,plan,folder,image_groups)
                 except OSError:cache_state='write-failed'
         if cache_report is not None:
             cache_report.update({'status':cache_state,'key':cache_key(identity) if identity else None,'saved':identity is not None and cache_state in ('miss','invalid')})

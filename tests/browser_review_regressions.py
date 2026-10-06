@@ -57,6 +57,11 @@ def check(browser_path=None):
                 held=[];pattern='**/content/releases/one/catalog.json'
                 context.route(pattern,lambda route:held.append(route))
                 page.goto(url,wait_until='domcontentloaded')
+                expect(page.locator('#resource-summary')).to_have_count(0)
+                expect(page.locator('#content-readiness')).to_be_visible()
+                expect(page.locator('#resources-open')).to_have_attribute('data-status','busy')
+                expect(page.locator('#empty-import-account')).to_be_enabled()
+                page.locator('#resources-open').click()
                 expect(page.locator('#resource-status')).to_be_visible()
                 expect(page.locator('#image-notice')).to_contain_text('公开资料')
                 expect(page.locator('#empty-import-account')).to_be_enabled()
@@ -65,15 +70,31 @@ def check(browser_path=None):
                 held[0].fulfill(status=503,body='unavailable')
                 context.unroute(pattern)
                 expect(page.locator('#resource-content-retry')).to_be_visible()
-                page.locator('#resource-content-retry').click()
-                expect(page.locator('#image-notice')).to_contain_text('当前所需图片已准备好',timeout=20000)
+                expect(page.locator('#resources-open')).to_have_attribute('data-status','error')
+                page.locator('#close-resources').click()
+                expect(page.locator('#content-readiness-retry')).to_be_visible()
+                page.locator('#content-readiness-retry').click()
+                page.locator('#resources-open').click()
+                expect(page.locator('#image-notice')).to_contain_text('已请求的图片已准备好',timeout=20000)
                 assert page.evaluate("document.querySelector('#resource-content-progress').value===document.querySelector('#resource-content-progress').max")
+                page.locator('#close-resources').click()
+                expect(page.locator('#content-readiness')).to_be_hidden()
+                expect(page.locator('#resources-open')).to_have_attribute('data-status','idle')
+                expect(page.locator('#resource-feedback')).to_be_hidden()
                 account=root/'account'
                 for name,document in fixtures().items():
                     if name=='capture':document['memories'][0]['examBattleProduceCards']=[document['memories'][0]['produceCard']]
                     target=account/name/'snapshot.json';target.parent.mkdir(parents=True);target.write_text(json.dumps(document))
                 page.locator('#account-directory-files').set_input_files(str(account))
                 expect(page.locator('#profile')).to_have_value('account-'+ACCOUNT)
+                # 新入口分别承载账号和公共资源，标签窗口关闭后归还数据窗口焦点。
+                page.locator('#data-open').click()
+                expect(page.locator('#data-dialog #export-account-package')).to_be_enabled()
+                expect(page.locator('#data-dialog #content-check')).to_have_count(0)
+                page.locator('#close-data').click();page.locator('#resources-open').click()
+                page.locator('#manage-tags').click();expect(page.locator('#tags-dialog')).to_be_visible()
+                page.locator('#close-tags').click();expect(page.locator('#manage-tags')).to_be_focused()
+                page.locator('#close-resources').click();expect(page.locator('#resources-open')).to_be_focused()
                 # 对本地偏好边界逐项恢复，账号和导出入口始终可用。
                 cases=['{','null','[]',json.dumps({'views':None}),json.dumps({'tab':'retired','views':{'achievements':{'query':[],'page':'bad'}}})]
                 for raw in cases:
@@ -186,6 +207,8 @@ def check(browser_path=None):
                 before=len(requests);site.rename(root/'previous');(root/'two'/'dist').rename(site)
                 page.evaluate("""async()=>{const {assetURL}=await import('./resources.mjs');const image=new Image();image.src=assetURL('img_review_full.webp');document.body.append(image);}""")
                 expect(page.locator('#image-notice')).to_contain_text('图片文件不存在')
+                expect(page.locator('#resources-open')).to_have_attribute('data-status','error')
+                page.locator('#resources-open').click()
                 expect(page.locator('#resource-refresh')).to_be_visible()
                 assert any('/image-files/' in address for address,_,_ in requests[before:])
                 page.locator('#resource-refresh').click();page.wait_for_load_state('networkidle')
@@ -193,6 +216,31 @@ def check(browser_path=None):
                 expect(page.locator('#content-version')).to_contain_text('two')
                 page.evaluate("""async()=>{const {assetURL}=await import('./resources.mjs');const image=new Image();image.id='new-art';image.src=assetURL('img_review_full.webp');document.body.append(image);}""")
                 page.wait_for_function("()=>document.querySelector('#new-art').src.startsWith('blob:')&&document.querySelector('#new-art').naturalWidth===32")
+                manual_context=browser.new_context();manual=manual_context.new_page()
+                manual.on('pageerror',lambda error:errors.append(str(error)))
+                manual.goto(url,wait_until='networkidle')
+                manual.evaluate("async()=>{window.manualImages=(await import('./resources.mjs')).imageManager;}")
+                manual.wait_for_function("()=>manualImages.status().phase==='ready'")
+                expect(manual.locator('#resource-feedback')).to_be_hidden()
+                manual_held=[];image_pattern='**/image-files/**'
+                manual_context.route(image_pattern,lambda route:manual_held.append(route))
+                manual.locator('#resources-open').click()
+                if manual.locator('#resource-toggle').get_attribute('aria-expanded')=='false':manual.locator('#resource-toggle').click()
+                manual.locator('#resource-complete').click()
+                expect(manual.locator('#resource-progress')).to_be_visible()
+                assert manual.evaluate("document.querySelector('#resource-progress').value<document.querySelector('#resource-progress').max")
+                manual.locator('#close-resources').click()
+                expect(manual.locator('#resources-open')).to_have_attribute('data-status','busy')
+                expect(manual.locator('#resource-feedback')).to_be_hidden()
+                for route in list(manual_held):route.continue_()
+                manual_context.unroute(image_pattern)
+                expect(manual.locator('#resource-feedback')).to_have_text('完整图片准备完成')
+                expect(manual.locator('#resource-feedback')).to_be_visible()
+                expect(manual.locator('#resources-open')).to_have_attribute('data-status','idle')
+                expect(manual.locator('#resource-feedback')).to_be_hidden(timeout=5000)
+                manual.locator('#language').select_option('ja')
+                expect(manual.locator('#resources-open')).to_have_attribute('aria-label','データ')
+                manual_context.close()
                 upgrade_context=browser.new_context();upgrade_a=upgrade_context.new_page();upgrade_b=upgrade_context.new_page()
                 for tab in [upgrade_a,upgrade_b]:
                     tab.goto(url,wait_until='networkidle')
@@ -202,7 +250,7 @@ def check(browser_path=None):
                 assert not errors,errors
                 assert all(method in ('GET','HEAD') and not body for _,method,body in requests)
                 context.close();browser.close()
-            return {'slow_content_visible':True,'content_retry':True,'preference_recovery_keeps_account':True,'recovery_export_and_account_switch':True,'view_timing':True,'keyboard_touch_ending':True,'character_icon_not_enlarged':True,'text_zoom':True,'transaction_abort_atomic':True,'real_quota_error':quota_verified,'quota_override_enforced':quota_verified,'two_tabs_shared_cache':True,'versionchange_closes_old_connections':True,'image_states_preserve_business_selection_scroll':True,'ending_unknown':True,'mobile_japanese':True,'two_build_stale_pack_refresh':True,'no_upload':True,'page_errors':len(errors)}
+            return {'quiet_background_status':True,'manual_completion_feedback':True,'slow_content_visible':True,'content_retry':True,'preference_recovery_keeps_account':True,'recovery_export_and_account_switch':True,'view_timing':True,'keyboard_touch_ending':True,'character_icon_not_enlarged':True,'text_zoom':True,'transaction_abort_atomic':True,'real_quota_error':quota_verified,'quota_override_enforced':quota_verified,'two_tabs_shared_cache':True,'versionchange_closes_old_connections':True,'image_states_preserve_business_selection_scroll':True,'ending_unknown':True,'mobile_japanese':True,'two_build_stale_pack_refresh':True,'no_upload':True,'page_errors':len(errors)}
         finally:
             server.shutdown();server.server_close();thread.join()
 

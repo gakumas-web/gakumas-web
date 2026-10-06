@@ -1,3 +1,4 @@
+import {WEB_VERSION} from './application/version.mjs';
 import {markLoading,createViewTiming} from './application/loading-metrics.mjs';
 import {contentManager} from './application/content-manager.mjs';
 import {beginImageView} from './resources.mjs';
@@ -73,7 +74,7 @@ let viewRun=0;
 const viewTiming=createViewTiming({ready:masterReadyFor,version:()=>contentManager.status().version});
 const expandedFilters=new Set();
 let loading=false,searchTimer,controlsPending=false;
-const masterTasks=new Map();
+const masterTasks=new Map(),masterFailures=new Set();
 const groups=new Map();
 const view=()=>state.views[state.tab];
 function message(text,error=false){
@@ -113,7 +114,7 @@ function tagOptions(){
 function editTags(kind,key,inDetail=false){
   tagUI.open({kind,key},()=>{
     const container=inDetail?$('detail-content'):[...$('list').children].find(row=>row.dataset[kind==='memories'?'memoryKey':'selectionKey']===key);
-    (container?.querySelector('.edit-custom-tags')??$('manage-tags')).focus();
+    (container?.querySelector('.edit-custom-tags')??$('resources-open')).focus();
   });
 }
 function tagContext(kind,key,inDetail=false){return {tags:tagsFor(kind,key),editTags:()=>editTags(kind,key,inDetail),tagsDisabled:!state.library,removeTag:name=>{
@@ -121,7 +122,7 @@ function tagContext(kind,key,inDetail=false){return {tags:tagsFor(kind,key),edit
     state.library.assign(kind,key,tagsFor(kind,key).filter(value=>value!==name));syncControls();render();persist();
     if(state.detail){const memory=state.snapshot?.memories.find(row=>row.key===state.detail);if(memory)showDetail(memory,tagContext('memories',memory.key,true));}
     const container=inDetail?$('detail-content'):[...$('list').children].find(row=>row.dataset[kind==='memories'?'memoryKey':'selectionKey']===key);
-    (container?.querySelector('.edit-custom-tags')??$('manage-tags')).focus({preventScroll:true});
+    (container?.querySelector('.edit-custom-tags')??$('resources-open')).focus({preventScroll:true});
   }catch{message(t('标签未能保存，请检查浏览器存储空间。'),true);}
 }};}
 function favoriteContext(kind,id){return {favorite:state.library?.data.favorites[kind].includes(id)??false,favoriteDisabled:!state.library,onFavorite:enabled=>{
@@ -205,7 +206,19 @@ function confirmFilterReset(button,action){
 }
 document.addEventListener('pointerdown',event=>{if(pendingFilterReset&&!pendingFilterReset.contains(event.target))cancelFilterReset();},true);
 document.addEventListener('keydown',event=>{if(event.key==='Escape'&&pendingFilterReset){cancelFilterReset();event.preventDefault();}},true);
+function renderMasterReadiness(){
+  const content=contentManager.status(),hasAccount=Boolean(state.snapshot||state.selectionSnapshot);
+  const missing=!masterReadyFor(state.tab),needed=hasAccount||state.tab==='achievements'||!content.version;
+  const failed=Boolean(content.error||masterFailures.has(state.tab));
+  $('content-readiness').hidden=!(missing&&needed);
+  $('content-readiness').classList.toggle('is-error',failed);
+  const text=t(failed?'卡片资料暂不可用，已有账号数据保留。':'正在准备卡片资料，账号导入不受影响。');
+  if($('content-readiness-text').textContent!==text)$('content-readiness-text').textContent=text;
+  $('content-readiness-retry').hidden=!failed;
+  $('content-readiness-retry').disabled=masterTasks.has(state.tab)||['checking','downloading','verifying','saving'].includes(content.phase);
+}
 function render(){
+  renderMasterReadiness();
   beginImageView(state.tab);
   cancelFilterReset();
   clearTimeout(searchTimer);resetDeferredContent();
@@ -223,7 +236,7 @@ function render(){
   for(const id of ['empty-import-account','import-account-directory'])$(id).disabled=loading;
   if(achievement){$('inventory').hidden=true;$('shared-search').hidden=true;updateTabCount('achievements');renderAchievementBrowser($('achievement-browser'),{snapshot:state.snapshot,view:v,ready:masterReadyFor('achievements'),change:()=>{render();persist();}});return;}
   if(!hasData){selectionControls();syncMemoryDetailFocus();return;}
-  if(!masterReadyFor(state.tab)&&!memory&&!selection){$('shared-search').hidden=true;$('filter-toggle').closest('.filters').hidden=true;$('list').replaceChildren(el('p',t('正在读取本地主数据…'),'empty-result'));$('previous').disabled=true;$('next').disabled=true;selectionControls();return;}
+  if(!masterReadyFor(state.tab)&&!memory&&!selection){$('shared-search').hidden=true;$('filter-toggle').closest('.filters').hidden=true;$('list').replaceChildren();$('previous').disabled=true;$('next').disabled=true;selectionControls();return;}
   $('section-title').textContent={memories:t('回忆'),selectionMemories:t('选拔回忆'),idolCards:t('偶像卡'),supportCards:t('支援卡'),idolCardSkins:t('主题装扮'),achievements:t('成就')}[state.tab];
   $('search-scope').textContent=t('搜索范围：{0}',[$('section-title').textContent]);
   for(const section of document.querySelectorAll('[data-filter-tab]'))section.hidden=section.dataset.filterTab!==state.tab;
@@ -398,7 +411,8 @@ function changePage(direction){
 $('previous').onclick=()=>changePage(-1);$('next').onclick=()=>changePage(1);
 $('clear-selection').onclick=()=>{state.selected.clear();render();};
 $('compare').onclick=()=>showComparison(state.snapshot.memories.filter(m=>state.selected.has(m.key)));
-for(const name of ['compare','data','help','idol'])$('close-'+name).onclick=()=>$(name+'-dialog').close();
+for(const name of ['compare','data','resources','help','idol'])$('close-'+name).onclick=()=>$(name+'-dialog').close();
+$('resources-open').onclick=()=>openDialog($('resources-dialog'),{dismissOnBackdrop:true});
 $('data-open').onclick=()=>{$('data-message').hidden=true;$('data-message').textContent='';renderAccountOverview();openDialog($('data-dialog'),{dismissOnBackdrop:true});};$('help-open').onclick=()=>openDialog($('help-dialog'),{dismissOnBackdrop:true});$('empty-import').onclick=()=>$('import-account-package').click();
 function linkedMasterScope(){
   const params=new URLSearchParams(location.hash.slice(1));
@@ -410,15 +424,18 @@ async function ensureMaster(forLink=false){
   viewTiming.begin(state.tab,viewRun);
   if(masterReadyFor(scope)){viewTiming.complete();$('load-master').hidden=true;$('master-status').textContent=t('主数据已载入 · 公开插图按需缓存');openCatalogLink();return;}
   if(masterTasks.has(scope))return masterTasks.get(scope);
+  masterFailures.delete(scope);
   $('load-master').disabled=true;$('master-status').textContent=t('正在读取本地主数据…');
   const task=loadMaster(scope).then(()=>{
     if(masterReadyFor(state.tab)){$('load-master').hidden=true;$('master-status').textContent=t('主数据已载入 · 公开插图按需缓存');}
     markLoading('package-ready',{scope});viewTiming.complete();setup();syncControls();render();openCatalogLink();if(masterReadyFor('memories')&&state.detail)openDetail(state.snapshot.memories.find(m=>m.key===state.detail));
-  }).catch(()=>{viewTiming.fail(scope);if(!masterReadyFor(state.tab)){$('master-status').textContent=t('主数据暂不可用，仍可查看库存数值。');$('load-master').disabled=false;$('load-master').hidden=false;}}).finally(()=>{masterTasks.delete(scope);renderPendingCatalogCounts();});
-  masterTasks.set(scope,task);renderPendingCatalogCounts();return task;
+  }).catch(()=>{masterFailures.add(scope);viewTiming.fail(scope);if(!masterReadyFor(state.tab)){$('master-status').textContent=t('主数据暂不可用，仍可查看库存数值。');$('load-master').disabled=false;$('load-master').hidden=false;}}).finally(()=>{masterTasks.delete(scope);renderPendingCatalogCounts();renderMasterReadiness();});
+  masterTasks.set(scope,task);renderPendingCatalogCounts();renderMasterReadiness();return task;
 }
 $('load-master').onclick=ensureMaster;
-setupContentControls({loaded:()=>ensureMaster(),canReload:()=>!loading});
+$('content-readiness-retry').onclick=()=>ensureMaster();
+contentManager.subscribe(renderMasterReadiness);
+if(!$('web-version').textContent)$('web-version').textContent=WEB_VERSION;
 for(const [id,key] of [['find-character','character'],['find-skill','skill']])$(id).onclick=()=>{
   const m=state.snapshot.memories.find(row=>row.key===state.detail);const value=key==='character'?m?.characterId:m?.produceCard?.id;
   if(!value){message(t('该字段未记录，无法寻找比较对象。'));return;}
@@ -452,6 +469,8 @@ onLocaleChange(()=>{
   $('master-status').textContent=masterReadyFor(state.tab)?t('主数据已载入 · 公开插图按需缓存'):t('正在准备本地主数据');
   $('message').hidden=true;
 });
+setupContentControls({loaded:()=>ensureMaster(),canReload:()=>!loading});
+
 setupAccountPackage({
   capture:()=>captureAccountBackup(state.profile,{views:state.views,tab:state.tab,idolArt:state.idolArt},state.library.data),
   restore:async payload=>{

@@ -1,6 +1,8 @@
 """检查静态产物范围与资源路径，不读取用户数据或调用图片源。"""
 import importlib.util
 import json
+import os
+from unittest.mock import patch
 from pathlib import Path
 from tempfile import TemporaryDirectory
 import unittest
@@ -34,6 +36,18 @@ class StaticBuildTest(unittest.TestCase):
             self.assertNotIn('src="/',html)
             self.assertNotIn('href="/',html)
             self.assertNotIn('/api/',(output/'application/master-prefetch.mjs').read_text())
+
+    def test_build_identity_is_explicit_and_does_not_infer_local_git_head(self):
+        with TemporaryDirectory() as folder:
+            output=Path(folder)/'dist'
+            with patch.dict(os.environ,{'GITHUB_SHA':'a'*40,'GITHUB_RUN_ID':'123456'}):builder.build(output)
+            release=json.loads((output/'release.json').read_text())
+            self.assertEqual(release['source_commit'],'a'*40);self.assertEqual(release['build_run_id'],'123456')
+            self.assertIn('commit/'+'a'*40,(output/'index.html').read_text())
+            for commit in ['', 'unknown']:
+                with patch.dict(os.environ,{'GITHUB_SHA':commit,'GITHUB_RUN_ID':'123456'}):builder.build(output)
+                release=json.loads((output/'release.json').read_text())
+                self.assertNotIn('source_commit',release);self.assertNotIn('build_run_id',release)
 
     def test_output_guard(self):
         with self.assertRaises(ValueError):

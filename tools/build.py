@@ -3,6 +3,7 @@
 import argparse
 import gzip
 import hashlib
+from html import escape
 import json
 import os
 from pathlib import Path
@@ -63,7 +64,11 @@ def build(output, asset_lock=None, content_lock=None, mirror_images=False, image
         if resource_lock.get('mode') != 'none' and (resource_lock.get('schema_version') != 1 or resource_lock.get('sha256') != content_data[1]['files']['assets-index.json']['sha256']):
             raise ValueError('初始内容与资源锁不匹配')
     if mirror_images and not content_data:raise ValueError('同源图片部署必须固定初始内容')
-    config, resources, image_hosts = prepare(asset_lock or ROOT/'resources/asset-lock.json', staging, requirements, mirror_images, image_cache, cache_report)
+    image_groups=None
+    if mirror_images:
+        from image_plan import catalog_groups
+        image_groups=catalog_groups(json.loads(content_data[2]['catalog.json']))
+    config, resources, image_hosts = prepare(asset_lock or ROOT/'resources/asset-lock.json', staging, requirements, mirror_images, image_cache, cache_report, image_groups)
     write_config(staging/'image-config.mjs', config)
     (staging / 'ui-icons').mkdir(exist_ok=True)
     (staging / 'ui-icons/unavailable.svg').write_text(
@@ -90,6 +95,16 @@ def build(output, asset_lock=None, content_lock=None, mirror_images=False, image
         raise ValueError('本地内容频道必须为 ./content/channel.json')
     (staging/'content-config.mjs').write_text('// 构建时确定内容频道，更新资料无需重新构建程序。\nexport const contentConfig='+json.dumps({'channelURL': channel})+';\n')
     html = (staging / 'index.html').read_text(encoding='utf-8')
+    # 版本随当前程序构建写入，旧页面不会读取新部署的身份。
+    version = json.loads((ROOT/'package.json').read_text())['version']
+    html = html.replace('<span id="web-version"></span>', '<span id="web-version">'+escape(version)+'</span>')
+    identity={}
+    commit = os.environ.get('GITHUB_SHA', '')
+    if len(commit) == 40 and all(char in '0123456789abcdef' for char in commit):
+        identity['source_commit']=commit
+        run_id=os.environ.get('GITHUB_RUN_ID','')
+        if run_id.isascii() and run_id.isdigit():identity['build_run_id']=run_id
+        html = html.replace('<span id="web-build"></span>', '<span id="web-build"> · <a href="https://github.com/gakumas-web/gakumas-web/commit/'+commit+'" target="_blank" rel="noopener noreferrer">'+commit[:7]+'</a></span>')
     policy = "default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self' "+' '.join(sorted(set(data_hosts+(image_hosts if config['mode']=='managed' else []))))+"; img-src 'self' "+("blob: " if config['mode']=='managed' else '')+' '.join(image_hosts)+"; base-uri 'none'; form-action 'none'"
     html = html.replace('<head>', '<head><meta name="referrer" content="no-referrer"><meta http-equiv="Content-Security-Policy" content="'+policy+'">', 1)
     (staging / 'index.html').write_text(html, encoding='utf-8')
@@ -102,7 +117,7 @@ def build(output, asset_lock=None, content_lock=None, mirror_images=False, image
         records[str(path.relative_to(staging))] = hashlib.sha256(content).hexdigest()
         if path.suffix in ('.mjs', '.json', '.html', '.css'):
             path.with_name(path.name+'.gz').write_bytes(gzip.compress(content, mtime=0))
-    (staging / 'release.json').write_text(json.dumps({'project': 'gakumas-web', 'format': 1, 'version': json.loads((ROOT/'package.json').read_text())['version'],
+    (staging / 'release.json').write_text(json.dumps({'project': 'gakumas-web', 'format': 1, 'version': version, **identity,
         'image_policy': {'mode': config['mode'], 'hosts': image_hosts, 'download_origins': config.get('allowedOrigins', [])},
         'content_channel': channel, 'files': records}, ensure_ascii=False, indent=2)+'\n', encoding='utf-8')
     for path in output.iterdir():

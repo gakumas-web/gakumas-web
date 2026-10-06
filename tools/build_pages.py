@@ -29,7 +29,8 @@ def build_pages(source, output, image_cache=None, key_only=False):
         if manifest['version']!=source['version']:raise ValueError('Pages 内容版本不匹配')
         if key_only:
             from image_cache import cache_identity,cache_key
-            return cache_key(cache_identity(hashlib.sha256(files['assets-index.json']).hexdigest()))
+            from image_plan import catalog_groups
+            return cache_key(cache_identity(hashlib.sha256(files['assets-index.json']).hexdigest(),catalog_groups(json.loads(files['catalog.json']))))
         content=root/'content';content.mkdir()
         for name,data in {**files,'manifest.json':raw}.items():(content/name).write_bytes(data)
         locks=root/'locks';prepare(content,locks)

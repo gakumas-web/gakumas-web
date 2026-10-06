@@ -52,7 +52,7 @@ def check(browser_path=None):
             site_thread=Thread(target=site_server.serve_forever,daemon=True);site_thread.start()
             url=f'http://127.0.0.1:{site_server.server_port}/dist/'
             def ready(page):
-                expect(page.locator('#image-status')).to_contain_text(re.compile('图片已保存到本机|当前所需图片已准备好'),timeout=20000)
+                expect(page.locator('#image-status')).to_contain_text(re.compile('图片已保存到本机|已请求的图片已准备好'),timeout=20000)
             def show_image(page,name):
                 return page.evaluate('''async name=>{
                     const {uiIconURL}=await import('./resources.mjs');const url=uiIconURL(name);
@@ -63,7 +63,7 @@ def check(browser_path=None):
                 install(site,root/('locks-'+version)/'content-lock.json',asset_lock=root/('locks-'+version)/'asset-lock.json')
                 page.locator('#content-check').click();expect(page.locator('#content-apply')).to_be_visible()
                 page.locator('#content-apply').click();page.wait_for_load_state('networkidle')
-                page.locator('#data-open').click();ready(page)
+                page.locator('#resources-open').click();ready(page)
             with sync_playwright() as driver:
                 browser=driver.chromium.launch(headless=True,**({'executable_path':browser_path} if browser_path else {}))
                 context=browser.new_context();page=context.new_page();errors=[];requests=[]
@@ -78,20 +78,20 @@ def check(browser_path=None):
                 expect(page.locator('#image-status')).to_contain_text('正在下载',timeout=20000)
                 for route in held:route.continue_()
                 context.unroute(image_origin+'/**')
-                page.locator('#data-open').click();ready(page)
+                page.locator('#resources-open').click();ready(page)
                 first=show_image(page,'first.png');assert first['width']==1 and first['url'].startswith('blob:')
                 assert len(requested)==1 and requested[0].startswith('/release/one/')
-                page.reload(wait_until='networkidle');page.locator('#data-open').click();ready(page);assert len(requested)==1
+                page.reload(wait_until='networkidle');page.locator('#resources-open').click();ready(page);assert len(requested)==1
                 update(page,'two');assert len(requested)==2 and requested[-1].startswith('/cdn/objects/')
                 assert show_image(page,'second.png')['width']==1
                 update(page,'three');assert len(requested)==2
-                fresh=browser.new_context();fresh_page=fresh.new_page();fresh_page.goto(url,wait_until='networkidle');fresh_page.locator('#data-open').click();ready(fresh_page)
+                fresh=browser.new_context();fresh_page=fresh.new_page();fresh_page.goto(url,wait_until='networkidle');fresh_page.locator('#resources-open').click();ready(fresh_page)
                 assert len(requested)==3 and requested[-1].startswith('/release/three/');fresh.close()
                 # 在新浏览器中模拟第二基础分段失败，点击重试复用第一分段。
                 prepare(root/'multi',root/'locks-multi',site=site)
                 install(site,root/'locks-multi/content-lock.json',asset_lock=root/'locks-multi/asset-lock.json')
                 second_path=urlsplit(index('multi')['baseline']['packages'][1]['url']).path;blocked.add(second_path)
-                retry_context=browser.new_context();retry_page=retry_context.new_page();retry_page.goto(url,wait_until='networkidle');retry_page.locator('#data-open').click()
+                retry_context=browser.new_context();retry_page=retry_context.new_page();retry_page.goto(url,wait_until='networkidle');retry_page.locator('#resources-open').click()
                 expect(retry_page.locator('#image-retry')).to_be_visible(timeout=20000)
                 retry_page.evaluate("""async()=>{const {uiIconURL}=await import('./resources.mjs');const {watchImage}=await import('./ui/image-loading.mjs');const image=new Image();image.id='failed-image-probe';watchImage(image,()=>{image.dataset.ready='true';},()=>{image.dataset.failed='true';});image.src=uiIconURL('second.png');document.body.append(image);}""")
                 expect(retry_page.locator('#failed-image-probe')).to_have_attribute('data-failed','true')
@@ -112,15 +112,15 @@ def check(browser_path=None):
                 mirrored=browser.new_context();mirrored.on('request',lambda request:same_origin.append((request.url,request.method,request.post_data)))
                 mirror_page=mirrored.new_page();mirror_page.on('pageerror',lambda error:errors.append(str(error)))
                 mirror_page.goto(f'http://127.0.0.1:{site_server.server_port}/mirror/dist/',wait_until='networkidle')
-                mirror_page.locator('#data-open').click();ready(mirror_page)
+                mirror_page.locator('#resources-open').click();ready(mirror_page)
                 assert show_image(mirror_page,'second.png')['width']==1
                 assert len(requested)==before
                 downloads=[address for address,_,_ in same_origin if '/image-files/' in address]
                 assert len(downloads)==1 and all('/mirror/dist/image-files/' in address for address in downloads)
                 assert all((address.startswith('blob:') or urlsplit(address).netloc==f'127.0.0.1:{site_server.server_port}') and method in ('GET','HEAD') and not body for address,method,body in same_origin),same_origin
-                mirror_page.reload(wait_until='networkidle');mirror_page.locator('#data-open').click();ready(mirror_page)
+                mirror_page.reload(wait_until='networkidle');mirror_page.locator('#resources-open').click();ready(mirror_page)
                 assert len([address for address,_,_ in same_origin if '/image-files/' in address])==1
-                mirror_page.locator('#close-data').click();mirror_page.set_viewport_size({'width':375,'height':812})
+                mirror_page.locator('#close-resources').click();mirror_page.set_viewport_size({'width':375,'height':812})
                 mirror_page.locator('#language').select_option('ja')
                 expect(mirror_page.locator('#image-notice')).to_contain_text('画像')
                 assert mirror_page.evaluate('document.documentElement.scrollWidth<=innerWidth'), '移动端资源状态溢出'

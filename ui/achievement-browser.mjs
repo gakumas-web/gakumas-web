@@ -64,7 +64,7 @@ export function renderAchievementBrowser(root,{snapshot,view,ready,change}){
   for(const id of roster){const button=el('button');button.type='button';button.dataset.characterTarget=id;button.setAttribute('aria-label',entryName(id));button.setAttribute('aria-current',String(id===(selected||focus)));button.title=entryName(id);button.append(entryFace(id));button.onclick=()=>selected?navigate(id):locate(id);nav.append(button);}
   root.replaceChildren(nav);
   centerNavigation();
-  if(!ready){root.append(el('p',t('正在准备本地主数据')));return;}
+  if(!ready)return;
   if(!selected){
     const heading=el('div','','character-gallery-heading');
     const controls=el('div','','character-gallery-controls'),previous=el('button','←'),next=el('button','→');previous.setAttribute('aria-label',t('上一位角色'));next.setAttribute('aria-label',t('下一位角色'));controls.append(previous,next);heading.append(el('p',t('选择角色，查看 Ending 奖励与成就。')),controls);root.append(heading);

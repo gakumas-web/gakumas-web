@@ -13,10 +13,30 @@ from tempfile import TemporaryDirectory
 def digest(raw):return hashlib.sha256(raw).hexdigest()
 
 
-def category(name):
+def catalog_groups(catalog):
+    """用已验证的目录区分装扮主题；基础卡与主题共用卡面时优先基础卡。"""
+    result={};idols=catalog.get('idols',{})
+    for skin in idols.get('skins',[]):
+        theme=skin.get('theme') or skin.get('name')
+        if not theme:continue
+        for variant in (0,1):result[f"images/img_general_{skin['assetId']}_{variant}-full.webp"]='artwork-skin-'+theme
+    for card in idols.get('cards',[]):
+        for variant in (0,1):result[f"images/img_general_{card['assetId']}_{variant}-full.webp"]='artwork-idol'
+    for card in catalog.get('supports',{}).get('cards',[]):
+        result[f"images/img_general_{card['assetId']}_full.webp"]='artwork-support'
+    return result
+
+
+def thumbnail_group(group):
+    return group.replace('artwork-', 'thumbnails-', 1)
+
+
+def category(name, image_groups=None):
+    if image_groups and name in image_groups:return image_groups[name]
     if name.startswith('ui-icons/'):
         return 'artwork-decoration' if 'full.' in name else 'core'
-    if re.search(r'[-_]full\.webp$',name):return 'artwork-idol' if 'cidol-' in name else 'artwork-other'
+    if re.search(r'[-_]full\.webp$',name):
+        return 'artwork-idol' if 'cidol-' in name else 'artwork-support' if 'csprt-' in name else 'artwork-other'
     if 'achievement_' in name:
         match=re.search(r'achievement_(?:char_)?([a-z]{4})-',name)
         return 'achievements-'+(match[1] if match else 'common')
@@ -26,7 +46,7 @@ def category(name):
     return 'catalog'
 
 
-def build_plan(index,folder):
+def build_plan(index,folder,image_groups=None):
     from PIL import Image
     folder=Path(folder)
     files=dict(index['files']);thumbnails={};sources={};groups={};artworks=[]
@@ -53,7 +73,7 @@ def build_plan(index,folder):
             source=objects/key if (objects/key).exists() else folder/key
             if not source.is_file() or source.stat().st_size!=row['bytes'] or digest(source.read_bytes())!=row['sha256']:
                 raise ValueError('用途包缺少已核验图片')
-            sources[key]=source;group=category(name)
+            sources[key]=source;group=category(name,image_groups)
             # 跨用途复用的同一对象只放进一个包；基础界面的优先级最高。
             if key not in groups or group=='core':groups[key]=group
             if group.startswith('artwork') and name.startswith('images/'):
@@ -69,7 +89,7 @@ def build_plan(index,folder):
             for name,raw in executor.map(thumbnail,artworks):
                 sha=digest(raw);thumb=name.removesuffix('.webp')+'_thumb.webp'
                 files[thumb]={'sha256':sha,'bytes':len(raw)};thumbnails[name]=thumb
-                key=sha+'.webp';target=objects/key;target.write_bytes(raw);sources[key]=target;groups[key]='catalog-thumbnails'
+                key=sha+'.webp';target=objects/key;target.write_bytes(raw);sources[key]=target;groups.setdefault(key,thumbnail_group(groups[index['files'][name]['sha256']+Path(name).suffix]))
         rows={row['sha256']+Path(name).suffix:row for name,row in files.items()}
         buckets={}
         for key in rows:buckets.setdefault(groups[key],[]).append(key)

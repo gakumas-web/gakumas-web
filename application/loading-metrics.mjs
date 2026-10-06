@@ -31,3 +31,10 @@ export function loadingMetrics(){return {marks:{...(globalThis.__gakumasStartup?
 if(typeof PerformanceObserver!=='undefined'&&PerformanceObserver.supportedEntryTypes?.includes('longtask')){
   new PerformanceObserver(list=>{for(const row of list.getEntries()){longTasks.count++;longTasks.total+=Math.round(row.duration);longTasks.max=Math.max(longTasks.max,Math.round(row.duration));}}).observe({type:'longtask',buffered:true});
 }
+
+// 诊断仅保留公共资料状态；未知异常降为固定错误码，不携带异常正文或其它字段。
+export function publicContentDiagnostics(state){
+  const codes=new Set(['content_unavailable','content_cache_failed','content_hash_mismatch','content_scope_invalid','content_too_large','content_version_mismatch','content_manifest_invalid','content_web_too_old','content_format_unsupported','content_files_invalid','content_channel_invalid','content_assets_invalid','content_part_invalid','content_bundle_invalid']);
+  return {phase:state.phase,version:state.version,availableVersion:state.availableVersion,cached:state.cached,
+    error_code:state.error?(codes.has(state.error)?state.error:'content_unavailable'):null,bytes:state.bytes,totalBytes:state.totalBytes};
+}
