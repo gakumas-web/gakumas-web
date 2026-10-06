@@ -1,0 +1,304 @@
+{
+  "version": 1,
+  "manifest": {
+    "files": {
+      "abilities.json": {
+        "bytes": 166,
+        "revision": "30adc034c930f59033e79970cfe2626430d1d945ffe352b8009aee6d7295a46e",
+        "sha256": "ebdccee290dc0a73cde6091467fc9e2f7bff1b8836ad41d20a9855f9dded40be"
+      },
+      "achievements.json": {
+        "bytes": 184,
+        "revision": "07fd843d7a29a7c03ac610df198a08173abd92ab993f92fbd4a5ef99844ab43f",
+        "sha256": "6343a5f07586b69317e9cefae7ab72863224e35a8852d146adbc8c9eda9f1482"
+      },
+      "assets-index.json": {
+        "bytes": 644,
+        "sha256": "27de4c3b6be1ebcea93218a786427d4c3a32398303ed828c5e30a8b00e105b1a"
+      },
+      "catalog.json": {
+        "bytes": 169,
+        "revision": "7db409d28121f5659ef97195d76fac9cdeb3b7d6d8b3918bba1d9dda0c36bc3f",
+        "sha256": "cc2fe29ea1e70006f9e601fe492140c30cb874596ef1d9c40190d95c9c289b6f"
+      },
+      "effects.json": {
+        "bytes": 165,
+        "revision": "c3961c5f6e6bf3434ff96d279348c723c209b20608a2753abe849302782ebb3f",
+        "sha256": "fb6c2b604f15ee737212a5eefcc66d673e8a47946483fa0dda2abd240169ae71"
+      },
+      "progression.json": {
+        "bytes": 159,
+        "revision": "730f19043f7174206a861c5669aeac0f9a4fb20c52798af540ccca717b663d14",
+        "sha256": "d123d96d43b56a0e29d1cbff51b885625c38e2b941dbca37b90d6291c8dce949"
+      }
+    },
+    "format": "gakumas-content",
+    "master_revision": "0791928a2dc31a8b8506b3fbf1a09c5b53782dd6802439a02773e5de4b8c79e9",
+    "min_web_version": "0.5.0",
+    "schema_version": 1,
+    "upstream_commit": "0000000000000000000000000000000000000000",
+    "version": "synthetic-v2"
+  },
+  "files": {
+    "abilities.json": "{\"revision\":\"30adc034c930f59033e79970cfe2626430d1d945ffe352b8009aee6d7295a46e\",\"scope\":\"abilities\",\"tables\":{\"MemoryAbility\":[],\"ProduceEffect\":[],\"ProduceSkill\":[]}}",
+    "achievements.json": "{\"achievements\":{\"Achievement\":[],\"AchievementProgress\":[],\"Item\":[],\"Mission\":[]},\"revision\":\"07fd843d7a29a7c03ac610df198a08173abd92ab993f92fbd4a5ef99844ab43f\",\"scope\":\"achievements\"}",
+    "assets-index.json": "{\"baseline\":{\"packages\":[{\"bytes\":345,\"objects\":{\"a0aba5acea68899495ed59d23aae2942ff229bfaed1d0595acbbd0e2c72f151e.png\":{\"bytes\":68,\"sha256\":\"a0aba5acea68899495ed59d23aae2942ff229bfaed1d0595acbbd0e2c72f151e\"}},\"sha256\":\"452bb7b8805c4af7981764d6864d78d7775d2d9edc2cd1a87ef4f43a0a0b462f\",\"url\":\"https://release.example.invalid/one/gakumas-images-ea88588e24ac5e2e52a5516f.tar.gz\"}],\"version\":\"one\"},\"cdn_base_url\":\"https://cdn.example.invalid/\",\"cdn_objects\":[],\"files\":{\"ui-icons/first.png\":{\"bytes\":68,\"sha256\":\"a0aba5acea68899495ed59d23aae2942ff229bfaed1d0595acbbd0e2c72f151e\"}},\"format\":\"gakumas-assets-set\",\"schema_version\":1,\"version\":\"one\"}",
+    "catalog.json": "{\"characters\":{},\"idols\":{\"cards\":[],\"skins\":[]},\"revision\":\"7db409d28121f5659ef97195d76fac9cdeb3b7d6d8b3918bba1d9dda0c36bc3f\",\"scope\":\"catalog\",\"supports\":{\"cards\":[]}}",
+    "effects.json": "{\"revision\":\"c3961c5f6e6bf3434ff96d279348c723c209b20608a2753abe849302782ebb3f\",\"scope\":\"effects\",\"tables\":{\"ProduceCard\":[],\"ProduceExamEffect\":[],\"ProduceItem\":[]}}",
+    "progression.json": "{\"progression\":{\"tables\":{\"IdolCard\":[],\"SupportCard\":[]}},\"revision\":\"730f19043f7174206a861c5669aeac0f9a4fb20c52798af540ccca717b663d14\",\"scope\":\"progression\"}"
+  },
+  "cases": [
+    {
+      "name": "独立分包合法清单",
+      "valid": true,
+      "value": {
+        "files": {
+          "abilities.json": {
+            "bytes": 166,
+            "revision": "30adc034c930f59033e79970cfe2626430d1d945ffe352b8009aee6d7295a46e",
+            "sha256": "ebdccee290dc0a73cde6091467fc9e2f7bff1b8836ad41d20a9855f9dded40be"
+          },
+          "achievements.json": {
+            "bytes": 184,
+            "revision": "07fd843d7a29a7c03ac610df198a08173abd92ab993f92fbd4a5ef99844ab43f",
+            "sha256": "6343a5f07586b69317e9cefae7ab72863224e35a8852d146adbc8c9eda9f1482"
+          },
+          "assets-index.json": {
+            "bytes": 644,
+            "sha256": "27de4c3b6be1ebcea93218a786427d4c3a32398303ed828c5e30a8b00e105b1a"
+          },
+          "catalog.json": {
+            "bytes": 169,
+            "revision": "7db409d28121f5659ef97195d76fac9cdeb3b7d6d8b3918bba1d9dda0c36bc3f",
+            "sha256": "cc2fe29ea1e70006f9e601fe492140c30cb874596ef1d9c40190d95c9c289b6f"
+          },
+          "effects.json": {
+            "bytes": 165,
+            "revision": "c3961c5f6e6bf3434ff96d279348c723c209b20608a2753abe849302782ebb3f",
+            "sha256": "fb6c2b604f15ee737212a5eefcc66d673e8a47946483fa0dda2abd240169ae71"
+          },
+          "progression.json": {
+            "bytes": 159,
+            "revision": "730f19043f7174206a861c5669aeac0f9a4fb20c52798af540ccca717b663d14",
+            "sha256": "d123d96d43b56a0e29d1cbff51b885625c38e2b941dbca37b90d6291c8dce949"
+          }
+        },
+        "format": "gakumas-content",
+        "master_revision": "0791928a2dc31a8b8506b3fbf1a09c5b53782dd6802439a02773e5de4b8c79e9",
+        "min_web_version": "0.5.0",
+        "schema_version": 1,
+        "upstream_commit": "0000000000000000000000000000000000000000",
+        "version": "synthetic-v2"
+      }
+    },
+    {
+      "name": "缺少分包业务版本",
+      "valid": false,
+      "value": {
+        "files": {
+          "abilities.json": {
+            "bytes": 166,
+            "revision": "30adc034c930f59033e79970cfe2626430d1d945ffe352b8009aee6d7295a46e",
+            "sha256": "ebdccee290dc0a73cde6091467fc9e2f7bff1b8836ad41d20a9855f9dded40be"
+          },
+          "achievements.json": {
+            "bytes": 184,
+            "revision": "07fd843d7a29a7c03ac610df198a08173abd92ab993f92fbd4a5ef99844ab43f",
+            "sha256": "6343a5f07586b69317e9cefae7ab72863224e35a8852d146adbc8c9eda9f1482"
+          },
+          "assets-index.json": {
+            "bytes": 644,
+            "sha256": "27de4c3b6be1ebcea93218a786427d4c3a32398303ed828c5e30a8b00e105b1a"
+          },
+          "catalog.json": {
+            "bytes": 169,
+            "sha256": "cc2fe29ea1e70006f9e601fe492140c30cb874596ef1d9c40190d95c9c289b6f"
+          },
+          "effects.json": {
+            "bytes": 165,
+            "revision": "c3961c5f6e6bf3434ff96d279348c723c209b20608a2753abe849302782ebb3f",
+            "sha256": "fb6c2b604f15ee737212a5eefcc66d673e8a47946483fa0dda2abd240169ae71"
+          },
+          "progression.json": {
+            "bytes": 159,
+            "revision": "730f19043f7174206a861c5669aeac0f9a4fb20c52798af540ccca717b663d14",
+            "sha256": "d123d96d43b56a0e29d1cbff51b885625c38e2b941dbca37b90d6291c8dce949"
+          }
+        },
+        "format": "gakumas-content",
+        "master_revision": "0791928a2dc31a8b8506b3fbf1a09c5b53782dd6802439a02773e5de4b8c79e9",
+        "min_web_version": "0.5.0",
+        "schema_version": 1,
+        "upstream_commit": "0000000000000000000000000000000000000000",
+        "version": "synthetic-v2"
+      }
+    },
+    {
+      "name": "最低程序版本不足",
+      "valid": false,
+      "value": {
+        "files": {
+          "abilities.json": {
+            "bytes": 166,
+            "revision": "30adc034c930f59033e79970cfe2626430d1d945ffe352b8009aee6d7295a46e",
+            "sha256": "ebdccee290dc0a73cde6091467fc9e2f7bff1b8836ad41d20a9855f9dded40be"
+          },
+          "achievements.json": {
+            "bytes": 184,
+            "revision": "07fd843d7a29a7c03ac610df198a08173abd92ab993f92fbd4a5ef99844ab43f",
+            "sha256": "6343a5f07586b69317e9cefae7ab72863224e35a8852d146adbc8c9eda9f1482"
+          },
+          "assets-index.json": {
+            "bytes": 644,
+            "sha256": "27de4c3b6be1ebcea93218a786427d4c3a32398303ed828c5e30a8b00e105b1a"
+          },
+          "catalog.json": {
+            "bytes": 169,
+            "revision": "7db409d28121f5659ef97195d76fac9cdeb3b7d6d8b3918bba1d9dda0c36bc3f",
+            "sha256": "cc2fe29ea1e70006f9e601fe492140c30cb874596ef1d9c40190d95c9c289b6f"
+          },
+          "effects.json": {
+            "bytes": 165,
+            "revision": "c3961c5f6e6bf3434ff96d279348c723c209b20608a2753abe849302782ebb3f",
+            "sha256": "fb6c2b604f15ee737212a5eefcc66d673e8a47946483fa0dda2abd240169ae71"
+          },
+          "progression.json": {
+            "bytes": 159,
+            "revision": "730f19043f7174206a861c5669aeac0f9a4fb20c52798af540ccca717b663d14",
+            "sha256": "d123d96d43b56a0e29d1cbff51b885625c38e2b941dbca37b90d6291c8dce949"
+          }
+        },
+        "format": "gakumas-content",
+        "master_revision": "0791928a2dc31a8b8506b3fbf1a09c5b53782dd6802439a02773e5de4b8c79e9",
+        "min_web_version": "0.4.0",
+        "schema_version": 1,
+        "upstream_commit": "0000000000000000000000000000000000000000",
+        "version": "synthetic-v2"
+      }
+    },
+    {
+      "name": "非法分包业务版本",
+      "valid": false,
+      "value": {
+        "files": {
+          "abilities.json": {
+            "bytes": 166,
+            "revision": "30adc034c930f59033e79970cfe2626430d1d945ffe352b8009aee6d7295a46e",
+            "sha256": "ebdccee290dc0a73cde6091467fc9e2f7bff1b8836ad41d20a9855f9dded40be"
+          },
+          "achievements.json": {
+            "bytes": 184,
+            "revision": "07fd843d7a29a7c03ac610df198a08173abd92ab993f92fbd4a5ef99844ab43f",
+            "sha256": "6343a5f07586b69317e9cefae7ab72863224e35a8852d146adbc8c9eda9f1482"
+          },
+          "assets-index.json": {
+            "bytes": 644,
+            "sha256": "27de4c3b6be1ebcea93218a786427d4c3a32398303ed828c5e30a8b00e105b1a"
+          },
+          "catalog.json": {
+            "bytes": 169,
+            "revision": "7db409d28121f5659ef97195d76fac9cdeb3b7d6d8b3918bba1d9dda0c36bc3f",
+            "sha256": "cc2fe29ea1e70006f9e601fe492140c30cb874596ef1d9c40190d95c9c289b6f"
+          },
+          "effects.json": {
+            "bytes": 165,
+            "revision": "bad",
+            "sha256": "fb6c2b604f15ee737212a5eefcc66d673e8a47946483fa0dda2abd240169ae71"
+          },
+          "progression.json": {
+            "bytes": 159,
+            "revision": "730f19043f7174206a861c5669aeac0f9a4fb20c52798af540ccca717b663d14",
+            "sha256": "d123d96d43b56a0e29d1cbff51b885625c38e2b941dbca37b90d6291c8dce949"
+          }
+        },
+        "format": "gakumas-content",
+        "master_revision": "0791928a2dc31a8b8506b3fbf1a09c5b53782dd6802439a02773e5de4b8c79e9",
+        "min_web_version": "0.5.0",
+        "schema_version": 1,
+        "upstream_commit": "0000000000000000000000000000000000000000",
+        "version": "synthetic-v2"
+      }
+    },
+    {
+      "name": "未知内容格式",
+      "valid": false,
+      "value": {
+        "files": {
+          "abilities.json": {
+            "bytes": 166,
+            "revision": "30adc034c930f59033e79970cfe2626430d1d945ffe352b8009aee6d7295a46e",
+            "sha256": "ebdccee290dc0a73cde6091467fc9e2f7bff1b8836ad41d20a9855f9dded40be"
+          },
+          "achievements.json": {
+            "bytes": 184,
+            "revision": "07fd843d7a29a7c03ac610df198a08173abd92ab993f92fbd4a5ef99844ab43f",
+            "sha256": "6343a5f07586b69317e9cefae7ab72863224e35a8852d146adbc8c9eda9f1482"
+          },
+          "assets-index.json": {
+            "bytes": 644,
+            "sha256": "27de4c3b6be1ebcea93218a786427d4c3a32398303ed828c5e30a8b00e105b1a"
+          },
+          "catalog.json": {
+            "bytes": 169,
+            "revision": "7db409d28121f5659ef97195d76fac9cdeb3b7d6d8b3918bba1d9dda0c36bc3f",
+            "sha256": "cc2fe29ea1e70006f9e601fe492140c30cb874596ef1d9c40190d95c9c289b6f"
+          },
+          "effects.json": {
+            "bytes": 165,
+            "revision": "c3961c5f6e6bf3434ff96d279348c723c209b20608a2753abe849302782ebb3f",
+            "sha256": "fb6c2b604f15ee737212a5eefcc66d673e8a47946483fa0dda2abd240169ae71"
+          },
+          "progression.json": {
+            "bytes": 159,
+            "revision": "730f19043f7174206a861c5669aeac0f9a4fb20c52798af540ccca717b663d14",
+            "sha256": "d123d96d43b56a0e29d1cbff51b885625c38e2b941dbca37b90d6291c8dce949"
+          }
+        },
+        "format": "gakumas-content",
+        "master_revision": "0791928a2dc31a8b8506b3fbf1a09c5b53782dd6802439a02773e5de4b8c79e9",
+        "min_web_version": "0.5.0",
+        "schema_version": 3,
+        "upstream_commit": "0000000000000000000000000000000000000000",
+        "version": "synthetic-v2"
+      }
+    },
+    {
+      "name": "旧全局版本结构即使编号为1也拒绝",
+      "valid": false,
+      "value": {
+        "files": {
+          "abilities.json": {
+            "bytes": 166,
+            "sha256": "ebdccee290dc0a73cde6091467fc9e2f7bff1b8836ad41d20a9855f9dded40be"
+          },
+          "achievements.json": {
+            "bytes": 184,
+            "sha256": "6343a5f07586b69317e9cefae7ab72863224e35a8852d146adbc8c9eda9f1482"
+          },
+          "assets-index.json": {
+            "bytes": 644,
+            "sha256": "27de4c3b6be1ebcea93218a786427d4c3a32398303ed828c5e30a8b00e105b1a"
+          },
+          "catalog.json": {
+            "bytes": 169,
+            "sha256": "cc2fe29ea1e70006f9e601fe492140c30cb874596ef1d9c40190d95c9c289b6f"
+          },
+          "effects.json": {
+            "bytes": 165,
+            "sha256": "fb6c2b604f15ee737212a5eefcc66d673e8a47946483fa0dda2abd240169ae71"
+          },
+          "progression.json": {
+            "bytes": 159,
+            "sha256": "d123d96d43b56a0e29d1cbff51b885625c38e2b941dbca37b90d6291c8dce949"
+          }
+        },
+        "format": "gakumas-content",
+        "master_revision": "0791928a2dc31a8b8506b3fbf1a09c5b53782dd6802439a02773e5de4b8c79e9",
+        "min_web_version": "0.5.0",
+        "schema_version": 1,
+        "upstream_commit": "0000000000000000000000000000000000000000",
+        "version": "synthetic-v2"
+      }
+    }
+  ]
+}

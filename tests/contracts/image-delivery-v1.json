@@ -1,0 +1,162 @@
+{
+  "versions": {
+    "one": {
+      "baseline": {
+        "packages": [
+          {
+            "bytes": 345,
+            "objects": {
+              "a0aba5acea68899495ed59d23aae2942ff229bfaed1d0595acbbd0e2c72f151e.png": {
+                "bytes": 68,
+                "sha256": "a0aba5acea68899495ed59d23aae2942ff229bfaed1d0595acbbd0e2c72f151e"
+              }
+            },
+            "sha256": "452bb7b8805c4af7981764d6864d78d7775d2d9edc2cd1a87ef4f43a0a0b462f",
+            "url": "https://release.example.invalid/one/gakumas-images-ea88588e24ac5e2e52a5516f.tar.gz"
+          }
+        ],
+        "version": "one"
+      },
+      "cdn_base_url": "https://cdn.example.invalid/",
+      "files": {
+        "ui-icons/first.png": {
+          "bytes": 68,
+          "sha256": "a0aba5acea68899495ed59d23aae2942ff229bfaed1d0595acbbd0e2c72f151e"
+        }
+      },
+      "format": "gakumas-assets-set",
+      "schema_version": 1,
+      "version": "one",
+      "cdn_objects": []
+    },
+    "two": {
+      "baseline": {
+        "packages": [
+          {
+            "bytes": 345,
+            "objects": {
+              "a0aba5acea68899495ed59d23aae2942ff229bfaed1d0595acbbd0e2c72f151e.png": {
+                "bytes": 68,
+                "sha256": "a0aba5acea68899495ed59d23aae2942ff229bfaed1d0595acbbd0e2c72f151e"
+              }
+            },
+            "sha256": "452bb7b8805c4af7981764d6864d78d7775d2d9edc2cd1a87ef4f43a0a0b462f",
+            "url": "https://release.example.invalid/one/gakumas-images-ea88588e24ac5e2e52a5516f.tar.gz"
+          }
+        ],
+        "version": "one"
+      },
+      "cdn_base_url": "https://cdn.example.invalid/",
+      "files": {
+        "ui-icons/first.png": {
+          "bytes": 68,
+          "sha256": "a0aba5acea68899495ed59d23aae2942ff229bfaed1d0595acbbd0e2c72f151e"
+        },
+        "ui-icons/second.png": {
+          "bytes": 84,
+          "sha256": "00986aca0820eed94d29b390bf87128cf0322897575494cd5dc1206d764d808a"
+        }
+      },
+      "format": "gakumas-assets-set",
+      "schema_version": 1,
+      "version": "two",
+      "cdn_objects": [
+        "00986aca0820eed94d29b390bf87128cf0322897575494cd5dc1206d764d808a.png"
+      ]
+    },
+    "three": {
+      "baseline": {
+        "packages": [
+          {
+            "bytes": 437,
+            "objects": {
+              "00986aca0820eed94d29b390bf87128cf0322897575494cd5dc1206d764d808a.png": {
+                "bytes": 84,
+                "sha256": "00986aca0820eed94d29b390bf87128cf0322897575494cd5dc1206d764d808a"
+              },
+              "a0aba5acea68899495ed59d23aae2942ff229bfaed1d0595acbbd0e2c72f151e.png": {
+                "bytes": 68,
+                "sha256": "a0aba5acea68899495ed59d23aae2942ff229bfaed1d0595acbbd0e2c72f151e"
+              }
+            },
+            "sha256": "98b0f139b10ce802cb73afc087379ab6384f15f1f30820c881fae5b1316c910c",
+            "url": "https://release.example.invalid/three/gakumas-images-e60c938870401db1fc0570ff.tar.gz"
+          }
+        ],
+        "version": "three"
+      },
+      "cdn_base_url": "https://cdn.example.invalid/",
+      "files": {
+        "ui-icons/first.png": {
+          "bytes": 68,
+          "sha256": "a0aba5acea68899495ed59d23aae2942ff229bfaed1d0595acbbd0e2c72f151e"
+        },
+        "ui-icons/second.png": {
+          "bytes": 84,
+          "sha256": "00986aca0820eed94d29b390bf87128cf0322897575494cd5dc1206d764d808a"
+        }
+      },
+      "format": "gakumas-assets-set",
+      "schema_version": 1,
+      "version": "three",
+      "cdn_objects": [
+        "00986aca0820eed94d29b390bf87128cf0322897575494cd5dc1206d764d808a.png"
+      ]
+    },
+    "multi": {
+      "baseline": {
+        "packages": [
+          {
+            "bytes": 345,
+            "objects": {
+              "a0aba5acea68899495ed59d23aae2942ff229bfaed1d0595acbbd0e2c72f151e.png": {
+                "bytes": 68,
+                "sha256": "a0aba5acea68899495ed59d23aae2942ff229bfaed1d0595acbbd0e2c72f151e"
+              }
+            },
+            "sha256": "452bb7b8805c4af7981764d6864d78d7775d2d9edc2cd1a87ef4f43a0a0b462f",
+            "url": "https://release.example.invalid/one/gakumas-images-ea88588e24ac5e2e52a5516f.tar.gz"
+          },
+          {
+            "bytes": 356,
+            "objects": {
+              "00986aca0820eed94d29b390bf87128cf0322897575494cd5dc1206d764d808a.png": {
+                "bytes": 84,
+                "sha256": "00986aca0820eed94d29b390bf87128cf0322897575494cd5dc1206d764d808a"
+              }
+            },
+            "sha256": "31d84bc4b4aa24afe520d99c9a51b1d1c5d69f6c1eada39888691a3c3312c95f",
+            "url": "https://release.example.invalid/second/gakumas-images-d5dc736a49a13d0d54cf9f20.tar.gz"
+          }
+        ],
+        "version": "one"
+      },
+      "cdn_base_url": "https://cdn.example.invalid/",
+      "files": {
+        "ui-icons/first.png": {
+          "bytes": 68,
+          "sha256": "a0aba5acea68899495ed59d23aae2942ff229bfaed1d0595acbbd0e2c72f151e"
+        },
+        "ui-icons/second.png": {
+          "bytes": 84,
+          "sha256": "00986aca0820eed94d29b390bf87128cf0322897575494cd5dc1206d764d808a"
+        }
+      },
+      "format": "gakumas-assets-set",
+      "schema_version": 1,
+      "version": "two",
+      "cdn_objects": [
+        "00986aca0820eed94d29b390bf87128cf0322897575494cd5dc1206d764d808a.png"
+      ]
+    }
+  },
+  "packages": {
+    "https://release.example.invalid/one/gakumas-images-ea88588e24ac5e2e52a5516f.tar.gz": "H4sIAAAAAAAC/+3TTUvDMBgH8Lp5kOnOgghKzttMs7ZbdlMmussQ8a5P23Qv0laWTpSxize/gh/Cm19GP4RfQNB0iKAHD77Mg/8fJE8IyZND+MeUDCKls9pQp4n1O7jhOc6sGh8rr9cbb+vZvs0d17Y2uTUHY53RyDxv/U8TFqWjmDLWYj06Hcekq4OYeqrqk1aswlJ/qIJMs9aEESefXAoUec2mlI50VejKUNSJlJCOiCIhpB+RCu2Qu9Kc9P2QKxE0RGS7tqqdJb28j3+ZKdPQa1aY7pNwPfP2d3uz6dR0C/oqpuNzNdKDNGEte1qy4HOv/7v1E5/71fybuL/Pv7CdBkf+5+H6oLtXLq3lQSl39tuHpi7kY2nRzHfrKwVTljvt7aOL++DpecMqFgvW483qQ363s9tt3+6cXCFFAAAAAAAAAAAAAAAAAAAAAH/nBbTvzWcAKAAA",
+    "https://release.example.invalid/three/gakumas-images-e60c938870401db1fc0570ff.tar.gz": "H4sIAAAAAAAC/+3UzWrcMBAHcOfjUNLkXCiFFp13k5FWsqS9pWxp9hJC6b0dS/LuptguKyckhL30llfIQ/TWl2keoi9QSLShKe0ekzQhdH5gjzH2SDD+u8J6UobYbu7Hps7+DUhyKa9qslhBaf37+uo+B6l09gqye3AQW5ym5bP/0wkrm2mFLeuzEX46qDB2JxWOQrfAGFiHNcV+cG1k/RMGYE2ODsEICMFb6YUtehaK0mgujCuhJ4SxWmklrXReeccF5F7n0hswuPm5Hs37FMdtSA2N7LA4RqHytPZte7NZhyFggQpdwNwYa6VVwSvrRQ8xCCtFWYrUtMTguQdl05NF4SEIp0XJFQ8L+8vNH/u7bW82SxuMbhwq/HAYpnHS1KzPZ2sPPv9f8926i+HeNP9cyL/zL0AKoPzfh9O93bcba8/nH+LGcGfwLtWl+fFkNZ2/vVhfTuXpcLD9/ui7+3nxMltZWc5+nD07n787fLM7+Pr645d4XLfj0E5cNwbX1D4jj8Z1/u/i53nj/MNi/rnUlP9Hk39KESGEEEIIIYQQQgghhBBCCCGEPLxLQL/n/wAoAAA=",
+    "https://release.example.invalid/second/gakumas-images-d5dc736a49a13d0d54cf9f20.tar.gz": "H4sIAAAAAAAC/+3Ty0oDMRQG4LF1IdWuBRGUrNuayWRu3SkV7aaIuNdMJr3JzEgzFUvpxp2v4EO482X0IXwBQTNFBF248NKN/wfJCYGcswh/ItJBV+m8MdRZav0Nanicz6vxuVLH8d/P83ubcte2tqm1AGOdi5EZb/1PU9LNRonISZP0xPk4Ebo+SERP1SOhFamRLBoqmWvSnBJKw8ATUtCAUaXikMcsjJyQRt3At1kgu9RhLAh913d5yGXsxtJm1It9j8cBDUTjIu0VfaJJrkzDgNeI7gvmemb2T3uT2cx0k32ViNNLNdKDLCVNe1ax4Gtv/7vzG5/73fzbjH/MP6OcUeR/EW6OOgfVykYRlGr7sHVs6lKxVpbNfr+5VjJltd3aPbl6kM8vW1a5XLKebtcfi7ft/U7rbu/sWk/SvK/ygaxrJbM0RqoAAAAAAAAAAAAAAAAAAAAAFucVIxmjwgAoAAA="
+  },
+  "objects": {
+    "a0aba5acea68899495ed59d23aae2942ff229bfaed1d0595acbbd0e2c72f151e.png": "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aF9sAAAAASUVORK5CYII=",
+    "00986aca0820eed94d29b390bf87128cf0322897575494cd5dc1206d764d808a.png": "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aF9sAAAAASUVORK5CYIJzeW50aGV0aWMtc2Vjb25k"
+  }
+}

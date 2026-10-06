@@ -1,0 +1,2366 @@
+:root{--canvas:#f4f6fa;--paper:#fff;--ink:#24324a;--muted:#64728a;--line:#e1e7f0;--accent:#3163c0;--accent-deep:#214c9b;--selected:#edf3ff;--warn:#91621a;--warn-bg:#fff6e4;--vo:#ad4167;--da:#336fc0;--vi:#8c6a17;--body:"Noto Sans CJK SC","Microsoft YaHei",system-ui,sans-serif}
+*{box-sizing:border-box}
+body{margin:0;color:var(--ink);background:var(--canvas);font:14px/1.5 var(--body);font-variant-numeric:tabular-nums}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer;border:1px solid var(--line);border-radius:7px;background:var(--paper);padding:7px 12px;min-height:36px;font-weight:550}
+button:hover:enabled{background:var(--selected);border-color:#b6c9ed}
+button:disabled{opacity:.45;cursor:default}
+button.primary{background:var(--accent);border-color:var(--accent);color:white}
+input,select,textarea{border:1px solid var(--line);background:white;border-radius:7px;padding:7px 10px;min-height:36px;max-width:100%}
+input[type=checkbox]{accent-color:var(--accent);width:18px;height:18px;min-height:0;cursor:pointer}
+textarea{width:100%;resize:vertical}
+h1,h2,h3,h4,p{margin:0}
+h1{font-size:23px;letter-spacing:-.04em}
+h2{font-size:18px}
+h3{font-size:14px}
+h4{font-size:13px}
+a{color:inherit}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+.small,small{font-size:12px}
+.muted{color:var(--muted)}
+.actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.eyebrow{font-size:11px;color:var(--accent);letter-spacing:.1em;font-weight:650}
+.app-header{background:white;display:flex;align-items:center;justify-content:space-between;padding:0 28px;border-bottom:1px solid var(--line);gap:16px}
+.brand{display:flex;align-items:center;gap:11px;text-decoration:none;font-size:18px;font-weight:750}
+.brand small{display:block;font-size:10px;letter-spacing:.09em;color:var(--muted);font-weight:400}
+.brand-mark{font-size:35px;color:var(--accent);line-height:1}
+.header-actions{display:flex;gap:9px;align-items:center}
+#help-open{width:36px;padding:0}
+#navigation{display:flex;align-items:center;gap:24px;height:49px;padding:0 28px;background:white;border-bottom:1px solid var(--line)}
+#navigation button{height:49px;border:0;border-bottom:2px solid transparent;border-radius:0;padding:0 3px;color:var(--muted);background:transparent}
+#navigation button[aria-pressed=true]{color:var(--accent);border-bottom-color:var(--accent);font-weight:700}
+#navigation button span{font-size:11px;padding:2px 5px;margin-left:5px;border-radius:4px;background:var(--canvas)}
+#snapshot-meta{margin-left:auto;color:var(--muted);font-size:12px}
+main{max-width:1760px;margin:0 auto;padding:20px 28px 108px}
+.section-heading{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+.section-heading>div:first-child{display:flex;gap:14px;align-items:baseline}
+#result-count{font-size:12px;color:var(--muted)}
+.mode-control{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted)}
+.filters{display:flex;gap:8px;align-items:center}
+.search{position:relative;max-width:580px;flex:1}
+.search input{width:100%;padding-right:40px}
+.search button{position:absolute;right:1px;top:1px;border:0;background:transparent;min-height:34px;height:34px;padding:0 12px}
+.filters>label{margin-left:auto}
+.filter-panel{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;background:white;border:1px solid var(--line);border-radius:8px;padding:14px;margin-top:10px}
+.filter-panel label{display:grid;gap:4px;color:var(--muted);font-size:12px}
+.filter-panel select{min-width:145px}
+.collection-caption{display:flex;justify-content:space-between;gap:8px;font-size:11px;color:var(--muted);padding:10px 0}
+.workbench{display:grid;grid-template-columns:minmax(0,1fr);gap:18px;align-items:start}
+.collection{min-width:0}
+.memory-row{display:grid;grid-template-columns:20px minmax(220px,1.15fr) minmax(180px,1.25fr) 220px 118px;gap:18px;align-items:center;min-height:70px;padding:9px 14px;border-bottom:1px solid var(--line);background:white}
+.memory-row:last-child{border-bottom:0}
+.memory-row:hover{background:#f9fbff}
+.memory-row.selected{background:var(--selected)}
+.memory-row.active{box-shadow:inset 3px 0 var(--accent)}
+.pick{display:flex;align-items:center}
+.entry-main{display:flex;align-items:center;gap:12px;border:0;padding:0;background:transparent;text-align:left;min-width:0}
+.entry-main:hover:enabled,.entry-summary:hover:enabled{background:transparent}
+.entry-identity{min-width:0}
+.entry-identity strong{display:block;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.entry-identity>span{display:block;font-size:11px;color:var(--muted);margin-top:3px}
+.entry-summary{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;border:0;background:transparent;text-align:left;padding:0;font-size:12px;font-weight:400;line-height:1.65;min-height:0;max-height:40px;color:#52627a}
+.entry-meta{font-size:11px;display:flex;flex-wrap:wrap;align-items:center;gap:4px;color:var(--muted)}
+.entry-date{display:block;width:100%}
+.tag-text{overflow:hidden;white-space:nowrap;text-overflow:ellipsis;max-width:100%}
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.stat{display:flex;flex-direction:column;gap:1px}
+.stat span{font-size:10px;color:var(--muted)}
+.stat strong{font-size:16px;font-weight:650}
+.stat:nth-child(1) strong{color:var(--vo)}
+.stat:nth-child(2) strong{color:var(--da)}
+.stat:nth-child(3) strong{color:var(--vi)}
+.badge{font-size:10px;padding:1px 5px;background:var(--selected);color:var(--accent-deep);border-radius:4px;white-space:nowrap}
+.badge.warn{color:var(--warn);background:var(--warn-bg)}
+.pagination{display:flex;align-items:center;justify-content:center;gap:16px;font-size:12px;color:var(--muted);padding:18px 0}
+.illustration{display:inline-grid;place-items:center;position:relative;flex-shrink:0;width:80px;height:80px;overflow:hidden;border-radius:6px;background:var(--canvas)}
+.illustration img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}
+.illustration.entry-art{width:46px;height:46px}
+.illustration.face{width:32px;height:32px;border-radius:50%}
+.illustration.item{width:56px;height:56px}
+.art-fallback{font-size:10px;color:var(--muted);text-align:center;padding:4px}
+.idol-card{border:1px solid var(--line);min-width:0}
+.idol-art-open{display:block;width:100%;border:0;padding:0;border-radius:0;background:#e9edf5}
+.illustration.idol-art{display:block;width:100%;height:260px;border-radius:0;background:#e9edf5}
+.illustration.support-art{display:block;width:100%;height:auto;aspect-ratio:16/9;border-radius:0;background:#e9edf5}
+.idol-character{display:flex;justify-content:space-between;font-size:12px;color:var(--muted)}
+.illustration.idol-full{display:block;width:100%;height:65dvh}
+.compact-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.compact-grid .memory-row{position:relative;grid-template-columns:1fr;gap:10px;padding:16px;border:1px solid var(--line);border-radius:9px}
+.compact-grid .pick{position:absolute;right:12px;top:14px}
+.compact-grid .entry-main{padding-right:22px}
+.compact-grid .entry-meta{display:flex}
+.compact-grid .entry-date{width:auto;margin-right:8px}
+.empty-result{padding:48px 20px;color:var(--muted);grid-column:1/-1;text-align:center}
+.empty{text-align:center;margin:9vh auto;max-width:640px}
+.empty-mark{display:block;font-size:68px;color:var(--accent);margin-bottom:18px}
+.empty h1{font-size:32px;margin:12px 0}
+.empty p{color:var(--muted)}
+.empty .actions{justify-content:center;margin:25px 0 18px}
+.empty small{color:var(--muted)}
+.message{padding:8px 12px;font-size:12px;background:var(--selected);border-radius:7px;margin-bottom:12px}
+.message.error{background:var(--warn-bg);color:var(--warn)}
+.selection-bar{position:fixed;z-index:15;bottom:16px;left:50%;transform:translateX(-50%);width:min(1050px,calc(100% - 40px));display:flex;justify-content:space-between;align-items:center;gap:16px;border:1px solid #b8c9e8;border-radius:12px;background:white;box-shadow:0 8px 35px #24324a20;padding:12px 16px}
+#selection-count{font-size:12px;font-weight:650}
+#selection-items{display:flex;gap:5px;max-width:570px;flex-wrap:wrap;margin-top:4px}
+.selection-chip{font-size:10px;min-height:25px;padding:3px 7px;background:var(--selected)}
+.selection-bar .actions{flex-shrink:0}
+.selection-bar .actions button{font-size:12px}
+/* 桌面检查面板与列表并置；窄屏使用独立覆盖层。 */
+.workbench.inspecting{grid-template-columns:minmax(0,1fr) 400px}
+.inspector{position:sticky;top:12px;background:white;border:1px solid var(--line);border-radius:10px;max-height:calc(100dvh - 24px);overflow:auto;padding:18px}
+.inspector .dialog-head{position:sticky;top:-18px;background:white;z-index:2;margin:-18px -18px 14px;padding:14px 18px}
+.inspector .actions{gap:3px}
+.inspector .actions button{padding:4px 9px}
+.inspector .detail-hero{display:flex;gap:14px;align-items:center;justify-content:flex-start;padding:12px 0}
+.detail-hero .skill-tile{display:flex;flex-direction:row;flex-wrap:wrap;align-items:center;width:auto;gap:8px}
+.detail-hero .skill{width:44px;height:44px}
+.quick-note{width:100%;font-size:12px;color:var(--accent-deep);background:var(--selected)}
+.detail-section{border-top:1px solid var(--line)}
+summary{cursor:pointer;padding:11px 0;font-size:12px;font-weight:550}
+.technical{font-size:11px;color:var(--muted);overflow-wrap:anywhere}
+.technical p,.detail-section p{margin:7px 0}
+.semantic-entry{padding:10px 0;border-bottom:1px solid var(--line)}
+.semantic-entry:last-child{border:0}
+.semantic-entry h4{display:flex;gap:5px;align-items:center;flex-wrap:wrap;margin-bottom:6px}
+.semantic-status{font-size:9px;font-weight:400;color:var(--muted)}
+.semantic-status.partial,.semantic-status.unresolved{color:var(--warn)}
+.semantic-line{font-size:12px;line-height:1.7;white-space:pre-wrap}
+.semantic-caveat{font-size:11px;line-height:1.6;color:var(--warn)}
+.notes-section{border-top:1px solid var(--line);margin-top:12px}
+.notes-summary-text{display:block;font-size:11px;color:var(--muted);font-weight:400;margin-top:5px}
+.note-form{display:grid;gap:10px;padding:12px;background:var(--canvas);border-radius:7px}
+.note-form label{font-size:12px}
+.note-form input:not([type=checkbox]){display:block;width:100%;margin-top:4px}
+.note-form textarea{display:block;min-height:85px;margin-top:4px}
+.check-label{display:flex;align-items:center;gap:8px;font-size:12px}
+.skill-tile{display:flex;flex-direction:column;align-items:center;gap:4px;width:80px}
+.art-badges{display:flex;gap:3px;font-size:10px}
+.art-badges span{padding:0 3px;background:var(--selected);border-radius:3px}
+.art-name{font-size:11px;text-align:center;overflow-wrap:anywhere}
+.deck-strip{display:flex;gap:8px;flex-wrap:wrap}
+.deck-strip.compact .skill-tile,.deck-strip.compact .illustration{width:40px}
+.deck-strip.compact .illustration{height:40px}
+.item-tile{width:56px;font-size:11px}
+.deck-gallery{margin:12px 0}
+.deck-gallery h3{margin-bottom:10px}
+.workbench.inspecting .memory-row{grid-template-columns:18px minmax(150px,1fr) 185px;gap:10px}
+.workbench.inspecting .entry-summary{grid-column:2;grid-row:2}
+.workbench.inspecting .entry-meta{grid-column:3;grid-row:2}
+.workbench.inspecting .compact-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+.workbench.inspecting .compact-grid .memory-row{grid-template-columns:1fr}
+.workbench.inspecting .compact-grid .entry-summary,.workbench.inspecting .compact-grid .entry-meta{grid-column:auto;grid-row:auto}
+dialog{width:min(620px,calc(100% - 32px));max-height:90dvh;overflow:auto;overscroll-behavior:contain;border:1px solid var(--line);border-radius:12px;padding:22px;color:var(--ink);background:white}
+dialog::backdrop{background:#1c2b4566}
+body:has(dialog[open]){overflow:hidden}
+dialog.wide{width:min(1260px,calc(100% - 32px))}
+.dialog-head{display:flex;justify-content:space-between;align-items:center;gap:12px;border-bottom:1px solid var(--line);padding-bottom:14px;margin-bottom:14px}
+.panel-section{padding:12px 0}
+.panel-section p{font-size:13px;color:var(--muted);line-height:1.8;margin:10px 0}
+.panel-section h3{margin-top:10px}
+.compare-controls{display:flex;align-items:center;gap:20px;flex-wrap:wrap;margin-bottom:12px;font-size:12px}
+.compare-controls>label:first-child{display:flex;align-items:center;gap:8px}
+.compare-controls select{max-width:350px}
+.comparison{overflow:auto;max-height:68dvh}
+table{border-collapse:separate;border-spacing:0;width:100%;table-layout:fixed;font-size:13px}
+th,td{border-right:1px solid var(--line);border-bottom:1px solid var(--line);padding:10px 12px;text-align:left;vertical-align:top;min-width:220px;overflow-wrap:anywhere}
+th:first-child{width:108px;min-width:108px;background:#f4f6fa}
+thead th{position:sticky;top:0;z-index:3;background:#f4f6fa}
+thead th>strong{display:block;margin:5px 0;font-size:12px}
+.compare-skill{display:block;font-size:11px;font-weight:400}
+.different{background:#fff8eb}
+.comparison table{min-width:680px}
+.comparison .semantic-entry h4{font-size:12px}
+.comparison .semantic-line{font-size:12px}
+/* 比较以一张回忆一列展示，完整效果由图标浮层按需呈现。 */
+#compare-dialog{width:min(1480px,calc(100vw - 32px));max-height:calc(100dvh - 32px);padding:16px;overflow:hidden}
+#compare-dialog[open]{display:flex;flex-direction:column;gap:12px}
+#compare-dialog>.dialog-head{margin:0;padding-bottom:10px;flex:none}
+#compare-dialog>.dialog-head h2{font-size:18px}
+#compare-dialog .compare-controls{margin:0;gap:12px 20px;flex:none}
+#compare-dialog .compare-controls select{max-width:240px;min-height:32px;padding:4px 8px;font-size:12px}
+#compare-dialog .check-label{display:flex;align-items:center;gap:6px}
+.comparison-help{margin-left:auto;color:var(--muted);font-size:11px}
+#comparison{min-height:0;max-height:none;overflow:auto;border:1px solid var(--line);border-radius:8px}
+#comparison .comparison-table{min-width:calc(96px + var(--comparison-columns)*230px);font-size:12px}
+#comparison th,#comparison td{min-width:0;padding:7px 9px;vertical-align:middle}
+#comparison th:first-child{width:96px;min-width:96px;font-size:11px;font-weight:500;background:#f6f8fc;position:sticky;left:0;z-index:2}
+#comparison thead th{padding:10px 9px;background:#f6f8fc;vertical-align:top;z-index:3}
+#comparison thead th:first-child{z-index:4}
+#comparison td:last-child,#comparison th:last-child{border-right:0}
+#comparison tbody tr:last-child>*{border-bottom:0}
+#comparison .comparison-base-column{background:#f0f5fe}
+#comparison .comparison-different{background:#fff5e3}
+.comparison-memory-head{display:flex;align-items:center;gap:8px;min-width:0}
+.comparison-memory-art{display:block;flex:none;width:44px;height:44px}
+.comparison-memory-art>.support-skill-thumbnail,.comparison-memory-art>.illustration{width:100%;height:100%}
+.comparison-memory-identity{min-width:0;flex:1;display:grid;gap:2px;text-align:left}
+.comparison-memory-name{display:flex;align-items:center;gap:5px;flex-wrap:wrap}
+.comparison-memory-name strong{font-size:12px;font-weight:650}
+.comparison-base-badge{font-size:10px;color:var(--accent-deep);background:#dce8ff;border-radius:3px;padding:0 4px}
+.comparison-idol-name{font-weight:400;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.comparison-memory-identity small{font-size:10px;font-weight:400;color:var(--muted)}
+.comparison-stat-row td{font-variant-numeric:tabular-nums}
+.comparison-stat-value{font-size:14px;font-weight:600}
+.comparison-delta{display:inline-block;margin-left:8px;min-width:24px;font-size:11px;color:var(--muted)}
+.comparison-delta[data-direction=up]{color:#245da3}.comparison-delta[data-direction=down]{color:#946023}
+.comparison-icon-strip{display:flex;align-items:center;flex-wrap:wrap;gap:7px;min-height:36px}
+.comparison-item{display:inline-block;position:relative;flex:none;line-height:0;border-radius:5px}
+.comparison-config-different{outline:2px solid #d7a450;outline-offset:2px}
+.comparison-item>.support-art-event>.support-reward-trigger{width:48px;height:48px;min-height:0;margin:0;padding:0;border:0;border-radius:4px;background:transparent;box-shadow:none}
+.comparison-item>.support-art-event>button .support-reward-art,.comparison-item>.support-art-event>button .support-skill-thumbnail,.comparison-item>.support-art-event>button .support-item-thumbnail{width:48px;height:48px}
+.comparison-config-row[data-compare-field=examBattleProduceItemIds] .comparison-item>.support-art-event>button,.comparison-config-row[data-compare-field=examBattleProduceItemIds] .comparison-item>.support-art-event>button .support-reward-art,.comparison-config-row[data-compare-field=examBattleProduceItemIds] .comparison-item>.support-art-event>button .support-item-thumbnail{width:36px;height:36px}
+.comparison-item .ability-chips{display:block;padding:0;margin:0;gap:0}
+.comparison-item .ability-hint{display:block;border:0}
+.comparison-item .ability-chip{display:block;width:36px;height:36px;min-height:0;padding:0;margin:0;border:0;background:transparent}
+.comparison-count{position:absolute;top:-3px;right:-3px;z-index:7;padding:2px 3px;background:#fff;color:var(--ink);border:1px solid var(--line);border-radius:3px;font-size:10px;line-height:1;pointer-events:none}
+.comparison-inherit-name{min-width:0;flex:1;font-size:11px;line-height:1.5;overflow-wrap:anywhere}
+.comparison-unknown,.comparison-empty{color:var(--muted);font-size:11px}
+#comparison .comparison-equal{text-align:center;padding:22px;color:var(--muted)}
+@media(max-width:599px){#compare-dialog{width:calc(100vw - 16px);max-height:calc(100dvh - 16px);padding:10px;gap:9px}#compare-dialog .compare-controls{gap:8px}.comparison-help{flex-basis:100%;margin-left:0}#compare-dialog .compare-controls select{max-width:185px}#comparison .comparison-table{min-width:calc(76px + var(--comparison-columns)*220px)}#comparison th:first-child{width:76px;min-width:76px}}
+.sr-only,.skip:not(:focus){position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap}
+.skip:focus{position:fixed;z-index:100;background:white;padding:12px}
+.selection-bar[hidden],[hidden]{display:none!important}
+@media(max-width:1199px){
+  .memory-row{grid-template-columns:18px minmax(180px,1fr) minmax(150px,1fr) 180px;gap:12px}
+  .entry-meta{grid-column:2/5;display:none}
+  .workbench.inspecting{grid-template-columns:1fr}
+  .inspector{position:fixed;right:12px;top:12px;bottom:12px;width:420px;max-width:calc(100vw - 24px);z-index:20;box-shadow:0 10px 50px #24324a30}
+  .workbench.inspecting .memory-row{grid-template-columns:18px minmax(180px,1fr) minmax(150px,1fr) 180px}
+  .workbench.inspecting .entry-summary{grid-column:auto;grid-row:auto}
+  .workbench.inspecting .entry-meta{display:none}
+  .compact-grid .entry-meta{display:flex;grid-column:auto}
+  .compact-grid .memory-row{grid-template-columns:1fr}
+}
+@media(max-width:850px){
+  .app-header{padding:0 16px}
+  .brand{font-size:16px}
+  .brand small{font-size:9px}
+  .header-actions{gap:5px}
+  .header-actions button{font-size:12px;padding:6px 8px}
+  .header-actions select{width:122px;font-size:12px}
+  main{padding:16px 16px 115px}
+  #navigation{padding:0 16px;gap:20px}
+  .memory-row{grid-template-columns:18px minmax(150px,1fr) 190px;gap:10px}
+  .entry-summary{grid-column:2/4}
+  .compact-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .compact-grid .entry-summary{grid-column:auto}
+  .selection-bar{align-items:flex-start}
+  .selection-bar .actions{max-width:230px;justify-content:flex-end}
+  .workbench.inspecting .memory-row{grid-template-columns:18px minmax(150px,1fr) 190px}
+  .workbench.inspecting .entry-summary{grid-column:2/4}
+  .workbench.inspecting .compact-grid .entry-summary{grid-column:auto}
+  .illustration.idol-art{height:240px}
+}
+@media(max-width:599px){
+  .app-header{height:55px;padding:0 12px}
+  .brand{font-size:15px;gap:6px}
+  .brand-mark{font-size:27px}
+  .brand small{display:none}
+  .header-actions #load-main{display:none}
+  .header-actions #help-open{display:none}
+  .header-actions select{width:105px;font-size:11px}
+  .header-actions #data-open{font-size:11px;padding:6px}
+  #navigation{height:44px;padding:0 12px}
+  #navigation button{height:44px;font-size:12px}
+  #navigation span{margin-left:2px}
+  #snapshot-meta{display:none}
+  main{padding:12px 12px 140px}
+  .section-heading{margin-bottom:9px}
+  .section-heading h1{font-size:20px}
+  .section-heading>div:first-child{gap:7px}
+  #result-count{font-size:10px}
+  .mode-control{font-size:0;gap:0}
+  .mode-control select{font-size:11px;width:83px;min-height:32px;padding:5px}
+  .filters{gap:6px}
+  .filters select{font-size:11px;max-width:100px;min-height:36px}
+  .search{min-width:0}
+  .search input{font-size:12px}
+  .filters button{font-size:11px;padding:6px 9px}
+  .collection-caption{font-size:10px;padding:8px 0}
+  .collection-caption #group-summary{display:none}
+  .filter-panel{padding:10px;gap:8px}
+  .filter-panel label{width:calc(50% - 4px)}
+  .filter-panel select{min-width:0;width:100%}
+  .memory-row,.workbench.inspecting .memory-row{grid-template-columns:18px minmax(0,1fr);gap:5px 9px;padding:10px;min-height:132px}
+  .entry-main{grid-column:2;grid-row:1;gap:8px}
+  .pick{grid-column:1;grid-row:1}
+  .entry-identity strong{font-size:12px}
+  .entry-identity>span{font-size:10px}
+  .illustration.entry-art{width:36px;height:36px}
+  .memory-row>.stats{grid-column:2;grid-row:2;gap:12px}
+  .stat strong{font-size:15px}
+  .entry-summary,.workbench.inspecting .entry-summary{grid-column:2;grid-row:3;font-size:10px;max-height:17px;-webkit-line-clamp:1}
+  .entry-meta,.workbench.inspecting .entry-meta{display:flex;grid-column:2;grid-row:4;font-size:9px}
+  .entry-date{width:auto}
+  .entry-meta .badge{font-size:9px}
+  .compact-grid,.workbench.inspecting .compact-grid{grid-template-columns:1fr}
+  .compact-grid .memory-row{grid-template-columns:1fr;min-height:0}
+  .compact-grid .entry-main,.compact-grid .entry-summary,.compact-grid .memory-row>.stats,.compact-grid .entry-meta{grid-column:auto;grid-row:auto}
+  .compact-grid .pick{left:10px;right:auto}
+  .illustration.idol-art{height:220px}
+  .idol-character{font-size:10px}
+  .inspector{top:0;right:0;bottom:0;width:100%;max-width:100%;max-height:100dvh;border-radius:0;padding-bottom:40px}
+  .selection-bar{width:calc(100% - 16px);bottom:8px;padding:9px 10px;gap:8px;flex-direction:column}
+  #selection-items{max-width:100%}
+  .selection-chip{max-width:115px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+  .selection-bar .actions{max-width:none;width:100%;justify-content:flex-end;gap:5px}
+  .selection-bar .actions button{font-size:11px;padding:5px 8px}
+  .message{font-size:11px;padding:7px}
+  .empty h1{font-size:26px}
+  .empty{margin:9vh auto}
+  .empty p{font-size:12px}
+  dialog{padding:15px}
+  .compare-controls{gap:10px}
+  .compare-controls select{max-width:220px}
+}
+@media(prefers-reduced-motion:reduce){
+  *{scroll-behavior:auto!important}
+}
+/* 每项能力独立展示，保留条件入口；图标失败时仍可读数值与名称。 */
+.ability-chips{flex-wrap:wrap;min-width:0}
+.ability-chip{display:grid;grid-template-columns:24px minmax(0,1fr);grid-template-rows:26px auto;align-items:center;gap:1px 3px;width:64px;flex:0 0 64px;min-height:46px;padding:3px;border:1px solid #e5eaf2;background:#f9fbfe;border-radius:6px;text-align:left}
+.ability-picture{position:relative;display:grid;place-items:center;border-radius:4px;overflow:hidden;background:#edf2f8}
+.ability-picture img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}
+.ability-picture .foreground{z-index:1}
+.ability-icon-fallback{font-size:8px;color:var(--muted);z-index:2}
+.ability-value{font-weight:650;white-space:nowrap;letter-spacing:-.04em}
+.ability-label{grid-column:1/-1;font-weight:400;color:#506079;text-align:center}
+.ability-context{grid-column:1/-1;text-align:center;color:#8b6427;font-weight:500}
+.ability-dialog{width:min(470px,calc(100% - 24px))}
+.ability-dialog .semantic-content{max-height:70dvh;overflow:auto}
+.ability-dialog .semantic-line{font-size:14px}
+.workbench.inspecting .memory-row>.ability-chips{grid-column:2;grid-row:2}
+.compact-grid .memory-row>.ability-chips,.workbench.inspecting .compact-grid .memory-row>.ability-chips{grid-column:auto;grid-row:auto}
+@media(max-width:599px){
+  .ability-chips{gap:3px}
+  .ability-chip{width:51px;flex-basis:51px;gap:1px;padding:2px}
+  .ability-label{font-size:8px}
+  .ability-context{font-size:7px}
+  .compact-grid .ability-chip{width:56px;flex-basis:56px}
+}
+.ability-picture.exam-icon{background:#557da8}
+@media(max-width:599px){
+  .ability-chip{grid-template-columns:18px minmax(0,1fr)}
+  .ability-picture{width:18px;height:18px}
+  .ability-picture.exam-icon .foreground{inset:1px;width:16px;height:16px}
+  .ability-value{font-size:10px}
+}
+/* 卡片成长预览：窄屏按当前值、目标值顺序阅读。 */
+/* 完整效果说明沿用游戏图标；原文与技术说明按需展开。 */
+.effect-reading{display:flex;gap:9px;align-items:flex-start;line-height:1.8;margin:6px 0}
+.effect-reading-body{min-width:0;flex:1}
+.effect-reading-line{white-space:pre-wrap;overflow-wrap:anywhere}
+.effect-reading-line:not(:last-child){margin-bottom:3px}
+.effect-number{font-size:1.08em;font-weight:750;color:var(--accent)}
+.effect-term{display:inline;vertical-align:baseline}
+.effect-inline-icon{position:relative;display:inline-block;width:24px;height:24px;flex:0 0 24px;vertical-align:middle}
+.effect-inline-icon img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}
+#idol-dialog .dialog-head{top:0;z-index:2}
+.filter-panel input[type=number]{width:95px}
+.filter-panel select{max-width:230px}
+.filter-chip{font-size:11px;padding:2px 6px;min-height:24px;margin-right:5px}
+.candidate-tools{display:flex;gap:8px;padding:12px 18px}
+.candidate-tools button{font-size:12px}
+#history-choice{width:100%;margin:10px 0}
+#history-summary{margin-bottom:12px}
+#history-summary details{margin:8px 0;max-height:230px;overflow:auto}
+/* 保留字号和完整能力项，通过顶部留白保证桌面首屏密度。 */
+@media(min-width:1101px){
+  main{padding-top:16px}
+  .message{padding-block:4px;margin-bottom:6px}
+  .collection-caption{padding-block:8px}
+}
+/* 长语言文案在窄屏保持换行，不挤出页面。 */
+.header-actions{flex-wrap:wrap}
+#language{max-width:8rem}
+button,.entry-identity,.ability-label{overflow-wrap:anywhere}
+.app-header{height:auto;min-height:68px;padding-block:10px}
+@media(max-width:599px){
+  .app-header{display:block;min-height:0;padding-block:8px}
+  .app-header .brand{margin-bottom:8px}
+  .header-actions{justify-content:space-between}
+  .dialog-head{flex-wrap:wrap}
+}
+/* 引用技能卡时使用具体卡面，名称保留以便识别和图片加载失败时阅读。 */
+.effect-card-reference{display:inline-flex;align-items:center;gap:4px;vertical-align:middle;max-width:100%;font-weight:600}
+.effect-card-reference>img{width:32px;height:32px;object-fit:contain;border-radius:4px;flex:none}
+/* 支援卡保持双列浏览，当前效果直接可读。 */
+.support-catalog{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;align-items:start}
+.support-card{background:var(--paper);border:1px solid var(--line);border-radius:9px;overflow:hidden;min-width:0}
+.support-art-open{padding:0;border:0;background:none;flex:none}
+.support-name{display:block;text-align:left;border:0;background:none;padding:3px 0;font-size:15px;font-weight:700;min-height:0}
+.support-effects h4{font-size:11px;color:var(--muted);font-weight:500;margin-bottom:8px}
+.support-effect-list{padding:0;margin:0;list-style:none}
+.support-effect-list>li{padding:8px 0;border-bottom:1px solid var(--line)}
+.support-effect-list>li:last-child{border-bottom:0}
+.support-effect-list .effect-reading{display:flex;align-items:flex-start;gap:8px}
+.support-effect-list .effect-reading-body{min-width:0;flex:1}
+.support-effect-list .effect-reading-line{display:inline;font-size:13px}
+@media(max-width:900px){
+  .support-catalog{grid-template-columns:1fr}
+}
+@media(max-width:599px){
+  .support-name{font-size:13px}
+  .support-effects{padding:12px}
+  .support-effect-list .effect-reading-line{font-size:12px}
+}
+.support-filters{display:flex;flex-wrap:wrap;gap:10px;padding:12px 0;align-items:end}
+.support-filters label{display:grid;gap:4px;flex:1;min-width:130px;font-size:11px;color:var(--muted)}
+.support-filters select{width:100%;font-size:12px}
+.support-effect-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
+.support-chance{font-size:11px;color:var(--muted)}
+.support-reward-trigger{display:flex;align-items:center;flex-wrap:wrap;gap:5px;text-align:left;font-size:12px;font-weight:400;padding:3px 5px;border-color:transparent;background:transparent;min-height:36px;max-width:100%}
+.support-reward-trigger>span:not(.illustration){overflow-wrap:anywhere}
+.support-reward-popover{position:fixed;inset:auto;margin:0;width:min(360px,calc(100vw - 24px));max-height:min(440px,calc(100dvh - 24px));overflow:auto;overscroll-behavior:contain;padding:14px;border:1px solid var(--line);border-radius:9px;background:var(--paper);color:var(--ink);box-shadow:0 8px 28px #1c2b4533;font-size:13px}
+.support-reward-popover .semantic-content{margin:0}
+.support-reward-popover .effect-reading-line{font-size:13px;line-height:1.7}
+.illustration.reward-art{width:36px;height:36px}
+@media(max-width:599px){
+  .support-filters{gap:8px}
+  .support-filters label{min-width:0;flex-basis:calc(50% - 8px)}
+  .support-effect-list{grid-template-columns:1fr}
+  .support-effect-list>li{padding:7px}
+}
+/* 横带保留完整卡面，技能与专属效果各自连续排版，不按短项拉齐整行。 */
+.idol-current-stat{display:flex;flex-direction:column;gap:1px}
+.idol-current-stat small{color:var(--muted)}
+.idol-current-stat:nth-child(1) strong{color:var(--vo)}
+.idol-current-stat:nth-child(2) strong{color:var(--da)}
+.idol-current-stat:nth-child(3) strong{color:var(--vi)}
+/* 模态框只滚动内容区，标题与背景不参与该滚动。 */
+html:has(dialog[open]){overflow:hidden}
+#idol-dialog{padding:0;overflow:hidden;max-height:92dvh;width:min(1060px,calc(100% - 32px))}
+#idol-dialog[open]{display:flex;flex-direction:column}
+#idol-dialog .dialog-head{position:static;flex-shrink:0;margin:0;padding:16px 20px;background:var(--paper)}
+#idol-content{overflow:auto;overscroll-behavior:contain;padding:20px;min-height:0}
+.idol-effect-chips{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:10px}
+.idol-effect-chips>span{font-size:12px;color:var(--muted);margin-right:4px}
+.idol-effect-chips button{font-size:12px;min-height:30px;padding:3px 10px;border-radius:16px}
+.idol-effect-chips button[aria-pressed=true]{background:var(--selected);border-color:var(--accent);color:var(--accent-deep)}
+@media(max-width:700px){
+  #idol-content{padding:14px}
+}
+@media(max-width:480px){
+  .idol-current-stats{gap:4px;padding:8px}
+  .idol-current-stat strong{font-size:18px}
+  .idol-current-stat small{font-size:10px}
+  #idol-dialog{width:calc(100% - 16px);max-height:94dvh}
+}
+/* 持有状态同时用文字与边框区分，不降低未拥有卡片正文的可读性。 */
+.ownership-controls{display:flex;gap:16px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-top:14px;font-size:12px}
+.ownership-controls label{display:flex;align-items:center;gap:8px}
+.catalog-mode-controls{display:flex;align-items:center;gap:14px;flex:none}
+.catalog-mode-controls label{white-space:nowrap}
+#collection-progress{color:var(--muted)}
+.ownership-badge{display:inline-block;padding:2px 7px;border-radius:4px;font-size:11px;margin:0 6px;white-space:nowrap}
+.ownership-badge.owned{color:#23614b;background:#eaf5ee}
+.ownership-badge.unowned{color:#626b7b;background:#edf0f5}
+.unowned-card{border-style:dashed}
+/* 支援卡压缩重复容器，将空间用于卡面和实际效果。 */
+.support-card .support-name{font-size:14px;margin-bottom:4px}
+.support-card .ownership-badge{margin:4px 0}
+.support-effects{padding:10px 12px}
+.support-effects>h4{font-size:10px;font-weight:500;color:var(--muted);margin-bottom:5px}
+.support-chance{margin-bottom:4px}
+.support-effect-list{gap:0 12px;align-items:stretch}
+.support-effect-list>li,.support-effect-list>li:last-child{padding:8px;background:none;border:1px solid transparent;border-radius:0}
+#support-filters{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px 14px}
+#support-filters[hidden]{display:none}
+#support-filters fieldset{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;min-width:0;border:0;padding:0;margin:0;grid-column:1}
+#support-filters legend{padding:0 0 4px;color:var(--muted);font-size:11px}
+#support-filters label{min-width:0}
+#reset-support-filters{grid-column:2;grid-row:2;align-self:end}
+@media(max-width:700px){
+  #support-filters fieldset{gap:8px}
+  #support-filters{grid-template-columns:1fr}
+  #reset-support-filters{grid-column:1;grid-row:auto;justify-self:start}
+}
+@media(max-width:480px){
+  .support-card .support-name{font-size:13px}
+  #support-filters fieldset{grid-template-columns:repeat(2,minmax(0,1fr))}
+  #support-filters fieldset label:last-child{grid-column:1/-1}
+  .support-effect-list{grid-template-columns:1fr}
+}
+/* 支援卡效果标题保留独立层次。 */
+.support-card .support-chance{display:inline-block;margin-right:8px}
+.support-card .support-effects>h4{display:block;font-size:12px;border-top:1px solid var(--line);margin:8px 0}
+.support-effect-list .effect-reading-line{line-height:1.65}
+/* 透明浅色考试图标需要稳定深底；自带背景的培育图标保持原样。 */
+.effect-inline-icon.exam-icon,.ability-picture.exam-icon{background:#415675;border-radius:4px}
+.effect-inline-icon.exam-icon .foreground{inset:2px;width:calc(100% - 4px);height:calc(100% - 4px)}
+.ability-picture.exam-icon .ability-icon-fallback{color:white}
+/* 固定位置的状态栏同时提供形状、文字和底色，避免只凭细边框辨认。 */
+.idol-card,.support-card{position:relative;padding-top:38px}
+.support-card{padding-top:28px}
+.collection-state{position:absolute;inset:0 0 auto;min-height:28px;padding:4px 12px;font-size:12px;line-height:20px;font-weight:700;letter-spacing:.03em}
+.collection-state.owned{background:#e6f3ed;color:#225541}
+.collection-state.unowned{background:#526079;color:white}
+.collection-state.unknown{background:#fff1d7;color:#6d5120}
+.unowned-card{background:#f0f2f6;border-color:#8390a3}
+/* 比赛配置直接展示卡牌与道具，完整强化和附魔信息仍可打开详情。 */
+.exam-summary{display:block;min-width:0;text-align:left;background:transparent;border:0;padding:0;font-weight:400}
+.exam-summary:hover:enabled{background:var(--selected)}
+.exam-summary>.small{display:block;margin-bottom:5px;font-size:10px}
+.exam-summary .deck-strip{display:flex;flex-wrap:wrap;gap:4px;padding:0;margin:0}
+.exam-summary .skill-tile.compact,.exam-summary .item-tile{position:relative;width:32px;min-width:32px;flex:0 0 32px;padding:0;margin:0}
+.exam-summary .illustration.skill,.exam-summary .illustration.item{width:32px;height:32px}
+.exam-summary .art-badges{position:absolute;right:0;display:flex;gap:1px}
+.exam-summary .art-badges span{padding:0 2px;background:var(--ink);color:white;border-radius:2px}
+.exam-summary .item-tile>.badge{font-size:8px;padding:0 2px}
+.memory-use{display:inline-block;padding:2px 6px;border-radius:4px;font-size:11px;font-weight:600}
+.memory-use.training{background:#eeeafa;color:#584078}
+.memory-use.battle{background:#eaf3f7;color:#335d70}
+.memory-use.unknown{background:#fff1d7;color:#775315}
+.badge.protection{color:#654b0e;background:#fff1c7;border:1px solid #be8d23;font-weight:700;white-space:nowrap}
+.memory-detail-summary{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:12px 0}
+.memory-use-note{font-size:12px;line-height:1.6;background:var(--canvas);padding:10px;margin:12px 0;border-radius:6px}
+@media(max-width:599px){
+  .memory-row>.exam-summary{grid-column:2;grid-row:3}
+  .exam-summary .deck-strip{max-width:100%}
+  .collection-caption{flex-wrap:wrap}
+}
+.exam-summary .art-badges{white-space:nowrap;bottom:-2px}
+.badge.protection{display:inline-flex;align-items:center;gap:4px}
+.badge.protection svg{width:12px;height:12px;fill:none;stroke:currentColor;stroke-width:2;flex:none}
+/* 技能卡和 P 道具分组；稀有度同时用文字与色条表达，避免只凭卡图辨认。 */
+.deck-groups{display:grid;gap:12px;min-width:0}
+.deck-group-label{display:block;font-size:11px;color:var(--muted);margin-bottom:5px}
+.deck-item-group{border-top:1px solid var(--line);padding-top:8px}
+.skill-tile[data-rarity]{--rarity-ink:#4f5d72;--rarity-bg:#edf0f5;--rarity-line:#8996a8}
+.skill-tile[data-rarity="R"]{--rarity-ink:#225d85;--rarity-bg:#e6f2fb;--rarity-line:#4e91be}
+.skill-tile[data-rarity="SR"]{--rarity-ink:#62458c;--rarity-bg:#f0e9fa;--rarity-line:#9568bc}
+.skill-tile[data-rarity="SSR"]{--rarity-ink:#79530d;--rarity-bg:#fff0c8;--rarity-line:#bc881e}
+.skill-tile[data-rarity="LR"]{--rarity-ink:#873b64;--rarity-bg:#fbe6f1;--rarity-line:#bb5b8b}
+.skill-rarity{display:block;align-self:stretch;text-align:center;font-size:10px;font-weight:750;line-height:16px;color:var(--rarity-ink);background:var(--rarity-bg);border-top:2px solid var(--rarity-line);border-radius:3px 3px 0 0}
+.skill-tile[data-rarity] .illustration.skill{box-shadow:inset 0 0 0 1px var(--rarity-line)}
+.exam-summary .deck-groups{gap:7px}
+.exam-summary .deck-group-label{font-size:10px;margin-bottom:3px}
+.exam-summary .deck-item-group{padding-top:5px}
+.exam-summary .skill-tile.compact{gap:1px}
+.exam-summary .skill-rarity{font-size:8px;line-height:12px;border-top-width:2px}
+.exam-summary .deck-card-group .deck-strip{padding-bottom:3px}
+/* 全面模式在同一条记录中保留培养与比赛信息，不由单一用途推断可删除。 */
+.comprehensive-summary{display:grid;gap:10px;min-width:0;padding:4px 0}
+.summary-label{display:block;font-size:10px;color:var(--muted);margin-bottom:5px}
+.comprehensive-battle{border-top:1px solid var(--line);padding-top:8px}
+.comprehensive-summary .exam-summary{width:100%}
+.comprehensive-summary .entry-summary{display:block;max-height:none;-webkit-line-clamp:unset;font-size:12px}
+@media(max-width:599px){
+  .memory-row>.comprehensive-summary{grid-column:2;grid-row:3}
+}
+/* 头像和姓名共同识别角色，勾选与边框共同表达多选状态。 */
+.catalog-character-chips,.catalog-effect-chips{border:0;padding:6px 0;margin:4px 0 8px;display:flex;flex-wrap:wrap;gap:6px;min-width:0}
+.catalog-character-chips[hidden],.catalog-effect-chips[hidden]{display:none}
+.catalog-character-chips legend,.catalog-effect-chips legend{font-size:11px;color:var(--muted);padding:0 0 6px}
+.character-choice,.effect-choice{display:inline-flex;align-items:center;gap:6px;padding:4px 8px;font-size:12px;font-weight:500;min-height:34px}
+.character-choice .illustration.filter-face{width:26px;height:26px;border-radius:50%;background:transparent}
+.choice-check{display:inline-block;width:9px;margin-left:-3px;flex:none;font-size:10px;font-weight:750}
+.character-choice[aria-pressed=true],.effect-choice[aria-pressed=true]{background:var(--selected);border-color:var(--accent);color:var(--accent-deep)}
+#support-filters fieldset:last-of-type{grid-template-columns:repeat(2,minmax(0,1fr))}
+@media(max-width:599px){
+  .character-choice{font-size:10px;gap:3px;padding:3px 5px}
+  .character-choice .illustration.filter-face{width:22px;height:22px}
+  .character-choice .choice-check{width:9px}
+  .effect-choice{font-size:11px}
+}
+/* 偶像详情将可切换卡面与持有阶段效果并列，卡面选择不参与属性计算。 */
+.idol-art-control{margin-top:10px}
+/* 装扮以图片与主题为主体，持有状态独立于关联偶像卡。 */
+.skin-catalog{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:18px}
+.skin-card{position:relative;padding-top:28px;min-width:0;background:var(--paper);border:1px solid var(--line);border-radius:9px;overflow:hidden}
+.skin-art-open{display:block;width:100%;border:0;padding:0;border-radius:0}
+.illustration.skin-art{display:block;width:100%;height:auto;aspect-ratio:9/16;border-radius:0}
+.skin-body{padding:12px}
+.skin-body h3{margin:4px 0 8px;overflow-wrap:anywhere}
+.skin-detail{text-align:center}
+.illustration.skin-full{display:block;width:100%;height:65dvh;background:transparent}
+.skin-parent{margin-top:12px}
+#navigation{overflow-x:auto}
+#navigation>button{flex-shrink:0}
+@media(max-width:900px){
+  .skin-catalog{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+@media(max-width:599px){
+  .skin-catalog{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+  .skin-body{padding:9px}
+  .skin-body h3{font-size:12px}
+  #navigation{gap:15px}
+}
+/* 印象色只用于角色识别；原图、状态条及深色正文各自保持独立。 */
+.character-choice.character-accent{border-bottom:3px solid var(--character-color)}
+.character-choice.character-accent[aria-pressed=true]{background:color-mix(in srgb,var(--character-color) 18%,white);border-color:var(--character-color);color:var(--ink);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--character-color) 65%,var(--ink))}
+.character-choice.character-accent .filter-face{box-shadow:0 0 0 2px var(--character-color)}
+.idol-card.character-accent,.skin-card.character-accent{border-inline-start:4px solid var(--character-color)}
+.idol-card.character-accent .idol-character::before,.skin-card.character-accent .skin-body>p:first-child::before{content:'';display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--character-color);border:1px solid #0002;margin-right:6px;flex-shrink:0}
+.idol-card.character-accent .idol-character{align-items:center;justify-content:flex-start;gap:5px}
+.skin-detail.character-accent .skin-parent{border-top:3px solid var(--character-color);padding-top:12px}
+.memory-row.character-accent .entry-art{box-shadow:0 0 0 2px var(--character-color)}
+.illustration.face.character-accent{box-shadow:0 0 0 2px var(--character-color)}
+/* 回忆用整条边缘和姓名底色识别角色，蓝色内框及勾选仍专门表达操作状态。 */
+.memory-row.character-accent:not(.selected):not(.active){background:color-mix(in srgb,var(--character-color) 4%,white)}
+.memory-row.character-accent.selected,.memory-row.character-accent.active{box-shadow:inset 0 0 0 2px var(--accent)}
+.memory-character{display:inline-block;padding:2px 6px;border-radius:4px;background:color-mix(in srgb,var(--character-color,var(--line)) 20%,white);color:var(--ink);font-size:11px;font-weight:600;line-height:1.5}
+.memory-character::before{content:'';display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:5px;background:var(--character-color,var(--muted));border:1px solid #0002}
+.compact-grid .memory-row.character-accent{border-top:5px solid var(--character-color)}
+#detail-content.character-accent>.detail-hero{border-top:4px solid var(--character-color);flex-wrap:wrap}
+/* 详情并列时明确安排全面模式各区，避免属性落入选择框所在的窄列。 */
+@media(max-width:599px){
+  .memory-character{font-size:10px;padding:1px 4px}
+}
+/* 筛选图标与文字共同辨认含义，沿用角色选项的勾选反馈。 */
+.icon-filter-chips .effect-choice,.idol-effect-chips .effect-choice{display:inline-flex;gap:6px;align-items:center;border-radius:7px;min-height:36px}
+.filter-symbol{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;flex-shrink:0;border-radius:5px}
+.filter-symbol img{width:24px;height:24px;object-fit:contain}
+.filter-symbol.exam-symbol{background:#526079}
+.icon-filter-chips{margin:10px 0}
+.filter-panel>.icon-filter-chips{width:100%}
+@media(max-width:599px){
+  .filter-symbol{width:23px;height:23px}
+  .filter-symbol img{width:21px;height:21px}
+  .icon-filter-chips .effect-choice{font-size:11px;padding:4px 7px}
+}
+/* 全部页签共用上方搜索区，搜索状态仍按当前分类独立保存。 */
+.workspace-search{background:var(--paper);border-bottom:1px solid var(--line)}
+.workspace-search-inner{max-width:1760px;margin:auto;padding:12px 28px;display:flex;align-items:center;gap:16px}
+.search-scope{font-size:12px;font-weight:600;color:var(--muted);white-space:nowrap;min-width:115px}
+.workspace-search .search{max-width:720px;width:100%}
+.workspace-search .search input{background:var(--canvas)}
+@media(max-width:850px){
+  .workspace-search-inner{padding:10px 16px}
+}
+@media(max-width:599px){
+  .workspace-search-inner{padding:10px 12px;gap:6px;align-items:stretch;flex-direction:column}
+  .search-scope{font-size:10px}
+  .workspace-search .search{max-width:none}
+  .workspace-search .search input{font-size:13px}
+}
+/* 数量统一放在页签，右上角持有范围控制当前分类的统计分母。 */
+.workspace-search .ownership-controls{margin:0 0 0 auto;flex-shrink:0;flex-wrap:nowrap}
+.workspace-search .ownership-controls select{min-width:132px}
+.section-heading{justify-content:flex-end}
+.section-heading:has(#memory-modes[hidden]){margin:0}
+#navigation button span{white-space:nowrap}
+@media(max-width:599px){
+  .workspace-search .ownership-controls{align-self:flex-end;margin-top:3px;font-size:11px}
+  .workspace-search .ownership-controls select{min-height:32px;padding:5px 8px}
+  .workspace-search .ownership-controls label{gap:6px}
+}
+/* 默认收起详细筛选；条件标签留在面板外，避免为确认条件反复展开。 */
+.advanced-filters{margin-top:10px;padding:12px 16px;background:var(--paper);border:1px solid var(--line);border-radius:8px}
+.advanced-filters>.filter-panel{margin:0;padding:0;border:0}
+.advanced-filters .icon-filter-chips:first-child{margin-top:0}
+.active-filter-summary{display:flex;align-items:flex-start;gap:8px;min-width:0;flex:1}
+#active-filters{display:flex;align-items:center;flex-wrap:wrap;gap:6px;min-width:0}
+#active-filters .filter-chip{display:inline-flex;align-items:center;gap:5px;margin:0;max-width:280px;min-height:28px;padding:3px 7px;font-size:11px;background:var(--paper)}
+.filter-tag-label{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.filter-tag-remove{font-size:14px;color:var(--muted);flex-shrink:0}
+.filter-chip.character-accent{border-bottom:2px solid var(--character-color)}
+.illustration.filter-tag-face{width:20px;height:20px;border-radius:50%;background:transparent}
+.filter-chip .filter-symbol{width:20px;height:20px}
+.filter-chip .filter-symbol img{width:18px;height:18px}
+#clear-active-filters{padding:4px 7px;min-height:28px;font-size:11px;white-space:nowrap;border-color:transparent;background:transparent;color:var(--muted)}
+@media(max-width:599px){
+  .advanced-filters{padding:10px}
+  .active-filter-summary{flex-wrap:wrap}
+  #active-filters .filter-chip{max-width:calc(100vw - 32px)}
+  .collection-caption{align-items:flex-start}
+}
+/* 回忆只保留卡片视图，查看范围与持有范围共用右上角位置。 */
+.workspace-search #memory-modes{margin-left:auto;flex-shrink:0}
+@media(max-width:1000px){
+  .workspace-search-inner:has(#memory-modes:not([hidden])),.workspace-search-inner:has(#selection-lock-controls:not([hidden])){flex-wrap:wrap}
+  .workspace-search-inner:has(#memory-modes:not([hidden]))>.search,.workspace-search-inner:has(#selection-lock-controls:not([hidden]))>.search{flex:1;min-width:0}
+  .workspace-search #memory-modes,.workspace-search #selection-lock-controls{width:100%;max-width:100%;flex-wrap:wrap;justify-content:flex-end}
+}
+.workspace-search .mode-control{font-size:12px;gap:8px;display:flex;align-items:center;color:var(--ink)}
+.workspace-search .mode-control select{width:230px;max-width:calc(100vw - 110px);font-size:12px;min-height:36px}
+.section-heading{margin:0}
+@media(max-width:599px){
+  .workspace-search #memory-modes{align-self:flex-end;margin-top:3px}
+  .workspace-search .mode-control{font-size:11px}
+  .workspace-search .mode-control select{width:225px;min-height:32px;padding:5px 8px}
+}
+.compact-grid .memory-row>.comprehensive-summary{grid-column:auto;grid-row:auto}
+.compact-grid .memory-row>.pick{grid-column:auto;grid-row:auto;left:auto;right:12px;top:14px;z-index:1}
+@media(max-width:599px){
+  .compact-grid .memory-row{padding-left:16px}
+}
+/* 角色优先；分类、效果、数值和管理操作按阅读顺序分组。 */
+#advanced-filters>.catalog-character-chips{margin:0 0 12px;padding:0 0 12px;border-bottom:1px solid var(--line)}
+#advanced-filters .character-choice{min-height:36px;font-size:12px;padding:4px 8px;gap:5px}
+#advanced-filters :is(.character-choice,.effect-choice){padding-right:5px}
+#advanced-filters .catalog-effect-chips,#advanced-filters .idol-effect-chips{margin:0;padding:0}
+#advanced-filters .catalog-effect-chips legend,#advanced-filters .catalog-character-chips legend{margin-bottom:7px}
+.filter-classification{display:grid;gap:16px;align-items:start;margin:12px 0 16px}
+.support-effect-filters{border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:14px 0;margin:14px 0}
+.filter-effects-row{display:grid;grid-template-columns:minmax(170px,.7fr) minmax(220px,.9fr) minmax(280px,1.4fr);gap:20px;align-items:start}
+#advanced-filters .effect-trigger-field{gap:7px}
+#advanced-filters .effect-trigger-field select{margin-top:0}
+.filter-multi-hint{font-size:10px;font-weight:400;color:var(--muted);margin-left:4px}
+#support-effect-pair-hint{font-size:11px;line-height:1.7;margin-top:12px}
+#advanced-filters .filter-fields{display:grid;grid-template-columns:repeat(2,minmax(180px,1fr));gap:12px;align-items:end;max-width:900px;margin:10px 0}
+#advanced-filters label{display:flex;flex-direction:column;align-items:stretch;gap:5px;font-size:12px;color:var(--muted);width:auto;min-width:0}
+#advanced-filters label select{width:100%;min-width:0;max-width:none;min-height:36px;font-size:12px}
+#advanced-filters #idol-filters{grid-template-columns:1fr;margin:0}
+#advanced-filters #support-filters{grid-template-columns:minmax(210px,380px)}
+#advanced-filters #skin-filters{display:block;max-width:560px;margin:0;padding:0}
+#advanced-filters .filter-panel{display:block}
+.filter-section{border:0;border-top:1px solid var(--line);padding:12px 0 0;margin:14px 0 0;min-width:0}
+.filter-section>legend{font-size:12px;font-weight:600;padding:0 8px 0 0;color:var(--muted)}
+#filter-panel .filter-section:has(#memory-use) .filter-fields{grid-template-columns:repeat(4,minmax(0,1fr));max-width:none}
+.filter-footer{display:flex;align-items:end;justify-content:flex-start;gap:10px;flex-wrap:wrap;margin-top:12px}
+.filter-footer label{flex:1;max-width:350px}
+.filter-footer button{font-size:12px;min-height:34px}
+#advanced-filters #idol-effect-chips{border:0;padding:0}
+@media(max-width:900px){
+  .filter-classification.support-classification{grid-template-columns:1fr 1fr}
+  .support-classification>label{max-width:180px}
+  .filter-effects-row{grid-template-columns:1fr}
+}
+@media(max-width:599px){
+  #advanced-filters .character-choice{font-size:11px;min-height:34px;padding:4px 6px}
+  .filter-classification,.filter-classification.support-classification{grid-template-columns:1fr;gap:12px}
+  #advanced-filters #idol-filters{max-width:180px}
+  #advanced-filters .filter-fields,#advanced-filters #support-filters{grid-template-columns:1fr;gap:10px}
+  #filter-panel .filter-section:has(#memory-use) .filter-fields{grid-template-columns:1fr 1fr}
+  .filter-footer{gap:8px}
+  .filter-footer label{flex-basis:100%;max-width:none}
+}
+/* 稀有度与持有范围同列，分别保留各分类已有筛选值。 */
+.workspace-search .ownership-controls{gap:14px}
+.workspace-search .rarity-control select{min-width:76px;width:76px}
+.filter-classification{grid-template-columns:1fr}
+.filter-classification.support-classification{grid-template-columns:minmax(260px,1fr) minmax(320px,1.2fr)}
+#idol-filters{display:none}
+@media(max-width:599px){
+  .workspace-search .ownership-controls{gap:10px}
+  .workspace-search .rarity-control select{min-width:65px;width:65px}
+  .filter-classification.support-classification{grid-template-columns:1fr}
+}
+#advanced-filters #idol-filters{display:none}
+.ownership-toggle{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.owned-only-check{display:inline-grid;place-items:center;width:14px;height:14px;flex:none;border:1px solid var(--muted);border-radius:3px;font-size:11px;line-height:1}
+.ownership-toggle[aria-checked=true] .owned-only-check{border-color:var(--accent);background:var(--accent);color:white}
+.ownership-toggle[aria-checked=true] .owned-only-check::before{content:"✓"}
+.ownership-toggle[aria-checked=true]{background:var(--selected);border-color:var(--accent);color:var(--accent-deep)}
+.filter-actions{display:inline-flex;align-items:center;gap:8px;flex-shrink:0}
+.filter-actions:has(#saved-filters:not([hidden])){flex-wrap:wrap;min-width:0;max-width:100%}
+.saved-filters{display:flex;align-items:center;gap:6px;min-width:0;max-width:100%}
+.saved-filters label{display:flex;min-width:0}
+.saved-filters select{width:180px;max-width:100%;font-size:12px}
+.saved-filters button{flex:none;font-size:12px;white-space:nowrap}
+.filter-actions>#filter-toggle,.saved-filters select,.saved-filters button{height:36px;min-height:36px;font-size:12px;line-height:18px;padding-top:7px;padding-bottom:7px}
+@media(max-width:399px){.saved-filters select{width:155px}}
+#advanced-filters .support-effect-filters legend{padding:0;font-size:12px;line-height:1.5}
+/* 回忆筛选沿用支援卡的分隔线、并排字段和紧凑选项。 */
+.memory-classification{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:24px;align-items:start;padding:0 0 14px}
+.memory-filter-section{border-top:1px solid var(--line);padding:14px 0}
+.memory-inheritance-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:24px}
+.memory-numeric-fields{display:grid;grid-template-columns:minmax(0,1fr) minmax(240px,320px);gap:24px;align-items:start}
+.memory-range-fields{display:grid;grid-template-columns:minmax(0,1fr) 12px minmax(0,1fr);gap:8px;align-items:end}
+#advanced-filters .memory-range-fields input{width:100%;min-width:0}
+.memory-range-separator{height:36px;display:grid;place-items:center;color:var(--muted)}
+.memory-status-fields{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:24px}
+#filter-panel .catalog-effect-chips legend{font-size:12px;line-height:1.5;padding:0}
+#filter-panel label{gap:7px}
+.memory-filter-footer{display:flex;align-items:end;gap:8px;padding-top:14px}
+#advanced-filters .memory-filter-footer label{flex:1;max-width:320px}
+.memory-filter-footer button{font-size:12px;white-space:nowrap}
+.memory-filter-footer #reset-filters{margin-left:0}
+@media(max-width:900px){
+  .memory-status-fields{grid-template-columns:1fr;gap:16px}
+  .memory-numeric-fields{grid-template-columns:1fr;gap:14px}
+  .memory-range-fields{max-width:400px}
+}
+@media(max-width:599px){
+  .memory-classification,.memory-inheritance-fields{grid-template-columns:1fr;gap:16px}
+  .memory-filter-footer{flex-wrap:wrap}
+  #advanced-filters .memory-filter-footer label{flex-basis:100%;max-width:none}
+  .memory-filter-footer #reset-filters{margin-left:0}
+  .memory-range-fields{max-width:none}
+}
+/* 选拔回忆独立于普通回忆，容量说明与卡组详情沿用现有工作台风格。 */
+.selection-capacity{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:10px 0 14px}
+.selection-capacity:empty{display:none}
+.selection-filter-row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:24px;margin-bottom:14px}
+.selection-filter-row+.selection-filter-row{border-top:1px solid var(--line);padding-top:14px}
+/* 选拔回忆以完整立绘和决赛潜力为主，三围色条在同一快照内共用标尺。 */
+.selection-memory-catalog{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;align-items:start}
+.selection-memory-card{background:var(--paper);border:1px solid var(--character-color,var(--line));border-inline-start-width:4px;border-radius:10px;overflow:hidden;min-width:0}
+.selection-hero{display:grid;grid-template-columns:180px minmax(0,1fr);grid-template-rows:auto auto 1fr;gap:0 14px;padding-right:14px;background:linear-gradient(135deg,color-mix(in srgb,var(--character-color) 7%,white),#fff 70%)}
+.selection-artwork-column{grid-column:1;grid-row:1/4;align-self:start;min-width:0}
+.selection-artwork{position:relative;min-width:0}
+.selection-memory-portrait{display:block;width:100%;padding:0;border:0;border-radius:0;background:transparent;min-height:0}
+.selection-hero .illustration.selection-memory-art{display:block;width:100%;height:auto;aspect-ratio:9/16;border-radius:0;background:transparent}
+.selection-hero .illustration.selection-memory-art img{width:100%;height:100%;object-fit:contain}
+.selection-art-overlay{position:absolute;inset:0;pointer-events:none;color:white;text-shadow:0 1px 3px #000;background:linear-gradient(#14203835,transparent 28%,transparent 75%,#14203888)}
+.selection-art-plan{position:absolute;top:7px;left:6px;display:flex;flex-direction:column;align-items:flex-start;gap:3px;font-size:11px}
+.selection-art-plan .filter-symbol{width:22px;height:22px;filter:drop-shadow(0 1px 2px #0008)}
+.selection-art-grade{position:absolute;bottom:7px;left:6px;font-size:20px;line-height:1}
+.selection-art-ranks{position:absolute;bottom:6px;right:6px;display:flex;gap:4px;font-size:12px}
+.selection-art-ranks>span{display:flex;align-items:center;gap:1px}
+.selection-art-ranks img{width:18px;height:18px;object-fit:contain}
+.selection-identity{grid-column:2;min-width:0;padding-top:12px}
+.selection-card-eyebrow{display:flex;align-items:center;gap:6px;min-width:0;color:var(--muted);font-size:11px}
+.selection-card-name{min-width:0;font-size:20px;line-height:1.4;margin:0;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;user-select:text}
+.selection-memory-badges{display:flex;align-items:center;gap:5px;flex-shrink:0}
+.selection-memory-badges:empty{display:none}
+.selection-hero .selection-star{margin:9px 0;padding:8px 0;border:0;border-top:1px solid var(--line);border-radius:0;background:transparent}
+.selection-attributes{grid-column:2;min-width:0;padding:5px 0 12px;align-self:start}
+.selection-attribute-heading{display:flex;justify-content:space-between;font-size:10px;color:var(--muted);margin-bottom:5px}
+.selection-attribute{display:grid;grid-template-columns:22px minmax(0,1fr) 38px 45px;gap:6px;align-items:center;margin:6px 0;font-size:12px;font-variant-numeric:tabular-nums}
+.selection-attribute[data-attribute=Vo]{--selection-stat-color:#ed5b91;color:var(--vo)}
+.selection-attribute[data-attribute=Da]{--selection-stat-color:#438fec;color:var(--da)}
+.selection-attribute[data-attribute=Vi]{--selection-stat-color:#edbd32;color:var(--vi)}
+.selection-attribute-track{display:block;height:10px;border-radius:4px;background:#e9edf3;overflow:hidden}
+.selection-attribute-fill{display:block;height:100%;border-radius:4px;background:var(--selection-stat-color)}
+.selection-attribute strong,.selection-attribute-growth{text-align:right}
+.selection-attribute strong,.selection-total-value{font-size:12px;font-weight:700;font-variant-numeric:tabular-nums}
+.selection-attribute-growth{font-size:11px}
+.selection-attribute-totals{display:grid;grid-template-columns:22px minmax(0,1fr) 38px 45px;align-items:center;gap:6px;font-size:11px;border-top:1px solid var(--line);padding-top:6px;margin-top:8px}
+.selection-total-label{grid-column:2;text-align:right}
+.selection-total-value{grid-column:3;text-align:right;font-variant-numeric:tabular-nums}
+.selection-stamina{grid-column:4;text-align:right;color:#218449;white-space:nowrap}
+.selection-preview-dock{grid-column:2;align-self:start;display:grid;grid-template-columns:minmax(0,1fr);gap:10px;padding:12px 0;border-top:1px solid var(--line)}
+.selection-preview-section{min-width:0}
+.selection-section-link{font-size:11px;text-align:left;padding:5px 0;border:0;background:transparent;color:var(--accent-deep)}
+.selection-preview-strip{display:flex;gap:6px;flex-wrap:wrap;align-items:center;min-width:0}
+.selection-preview-section[data-selection-group=cards] .selection-preview-strip{display:grid;grid-template-columns:repeat(auto-fill,64px);align-items:start}
+.selection-card-count{grid-column:span 3/-1;justify-self:end;align-self:end;white-space:nowrap;font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}
+.selection-preview-trigger{display:block;position:relative;width:40px;height:40px;min-height:0;padding:0;border:0;background:transparent;border-radius:5px}
+.selection-preview-trigger .support-skill-thumbnail,.selection-preview-trigger .support-item-thumbnail{width:40px;height:40px}
+.selection-preview-more{font-size:11px;padding:4px;min-width:32px;min-height:32px}
+.selection-custom-count,.selection-from-memory{position:absolute;top:-2px;right:-2px;padding:0 3px;font-size:9px;line-height:13px;border-radius:3px;background:var(--accent-deep);color:white;pointer-events:none}
+.selection-custom-count{top:auto;right:auto;bottom:0;left:50%;transform:translateX(-50%);display:grid;place-items:center;width:17px;height:17px;padding:0;border-radius:50%;background:#267357;font-size:10px;font-weight:700;line-height:1}
+.selection-from-memory{left:50%;right:auto;transform:translateX(-50%);background:#267357}
+.selection-item-triggered,.selection-item-remaining{position:absolute;right:0;z-index:2;padding:0 3px;border-radius:3px;color:white;font-size:10px;font-weight:700;line-height:14px;font-variant-numeric:tabular-nums;pointer-events:none}
+.selection-item-triggered{top:0;background:#315eaa}
+.selection-item-remaining{bottom:0;background:#267357}
+.selection-item-exhausted .selection-item-remaining{background:#4b5563}
+.selection-item-exhausted::after{content:"";position:absolute;inset:0;z-index:1;border-radius:inherit;background:#0009;pointer-events:none}
+.selection-memory-overview{border:1px solid var(--character-color,var(--line));border-inline-start-width:4px;border-radius:10px;overflow:hidden}
+.selection-memory-overview .selection-hero{grid-template-columns:180px minmax(0,1fr);gap:0 22px;padding-right:22px}
+.selection-memory-overview .selection-identity{padding-top:16px}
+.selection-memory-overview .selection-card-name{font-size:24px}
+.selection-overview-dates{display:flex;flex-wrap:wrap;gap:6px 20px;font-size:11px;color:var(--muted);padding:10px 14px;border-top:1px solid var(--line)}
+@media(hover:hover){.selection-memory-portrait:hover+.selection-art-overlay{opacity:0}}
+@media(max-width:1100px){.selection-memory-catalog{grid-template-columns:1fr}}
+@media(max-width:599px){
+  .selection-hero,.selection-memory-overview .selection-hero{grid-template-columns:112px minmax(0,1fr);gap:0 10px;padding-right:10px}
+  .selection-artwork-column{grid-row:1/3}
+  .selection-attributes{grid-column:2;padding:0 0 10px}
+  .selection-attribute,.selection-attribute-totals{grid-template-columns:20px minmax(0,1fr) 32px 38px;gap:4px}
+  .selection-card-name,.selection-memory-overview .selection-card-name{font-size:17px}
+  .selection-identity,.selection-memory-overview .selection-identity{padding-top:8px}
+  .selection-art-grade{bottom:30px;font-size:17px}
+  .selection-art-plan{font-size:10px;gap:1px;left:4px}
+  .selection-art-plan .filter-symbol{width:18px;height:18px}
+  .selection-art-ranks{left:5px;right:auto}
+  .selection-preview-dock{grid-column:1/-1;padding:10px 0 10px 10px;gap:9px}
+  .selection-preview-strip{gap:5px}
+  .selection-preview-section[data-selection-group=cards] .selection-preview-strip{grid-template-columns:repeat(auto-fill,56px)}
+  .selection-preview-trigger,.selection-preview-trigger .support-skill-thumbnail,.selection-preview-trigger .support-item-thumbnail{width:34px;height:34px}
+}
+.selection-content-section{margin-top:20px;padding-top:14px;border-top:1px solid var(--line)}
+.selection-content-section>h3,.selection-content-section>summary{margin-bottom:12px;font-size:14px;font-weight:650}
+.selection-deck{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px}
+.selection-deck-card,.selection-item{border:1px solid var(--line);border-radius:8px;padding:12px;min-width:0}
+.selection-deck-card .semantic-entry{padding:4px 0}
+.selection-deck-card .effect-reading-line,.selection-item .effect-reading-line{font-size:12px}
+.selection-item{margin-top:8px}
+.selection-unresolved{padding:8px 0;overflow-wrap:anywhere}
+@media(max-width:599px){
+  .selection-filter-row{grid-template-columns:1fr;gap:16px}
+  .selection-memory-catalog{grid-template-columns:1fr}
+    .selection-deck{grid-template-columns:1fr}
+}
+.card-customizations{border-top:1px solid var(--line);padding-top:10px;margin-top:12px;min-width:0}
+.card-customizations>summary{cursor:pointer;font-size:12px;font-weight:650;line-height:1.8}
+.card-customizations>summary .badge{margin-left:7px}
+.card-customizations>p{margin:8px 0}
+.customization-card{margin:10px 0}
+.customization-card>h4{font-size:13px}
+.customization-option{border:1px solid var(--line);border-radius:7px;padding:10px;margin-top:8px}
+.customization-option h5{font-size:12px;margin:0 0 7px}
+.customization-summary{font-size:11px;color:var(--accent-deep);font-weight:600;margin:7px 0}
+.customization-effect{margin:8px 0;overflow-wrap:anywhere}
+.customization-effect h6{font-size:12px;margin:0 0 5px;font-weight:550}
+.customization-effect>small{display:block;color:var(--muted);margin:5px 0}
+.customization-effect .effect-reading-line{font-size:12px}
+/* 能力摘要优先保证名称、数值与条件可读，允许分行。 */
+.ability-chips{display:grid;grid-template-columns:repeat(auto-fit,minmax(92px,1fr));gap:6px;align-items:stretch;width:100%}
+.ability-chip,.compact-grid .ability-chip{width:100%;min-width:0;min-height:72px;padding:6px;grid-template-columns:24px minmax(0,1fr);grid-template-rows:auto auto;gap:4px}
+.ability-picture{width:24px;height:24px}
+.ability-picture.exam-icon .foreground{inset:2px;width:20px;height:20px}
+.ability-value{font-size:13px;line-height:1.3}
+.ability-label{font-size:12px;line-height:1.4;white-space:normal;overflow:visible;text-overflow:clip}
+.ability-context{font-size:11px;line-height:1.4;white-space:normal}
+.exam-summary .art-badges{font-size:10px;line-height:13px}
+.selection-count-links{display:flex;flex-wrap:wrap;gap:6px}
+.selection-count-links button{font-size:11px;padding:4px 7px;min-height:30px}
+#idol-dialog .dialog-head:has([data-catalog-navigation]){flex-wrap:wrap;gap:8px}
+.selection-detail-nav{display:flex;flex-wrap:wrap;gap:5px;flex-basis:100%;padding-bottom:4px}
+.selection-detail-nav button{font-size:12px;padding:5px 9px;min-height:32px}
+#list:focus-visible{outline:2px solid var(--accent);outline-offset:4px}
+@media(max-width:599px){
+  .selection-detail-nav button{font-size:11px;padding:4px 7px}
+}
+/* 支援卡以完整插图承载稀有度、实际等级和事件图标；长效果仍在卡面下阅读。 */
+.support-face{position:relative;isolation:isolate;aspect-ratio:16/9;background:var(--canvas);min-width:0}
+.support-face::after{content:'';position:absolute;inset:0;pointer-events:none;background:linear-gradient(180deg,#0c172b99,transparent 35%,transparent 55%,#0c172bcc);z-index:1}
+.support-face>.support-art-open{display:block;position:absolute;inset:0;width:100%;padding:0;border:0;border-radius:0;background:transparent}
+.support-face .illustration.support-cover{display:block;width:100%;height:100%;border-radius:0;background:transparent}
+.support-type-icon{position:absolute;left:12px;top:12px;width:36px;height:36px;z-index:2;filter:drop-shadow(0 1px 2px #0005)}
+.support-face-title{position:absolute;top:10px;right:12px;left:60px;z-index:2}
+.support-face .support-name{margin:0;padding:2px 4px;color:white;font-size:17px;text-align:right;width:100%;line-height:1.4;overflow-wrap:anywhere;text-shadow:0 1px 3px #000}
+.support-name,.idol-name{user-select:text;cursor:text}
+.support-face-status{position:absolute;left:12px;bottom:12px;z-index:2;display:grid;grid-template-columns:auto auto;gap:3px 8px;align-items:center;color:white;text-shadow:0 1px 3px #000}
+.rank-flowers{display:inline-flex;align-items:center;gap:2px;--flower-size:18px}
+.rank-flower{display:block;width:var(--flower-size);height:var(--flower-size);object-fit:contain;flex:none}
+.rank-flower.is-empty{opacity:.28;filter:grayscale(1)}
+/* 等级与突破两行合计等于稀有度高度，避免稀有度只占等级一行。 */
+.support-face-status:has(>.rank-flowers){grid-template-rows:22px 16px;row-gap:2px}
+.support-face-status:has(>.rank-flowers)>.support-rarity-icon{grid-row:1 / 3}
+.support-face-status:has(>.rank-flowers)>.support-face-level{grid-column:2;grid-row:1}
+.support-face-status:has(>.rank-flowers) .support-face-level strong{font-size:20px;line-height:22px}
+.support-face-status>.rank-flowers{grid-column:2;grid-row:2;--flower-size:16px}
+.support-rarity-icon{width:68px;height:40px;object-fit:contain;filter:drop-shadow(0 1px 2px #0008)}
+.support-face-level{display:grid;gap:0}
+.support-face-level strong{font-size:24px;line-height:1.15}
+.support-face-level small{font-size:11px}
+.support-art-events{position:absolute;right:12px;bottom:10px;z-index:3;display:flex;gap:6px;align-items:end}
+.support-art-event{display:grid;justify-items:center;gap:3px}
+.support-art-event .support-reward-trigger{width:48px;height:48px;min-height:0;display:grid;place-items:center;position:relative;padding:3px;border:1px solid #ffffffaa;background:#fffefaed;border-radius:7px;box-shadow:0 1px 3px #0003}
+.support-art-event .support-reward-trigger:hover,.support-art-event .support-reward-trigger:focus-visible{background:white;border-color:var(--accent)}
+.support-art-event .reward-art{width:40px;height:40px;background:transparent}
+.support-art-event .effect-inline-icon{width:38px;height:38px;margin:0}
+.support-event-amount{position:absolute;right:1px;bottom:0;font-size:12px;line-height:1.2;padding:1px 2px;color:var(--ink);background:#fff;border-radius:3px}
+.support-event-level{font-size:10px;color:white;line-height:1.2;text-shadow:0 1px 3px #000}
+.support-art-event.locked .support-reward-trigger{opacity:.65}
+.support-art-event.locked .support-reward-trigger{filter:grayscale(1)}
+.support-art-event.preview-unlocked .support-reward-trigger{border-color:#429478;box-shadow:0 0 0 1px #429478}
+.support-event-fallback{font-size:9px;line-height:1.15;overflow-wrap:anywhere;max-height:100%;overflow:auto}
+.support-card-meta{padding:9px 12px;display:flex;justify-content:space-between;gap:6px 16px;flex-wrap:wrap;border-bottom:1px solid var(--line);font-size:11px;color:var(--muted)}
+.support-card-meta .support-chance{margin:0;font-size:11px}
+.support-card .support-effects>h4{border:0;padding-top:0;margin-top:0}
+.support-search-basis{font-size:11px;color:var(--muted);margin-top:8px}
+.support-level-controls{display:grid;grid-template-columns:40px 36px minmax(64px,1fr) 36px 40px;gap:6px;align-items:end;width:100%;max-width:380px}
+.support-level-controls button{padding:6px 0;min-height:40px}
+.support-level-value{display:grid;gap:4px;text-align:center;font-size:12px;color:var(--muted)}
+.support-level-value input{width:100%;min-width:0;text-align:center;font-size:20px;font-weight:650;padding:4px;min-height:40px}
+.support-level-presets{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px;width:100%}
+.support-level-presets button{display:grid;gap:2px;min-width:0;padding:6px 2px;font-size:11px;font-weight:400}
+.support-level-presets strong{font-size:13px}
+.support-level-presets .rank-flowers{--flower-size:16px;justify-content:center;margin:auto}
+.support-level-presets button[aria-pressed=true]{border-color:var(--accent);background:var(--selected);color:var(--accent-deep)}
+/* 同一排共享状态行与正文行，空状态不把正文顶到邻项的解锁条件处。 */
+.support-effect-list>.support-skill{display:grid;grid-template-rows:subgrid;grid-row:span 2;align-items:start}
+.support-effect-list>.support-skill>.support-skill-status{grid-row:1}
+.support-effect-list>.support-skill>.effect-reading{grid-row:2;margin:0}
+.support-effect-list:has(.support-skill-locked)>.support-skill{margin-bottom:8px}
+.support-effect-list>.support-skill-locked,.support-effect-list>.support-skill-locked:last-child{background:#f4f5f8;border:1px dashed #d2d7df;border-radius:6px;padding:8px;color:#626d80}
+.support-skill-status{display:flex;flex-wrap:wrap;gap:4px 8px;font-size:11px;margin-bottom:5px}
+.support-skill-state{font-weight:650}
+.support-skill-locked .effect-number{color:inherit}
+.support-skill-locked .effect-inline-icon{filter:grayscale(1);opacity:.65}
+@media(max-width:599px){
+  .support-type-icon{width:28px;height:28px;left:9px;top:9px}
+  .support-face-title{left:43px;right:8px;top:8px}
+  .support-face .support-name{font-size:14px}
+  .support-face-status{left:8px;bottom:10px;gap:4px}
+  .support-face-status:has(>.rank-flowers){grid-template-rows:16px 12px;row-gap:2px}
+  .support-face-status:has(>.rank-flowers) .support-face-level strong{font-size:16px;line-height:16px}
+  .support-face-status>.rank-flowers{--flower-size:12px}
+  .support-level-presets .rank-flowers{--flower-size:12px;gap:1px}
+  .support-rarity-icon{width:50px;height:30px}
+  .support-face-level strong{font-size:18px}
+  .support-face-level{max-width:84px}
+  .support-face-level small{font-size:10px}
+  .support-art-events{right:8px;gap:4px}
+  .support-art-event .support-reward-trigger{width:38px;height:38px;padding:2px}
+  .support-art-event .reward-art,.support-art-event .effect-inline-icon{width:32px;height:32px}
+  .support-event-level{font-size:9px}
+}
+@media(max-width:359px){
+  .support-level-presets .rank-flowers{--flower-size:10px}
+}
+/* 等级预览直接作用于当前卡片；仅重绘技能与事件，不重建卡面。 */
+.support-card-controls{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:end;padding:10px 12px;border-bottom:1px solid var(--line)}
+.support-inline-level{display:flex;align-items:end;gap:6px;flex:1 1 250px;min-width:0}
+.support-card-controls .support-level-controls{grid-template-columns:32px 30px minmax(56px,1fr) 30px 32px;gap:4px;max-width:none;min-width:0}
+.support-card-controls .support-level-controls button{min-height:34px;font-size:12px}
+.support-card-controls .support-level-value{font-size:10px;gap:2px}
+.support-card-controls .support-level-value input{font-size:16px;min-height:34px}
+.support-preview-reset{padding:4px;min-width:28px;min-height:34px;font-size:18px}
+.support-card-controls .support-level-presets{flex:1 1 290px;min-width:0;width:auto}
+.support-card-controls .support-level-presets .rank-flowers{--flower-size:12px;gap:0}
+.support-card-controls .support-level-presets button{padding:4px 2px;gap:2px}
+.support-card-controls .support-level-presets strong{font-size:11px}
+.support-inline-status{display:flex;gap:6px 12px;flex-wrap:wrap;padding:8px 12px 0;font-size:11px;color:var(--accent-deep)}
+.support-preview-requirement{color:var(--warn)}
+.support-effect-list>.support-skill-gained,.support-effect-list>.support-skill-gained:last-child{border-left:3px solid #429478;padding:8px;background:#f0f8f4;border-radius:4px}
+.support-skill-gained .support-skill-status{color:#267357;font-weight:600}
+.effect-number-change{font-size:.95em;font-weight:600;white-space:nowrap}
+.effect-number-change.increase{color:#267357}
+.effect-number-change.decrease{color:#a34b46}
+@media(max-width:359px){
+  .support-card-controls .support-level-presets .rank-flowers{--flower-size:10px}
+}
+.support-level-preview > summary{padding:9px 12px;color:var(--muted);font-size:12px;cursor:pointer}
+.support-unupgraded{display:flex;align-items:center;gap:6px;margin:8px 0}
+.support-unupgraded input{width:auto}
+/* 支援奖励缩略图按卡框、效果、消耗、强化分层，不改写卡片插图。 */
+.support-art-event .support-skill-trigger{width:64px;height:64px;padding:0;border:0;background:transparent}
+.support-reward-art{display:block;line-height:0}
+.support-skill-thumbnail{position:relative;display:block;width:64px;height:64px;isolation:isolate;text-shadow:none;line-height:1}
+.support-skill-thumbnail .illustration.reward-art{position:absolute;inset:4%;width:92%;height:92%;border-radius:8px;overflow:hidden;background:var(--paper)}
+/* 左上角只显示明确的固定伤害；多次效果保留次数，不冒充单次总值。 */
+.support-skill-damage{position:absolute;left:4%;top:4%;font-size:10px;font-weight:850;line-height:1;color:#fff;font-variant-numeric:tabular-nums;letter-spacing:-.5px;text-shadow:-1px -1px 0 #714320,1px -1px 0 #714320,-1px 1px 0 #714320,1px 1px 0 #714320,0 2px 2px #352216aa;pointer-events:none}
+.support-skill-block{position:absolute;right:4%;top:4%;width:17px;height:17px;font-size:9px;font-weight:800;line-height:1;color:#fff;font-variant-numeric:tabular-nums;text-shadow:-1px -1px 0 #167c93,1px -1px 0 #167c93,-1px 1px 0 #167c93,1px 1px 0 #167c93;pointer-events:none}
+.support-skill-block img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}
+.support-skill-block b{position:absolute;inset:0;display:grid;place-items:center;line-height:1;font-size:inherit}
+.support-skill-frame{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.support-skill-symbols{position:absolute;left:3%;bottom:4%;display:grid;gap:1px}
+.support-skill-symbols img{width:15px;height:15px;object-fit:contain;border-radius:50%;background:#367bc6;box-shadow:0 0 0 1px #fff9}
+.support-skill-costs{display:flex;gap:2px;align-items:center}
+.support-skill-thumbnail .support-skill-costs{position:absolute;right:4%;bottom:calc(4% - 2px);flex-direction:column;align-items:center}
+.support-skill-cost{position:relative;display:block;width:17px;height:17px;color:#fff;font-size:9px;font-weight:800;line-height:1;text-shadow:0 1px 2px #142033,1px 0 #142033,-1px 0 #142033}
+.support-skill-cost img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}
+.support-skill-cost[data-cost-kind=status] .cost-symbol{inset:11.5%;width:77%;height:77%}
+.support-skill-cost[data-cost-kind=status] .cost-background{top:-5px}
+.support-skill-cost[data-cost-kind=status] .cost-symbol{top:calc(11.5% - 5px)}
+.support-skill-cost b{position:absolute;inset:0;display:grid;place-items:center;line-height:1;font-size:inherit}
+.support-skill-cost b,.support-skill-block b{white-space:nowrap;overflow-wrap:normal;word-break:normal}
+.support-skill-cost[data-cost-kind=direct] b{color:#fff3f3}
+.support-skill-enhanced{position:absolute;right:4%;top:50%;transform:translateY(-50%);display:block;flex:none;width:15px;height:15px;object-fit:contain;filter:drop-shadow(0 1px 1px #21314988)}
+.support-reward-popover:has(.support-skill-detail){width:min(420px,calc(100vw - 24px));max-height:min(660px,calc(100dvh - 24px));padding:16px}
+.support-skill-header{display:grid;grid-template-columns:88px minmax(0,1fr);gap:14px;align-items:center;margin-bottom:14px}
+.support-skill-header .support-skill-thumbnail{width:88px;height:88px}
+.support-skill-header .support-skill-symbols img{width:20px;height:20px}
+.support-skill-header .support-skill-cost,.support-skill-header .support-skill-block{width:22px;height:22px;font-size:10px}
+.support-skill-header .support-skill-damage{font-size:12px}
+.support-skill-header .support-skill-enhanced{width:20px;height:20px}
+.support-skill-header h4{font-size:17px;line-height:1.5;margin:3px 0 8px;overflow-wrap:anywhere}
+.support-skill-category{font-size:11px;color:var(--muted);margin:0}
+.support-skill-header .support-unupgraded{font-size:12px;margin:0;line-height:1.5}
+.support-skill-description{padding:12px;background:#f4f7fc;border-radius:8px}
+.support-skill-description .semantic-entry{padding:0;margin:0;border:0}
+.support-skill-description .effect-reading-line{margin:3px 0;font-size:14px;line-height:1.8}
+.customizations-compact{margin-top:14px;padding-top:12px;border-top:1px solid var(--line)}
+.customizations-compact>summary{font-size:13px;font-weight:650}
+.customizations-compact .customization-card{margin-top:6px;padding:0;border:0}
+.customizations-compact .customization-card>p{margin:6px 0 10px;font-size:11px}
+.customizations-compact .customization-option{margin:8px 0;padding:9px 10px;background:#f8fafc;border:1px solid var(--line);border-radius:7px}
+.customizations-compact .customization-option h5{margin:0 0 6px;font-size:11px;color:var(--muted)}
+.customizations-compact .customization-summary{margin:8px 0 3px;font-size:11px;color:var(--accent-deep)}
+.customizations-compact .customization-effect h6{margin:3px 0;font-size:12px}
+.customizations-compact .customization-note{font-size:11px;margin:8px 0 0}
+@media(max-width:599px){
+  .support-art-event .support-skill-trigger,.support-art-event .support-skill-trigger .support-skill-thumbnail{width:56px;height:56px}
+  .support-skill-trigger .support-skill-symbols img{width:13px;height:13px}
+  .support-skill-trigger .support-skill-cost,.support-skill-trigger .support-skill-block{width:15px;height:15px;font-size:8px}
+  .support-skill-trigger .support-skill-damage{font-size:9px}
+  .support-skill-trigger .support-skill-enhanced{width:13px;height:13px}
+}
+/* 偶像卡以完整立绘、持有阶段和专属奖励构成首页主体，培养变化在原位显示。 */
+.idol-catalog{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-items:start;gap:18px}
+.idol-card{display:block;padding:28px 0 0;overflow:hidden;background:var(--paper);border-radius:10px}
+.idol-hero{display:grid;grid-template-columns:180px minmax(0,1fr);align-items:start;background:linear-gradient(135deg,color-mix(in srgb,var(--character-color) 7%,white),#fff 70%)}
+.idol-card-artwork{min-width:0;position:relative;align-self:start}
+.idol-hero .idol-art-open{display:block;width:100%;padding:0;border:0;background:transparent}
+.idol-card .idol-hero .illustration.idol-art{display:block;width:100%;height:auto;aspect-ratio:9/16;background:transparent;border-radius:0}
+.idol-card .idol-hero .illustration.idol-art img{width:100%;height:100%;object-fit:contain}
+.idol-card-art-options{display:flex;justify-content:center;align-items:center;gap:5px;padding:7px 3px;font-size:11px;color:var(--muted);cursor:pointer}
+.idol-card-art-caption{font-size:10px;padding:0 8px 8px;text-align:center;color:var(--muted)}
+.idol-identity{min-width:0;padding:14px}
+.idol-rarity{width:62px;height:36px;object-fit:contain}
+.idol-plan{display:inline-flex;align-items:center;gap:4px;font-size:12px;color:var(--muted)}
+.idol-plan .filter-symbol{width:22px;height:22px}
+.idol-identity .idol-character{font-size:13px;margin:0 0 4px;color:var(--muted);display:flex}
+.idol-identity h3{margin:0 0 12px;line-height:1.5}
+.idol-name{display:block;padding:0;text-align:left;background:transparent;border:0;font-size:21px;font-weight:750;line-height:1.5;overflow-wrap:anywhere}
+.idol-identity .idol-held-baseline{font-size:12px;margin:0;padding:5px 0;background:transparent;color:var(--muted);border-radius:0}
+.idol-exclusive-rewards{display:flex;gap:12px;margin-top:18px;align-items:end;flex-wrap:wrap}
+.idol-preview-controls{border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.idol-stage-controls{display:grid;grid-template-columns:minmax(0,1fr);gap:12px;padding:4px 14px 12px}
+.idol-preview-reset{justify-self:end;font-size:11px;padding:4px 8px;min-height:28px}
+.idol-inline-status{font-size:11px;color:var(--accent-deep);padding:10px 14px 0;margin:0}
+.idol-stage-content{padding:12px 14px}
+.idol-current-stats{display:grid;background:var(--canvas);border-radius:7px;margin-bottom:12px}
+.idol-current-stat{min-width:0}
+.idol-current-stat strong{font-size:22px;line-height:1.4}
+.idol-current-stat .effect-number-change{font-size:11px;font-weight:500;white-space:nowrap}
+.idol-current-stat small{font-size:11px;line-height:1.6}
+.idol-skill-list{list-style:none;padding:0;margin:0}
+.idol-passive{padding:7px 8px;border:1px solid transparent;border-radius:5px;min-width:0}
+.idol-passive>.support-skill-status{font-size:10px;color:var(--muted);margin-bottom:3px}
+.idol-effect-description>.effect-reading .effect-reading-line{font-size:13px;line-height:1.75;margin:0}
+.idol-passive.support-skill-locked{background:#f4f5f8;border:1px dashed #d2d7df;color:#626d80}
+.idol-passive.support-skill-gained{background:#f0f8f4;border-inline-start:3px solid #429478}
+.idol-customization-status{font-size:11px;color:var(--muted);border-top:1px solid var(--line);margin:8px 0 0;padding:10px 8px 0}
+.idol-customization-status.preview-unlocked{color:#267357}
+.idol-art-viewer{max-width:650px;margin:auto}
+.idol-art-viewer .illustration.idol-full{display:block;width:100%;height:min(68dvh,720px);background:transparent}
+.idol-art-viewer .illustration.idol-full img{height:100%;width:100%;object-fit:contain}
+.idol-art-viewer .idol-art-control{max-width:300px;margin:12px auto 8px}
+.idol-art-viewer>p{text-align:center}
+@media(max-width:1100px){
+  .idol-catalog{grid-template-columns:1fr}
+}
+@media(max-width:599px){
+  .idol-hero{grid-template-columns:112px minmax(0,1fr)}
+  .idol-identity{padding:10px}
+  .idol-rarity{width:50px;height:30px}
+  .idol-name{font-size:17px}
+  .idol-identity .idol-character,.idol-plan,.idol-identity .idol-held-baseline{font-size:11px}
+  .idol-exclusive-rewards{gap:8px;margin-top:12px}
+  .idol-current-stat strong{font-size:18px}
+  .idol-current-stat small{font-size:10px}
+  .idol-stage-content{padding:10px}
+  .idol-effect-description>.effect-reading .effect-reading-line{font-size:12px}
+}
+/* 三围条展示本卡属性比例，数值与合计均取所选培养阶段。 */
+.idol-current-stats{grid-template-columns:minmax(0,1fr) 76px;gap:12px;padding:12px}
+.idol-stat-meters{min-width:0;display:flex;flex-direction:column;justify-content:space-between;gap:6px}
+.idol-stat-meter{display:grid;grid-template-columns:22px minmax(0,1fr) auto;gap:7px;align-items:end;margin:0;font-size:11px;line-height:1.2}
+.idol-stat-meter strong{font-size:14px;font-variant-numeric:tabular-nums}
+.idol-stat-track{display:block;height:14px;background:#dde3ed;border-radius:5px;overflow:hidden}
+.idol-stat-fill{display:block;height:100%;background:var(--stat-color);border-radius:5px}
+.idol-current-stats [data-attribute=Vo]{--stat-color:#ed5b91;color:var(--vo)}
+.idol-current-stats [data-attribute=Da]{--stat-color:#438fec;color:var(--da)}
+.idol-current-stats [data-attribute=Vi]{--stat-color:#edbd32;color:var(--vi)}
+.idol-growth-rates{justify-content:space-between;font-size:11px;line-height:1.5;flex-wrap:wrap}
+.idol-stat-summary{display:grid;align-content:space-between;gap:7px;padding-left:12px;border-left:1px solid var(--line)}
+.idol-stat-summary>div{display:grid;gap:2px}
+.idol-stat-summary small{font-size:10px;color:var(--muted)}
+.idol-stat-summary strong{font-size:18px;line-height:1.2}
+.idol-stat-summary .idol-stamina small,.idol-stat-summary .idol-stamina strong{color:#218449}
+.idol-current-stats .effect-number-change{font-size:10px;font-weight:500;white-space:nowrap}
+@media(max-width:599px){
+  .idol-current-stats{grid-template-columns:minmax(0,1fr) 60px;gap:8px;padding:10px}
+  .idol-stat-summary{padding-left:8px}
+  .idol-stat-meter{gap:4px;grid-template-columns:18px minmax(0,1fr) auto}
+  .idol-stat-meter strong{font-size:12px}
+  .idol-stat-summary strong{font-size:16px}
+  .idol-growth-rates{font-size:10px}
+}
+.support-reward-art .art-fallback{line-height:1.3;font-size:9px;padding:2px;max-height:28px;overflow:hidden}
+/* 卡面覆盖层只承载实际持有信息，悬停时让出完整原图。 */
+.idol-card-image{position:relative}
+.idol-card-overlay{position:absolute;inset:0;pointer-events:none;background:linear-gradient(transparent 68%,#14203880)}
+.idol-card-overlay .idol-plan{position:absolute;left:6px;top:6px;color:white;font-weight:650;text-shadow:0 1px 3px #000}
+.idol-card-overlay .idol-plan .filter-symbol{width:26px;height:26px;filter:drop-shadow(0 1px 2px #0009)}
+.idol-card-overlay .idol-rarity{position:absolute;left:5px;bottom:6px;width:50px;height:31px;filter:drop-shadow(0 1px 2px #0008)}
+.idol-card-ranks{position:absolute;right:6px;bottom:8px;display:flex;gap:5px;color:white;text-shadow:0 1px 3px #000,1px 0 #000,-1px 0 #000}
+.idol-art-rank{display:flex;gap:1px;align-items:center;line-height:1}
+.idol-art-rank img{width:23px;height:23px;object-fit:contain;filter:drop-shadow(0 1px 1px #0009)}
+.idol-art-rank strong{font-size:21px}
+.idol-card-art-options input[role=switch]{appearance:none;position:relative;flex:none;width:30px;height:18px;min-height:0;margin:0;padding:0;border:1px solid #9da8bb;border-radius:12px;background:#d7dde7;cursor:pointer}
+.idol-card-art-options input[role=switch]::before{content:'';position:absolute;width:12px;height:12px;left:2px;top:2px;border-radius:50%;background:white;box-shadow:0 1px 2px #0003}
+.idol-card-art-options input[role=switch]:checked{background:var(--accent);border-color:var(--accent)}
+.idol-card-art-options input[role=switch]:checked::before{left:14px}
+.idol-identity .idol-current-stats{margin:10px 0 0}
+.idol-identity .idol-exclusive-rewards{margin-top:12px}
+@media(hover:hover){
+  .idol-card-image:hover .idol-card-overlay{opacity:0}
+}
+@media(max-width:599px){
+  .idol-card-overlay .idol-rarity{left:3px;bottom:5px;width:34px;height:24px}
+  .idol-card-ranks{right:3px;bottom:8px;gap:3px}
+  .idol-art-rank img{width:15px;height:15px}
+  .idol-art-rank strong{font-size:14px}
+  .idol-card-overlay .idol-plan{font-size:10px;left:4px;top:4px;gap:2px}
+  .idol-card-overlay .idol-plan .filter-symbol{width:22px;height:22px}
+  .idol-card-art-options{font-size:10px;gap:3px}
+  .idol-identity .idol-current-stats{padding:7px;grid-template-columns:minmax(0,1fr) 42px;gap:6px}
+  .idol-identity .idol-stat-summary{padding-left:5px}
+  .idol-identity .idol-stat-meter{grid-template-columns:15px minmax(0,1fr) auto;gap:3px}
+  .idol-identity .idol-stat-meter strong{font-size:11px}
+  .idol-identity .idol-stat-summary strong{font-size:14px}
+}
+/* 印象色框保留角色辨识，培养入口位于卡名右侧，效果以图标展开阅读。 */
+.idol-card.character-accent{border-color:var(--character-color);border-inline-start:4px solid var(--character-color)}
+.idol-card .idol-preview-controls{position:static;border:0}
+.idol-card .idol-preview-controls .idol-stage-controls{padding:10px 0;border-bottom:1px solid var(--line)}
+.idol-identity .idol-stage-content{padding:12px 0 0}
+.idol-skill-list{display:flex;flex-wrap:wrap;gap:7px}
+.idol-passive,.idol-customization-status{padding:0;margin:0;border:0;border-radius:5px}
+.idol-passive.support-skill-locked,.idol-customization-status.support-skill-locked{border:0;background:transparent}
+.idol-passive.support-skill-gained,.idol-customization-status.support-skill-gained{border:0;background:transparent}
+.idol-effect-trigger{position:relative;display:grid;place-items:center;width:38px;height:38px;min-height:0;padding:4px;border-radius:6px;background:var(--paper);border:1px solid var(--line);font-size:24px}
+.idol-effect-trigger>.effect-inline-icon,.idol-effect-trigger>img{width:28px;height:28px;margin:0;object-fit:contain}
+.idol-skill-list .support-skill-locked .idol-effect-trigger{border-style:dashed;background:#f4f5f8;color:var(--muted)}
+.idol-skill-list .support-skill-gained .idol-effect-trigger{border-color:#429478;background:#f0f8f4}
+.idol-effect-state{position:absolute;right:-2px;font-size:11px;line-height:14px;padding:0 2px;border-radius:4px;background:var(--paper);color:var(--accent-deep)}
+.idol-skill-list .support-skill-gained .idol-effect-state{color:#267357}
+.idol-skill-list .support-skill-lost .idol-effect-state{color:#a94646}
+.idol-effect-value{position:absolute;right:1px;bottom:1px;padding:0 2px;border-radius:3px;background:#fff;color:var(--ink);font-size:10px;font-weight:750;line-height:12px;font-variant-numeric:tabular-nums}
+.idol-effect-state{top:-4px;bottom:auto}
+.idol-skill-list .support-skill-locked .idol-effect-value{color:var(--muted);background:#f4f5f8}
+/* 同卡三项成长率共享满培养最高值标尺，阶段预览只改变弧线和数值。 */
+.idol-growth-rates{grid-column:1/-1;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:3px}
+.idol-growth-heading{grid-column:1/-1;font-size:11px;line-height:1.4;color:var(--muted)}
+.idol-growth-gauge{min-width:0;text-align:center;display:flex;flex-direction:column;align-items:center}
+.idol-growth-gauge .gauge-label{font-size:22px;font-weight:650;fill:currentColor;font-family:var(--body)}
+.idol-growth-gauge svg{display:block;width:100%;max-width:64px;overflow:visible}
+.gauge-track,.gauge-fill{fill:none;stroke-width:7;stroke-linecap:round}
+.gauge-track{stroke:#dce3ed}
+.gauge-fill{stroke:var(--stat-color)}
+.gauge-tick{stroke:#929eb0;stroke-width:1}
+.idol-growth-gauge>strong{font-size:12px;line-height:1.5;white-space:normal}
+.idol-growth-gauge .effect-number-change{display:block}
+@media(max-width:599px){
+  .idol-growth-rates{gap:4px}
+  .idol-growth-gauge>strong{font-size:12px}
+  .idol-growth-gauge .effect-number-change{font-size:9px}
+}
+@media(max-width:599px){
+  .idol-growth-gauge svg{max-width:50px}
+}
+.idol-title-row{display:flex;align-items:flex-start;gap:6px;margin-bottom:10px}
+.idol-identity .idol-title-row h3{flex:1;min-width:0;margin:0}
+.idol-preview-toggle{flex:none;white-space:nowrap;font-size:11px;min-height:28px;padding:4px 6px;font-weight:500}
+.idol-preview-toggle[aria-expanded=true]{color:var(--accent);border-color:var(--accent);background:var(--selected)}
+.idol-stage-stepper{display:grid;grid-template-columns:22px minmax(0,1fr) 26px minmax(28px,1fr) 26px minmax(0,1fr);gap:4px;align-items:center;max-width:320px}
+.idol-stage-stepper button{padding:4px 1px;min-height:30px;font-size:11px}
+.idol-stage-stepper input{width:100%;min-width:0;min-height:30px;padding:3px 0;text-align:center;font-size:13px;appearance:textfield;-moz-appearance:textfield}
+.idol-stage-stepper input::-webkit-inner-spin-button,.idol-stage-stepper input::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+.idol-stage-symbol{display:flex;align-items:center;gap:1px;font-size:11px;color:var(--muted)}
+.idol-stage-symbol img{width:18px;height:18px;object-fit:contain;filter:drop-shadow(0 1px 1px #45536d88)}
+@media(max-width:599px){
+  .idol-preview-toggle{font-size:10px;padding:3px 4px}
+  .idol-stage-stepper{grid-template-columns:18px minmax(0,1fr) 20px minmax(24px,1fr) 20px minmax(0,1fr);gap:3px}
+  .idol-stage-stepper button{font-size:10px}
+  .idol-stage-symbol img{width:15px;height:15px}
+}
+/* 奖励与效果优先显示，紧凑培养控件靠右，数值面板固定在其下方。 */
+.idol-upper-content{display:flex;flex-wrap:wrap;align-items:flex-start;gap:8px 10px}
+.idol-reward-effects{flex:1 1 112px;min-width:100px}
+.idol-upper-content .idol-exclusive-rewards{margin-top:0}
+.idol-reward-effects .idol-stage-content{padding:8px 0 0}
+.idol-upper-content .idol-preview-controls{flex:0 1 170px;min-width:150px;margin-left:auto}
+.idol-upper-content .idol-preview-controls .idol-stage-controls{padding:0;gap:6px;border:0}
+.idol-preview-controls .idol-stage-stepper{grid-template-columns:18px minmax(24px,1fr) 20px 28px 20px minmax(24px,1fr);gap:2px;max-width:none}
+.idol-preview-controls .idol-stage-stepper button{min-height:24px;padding:2px 0;font-size:10px}
+.idol-preview-controls .idol-stage-stepper input{min-height:24px;padding:1px 0;font-size:12px}
+.idol-preview-controls .idol-stage-symbol img{width:15px;height:15px}
+.idol-preview-controls .idol-preview-reset{min-height:24px;padding:2px 5px;font-size:10px}
+.idol-unlock-icon{display:block;width:28px;height:28px;background:var(--effect-positive-bg,none) center/contain no-repeat;color:white}
+.idol-unlock-icon svg{display:block;width:100%;height:100%}
+.idol-skill-list .support-skill-locked .idol-unlock-icon{filter:grayscale(1);opacity:.65}
+/* 附魔图标内直接展开，按选项与等级组织效果。 */
+.support-reward-popover:has(.idol-customization-detail){width:min(420px,calc(100vw - 24px));max-height:660px;padding:16px}
+.idol-effect-description>.idol-effect-status{margin:0 0 8px}
+.customizations-expanded{margin:0;padding:0;border:0}
+.customizations-expanded>h3{margin:0 0 14px;font-size:16px}
+.customizations-expanded .customization-card>h4{margin:14px 0 6px}
+.customizations-expanded .customization-option{padding:0;overflow:hidden;background:#fff;border-color:#dce3ed;border-radius:9px;margin:12px 0}
+.customizations-expanded .customization-option>h5{margin:0;padding:8px 12px;font-size:12px;color:var(--ink);background:#edf2f8;border-bottom:1px solid #dce3ed}
+.customizations-expanded .customization-level{padding:10px 12px}
+.customizations-expanded .customization-level+.customization-level{border-top:1px solid var(--line)}
+.customizations-expanded .customization-summary{margin:0 0 8px;font-size:11px}
+.customizations-expanded .customization-effect{margin:8px 0 0}
+.customizations-expanded .customization-effect h6{font-size:13px;margin:0 0 6px}
+.customizations-expanded .effect-reading-line{font-size:13px;line-height:1.75;margin:4px 0}
+.customizations-expanded .customization-note{margin-top:12px;line-height:1.6}
+/* 两类卡片的奖励共用贴边素材布局；偶像卡仅提供额外的印象色。 */
+.support-art-event .support-reward-trigger[data-reward-kind]{border:0;padding:0;overflow:hidden;background:transparent}
+.support-art-event .support-reward-trigger[data-reward-kind]::after{content:'';position:absolute;inset:0;border:2px solid var(--reward-border-color,transparent);border-radius:inherit;pointer-events:none;z-index:4}
+.support-art-event .support-reward-trigger[data-reward-kind] .support-reward-art,
+.support-art-event .support-reward-trigger[data-reward-kind] .support-skill-thumbnail,
+.support-art-event .support-reward-trigger[data-reward-kind] .support-item-thumbnail{width:100%;height:100%}
+.idol-exclusive-reward{--reward-border-color:var(--character-color,var(--line))}
+/* 卡面左上将计划与流派分行，窄屏与多流派均可换行。 */
+.idol-card-overlay .idol-plan{display:flex;flex-direction:column;align-items:flex-start;max-width:calc(100% - 12px);gap:3px}
+.idol-plan-kind,.idol-style{display:inline-grid;grid-template-columns:26px minmax(0,1fr);align-items:center;gap:3px;line-height:1.3}
+.idol-plan-kind>.filter-symbol,.idol-style>.idol-style-symbol{justify-self:center}
+.idol-styles{display:flex;flex-wrap:wrap;gap:3px 6px}
+.idol-style{font-size:inherit}
+.idol-style-symbol{position:relative;display:inline-block;width:24px;height:24px;flex:0 0 24px}
+.idol-style-symbol img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}
+.idol-style-symbol .foreground{inset:11.5%;width:77%;height:77%}
+@media(max-width:599px){
+  .idol-plan-kind,.idol-style{grid-template-columns:22px minmax(0,1fr)}
+  .idol-card-overlay .idol-plan{max-width:calc(100% - 8px)}
+  .idol-style-symbol{width:20px;height:20px;flex-basis:20px}
+}
+.idol-effect-description .idol-unlock-icon{width:24px;height:24px;flex:0 0 24px}
+
+/* 技能说明沿原始节点排版：条件在前、效果逐行、限制收尾。 */
+.support-reward-popover:has(.reward-description){width:min(410px,calc(100vw - 24px));padding:16px 18px}
+.reward-description .support-skill-header{grid-template-columns:64px minmax(0,1fr);gap:12px;margin-bottom:14px}
+.reward-description .support-skill-header .support-skill-thumbnail{width:64px;height:64px}
+.reward-description .support-skill-header .support-skill-symbols img{width:15px;height:15px}
+.reward-description .support-skill-header .support-skill-cost,.reward-description .support-skill-header .support-skill-block{width:17px;height:17px;font-size:9px}
+.reward-description .support-skill-header .support-skill-damage{font-size:10px}
+.reward-description .support-skill-header .support-skill-enhanced{width:15px;height:15px}
+.reward-description .support-skill-header h4,.support-item-header h4{font-size:16px;line-height:1.45;margin:2px 0 5px}
+.support-item-header{display:grid;grid-template-columns:52px minmax(0,1fr);gap:12px;align-items:center;margin-bottom:14px}
+.support-item-header .illustration.reward-art{width:52px;height:52px;background:transparent}
+.support-item-header p{margin:0;font-size:11px}
+.reward-description .support-skill-description{padding:12px 0 0;border-top:1px solid var(--line);background:none;border-radius:0}
+.support-item-description{padding-top:12px;border-top:1px solid var(--line)}
+.support-item-description .semantic-entry{margin:0;padding:0;border:0}
+.reward-description .effect-reading{margin:0}
+.reward-description .effect-reading-line,.idol-effect-description>.effect-reading .effect-reading-line,.customization-effects .effect-reading-line{font-size:14px;line-height:1.75;margin:3px 0;white-space:pre-wrap;word-break:normal;overflow-wrap:anywhere}
+.effect-reading-structured .effect-term{display:inline;vertical-align:baseline}
+/* 说明图标统一与所在行文字居中，不按卡片或浮层分别定位。 */
+.effect-reading-line .effect-inline-icon{display:inline-block;width:18px;height:18px;margin-right:3px;vertical-align:middle}
+.effect-reading-structured .exam-icon{background:linear-gradient(135deg,#19c5eb,#167bd2);border-radius:0;clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%)}
+.effect-reading-structured .exam-icon .foreground{inset:2px;width:14px;height:14px}
+.effect-reading-structured .effect-amount{font-size:inherit;font-weight:650;color:inherit}
+.effect-reading-structured .effect-line-restriction{color:#167795;font-size:11px;margin-top:9px;padding-top:7px;border-top:1px dashed var(--line)}
+.reward-description>.small{font-size:11px;margin:10px 0 0}
+@media(max-width:599px){
+ .reward-description .effect-reading-line,.idol-effect-description>.effect-reading .effect-reading-line,.customization-effects .effect-reading-line{font-size:13px}
+ .effect-reading-structured .effect-line-restriction{font-size:11px}
+}
+
+.reward-description .effect-line-cost{font-size:12px;color:var(--muted);margin-bottom:5px}
+.effect-reading-structured .effect-card-reference>img{width:22px;height:26px;object-fit:contain;vertical-align:middle}
+
+/* 所有来源说明共用正文规则，不依赖奖励浮层或详情入口的专用开关。 */
+.effect-reading-structured .effect-reading-line{display:block;font-size:13px;line-height:1.75;margin:3px 0;white-space:pre-wrap;overflow-wrap:anywhere}
+.effect-reading-structured .effect-line-cost{font-size:12px;color:#657184}
+.effect-reading-structured .effect-line-restriction{font-size:11px;color:#167795}
+
+/* 固定刻度：彩色为当前值，灰色为本卡尚可提升的空间。 */
+.idol-stat-meters>.support-reward-hint,.idol-growth-rates>.support-reward-hint{display:block;min-width:0}
+.idol-stat-meter,.idol-growth-gauge{width:100%;padding:0;border:0;background:transparent;min-height:0}
+.idol-stat-meter:hover,.idol-growth-gauge:hover{background:transparent}
+.idol-stat-track{position:relative;background:#e9edf3}
+.idol-stat-reachable,.idol-stat-fill{position:absolute;left:0;top:0;height:100%;border-radius:5px}
+.idol-stat-reachable{background:#a9b3c3}
+.idol-growth-gauge .gauge-track{stroke:#e9edf3}
+.idol-growth-gauge .gauge-reachable{fill:none;stroke:#a9b3c3;stroke-width:7;stroke-linecap:round}
+.idol-stat-equation{font-size:13px;line-height:1.7;margin:0;overflow-wrap:anywhere}
+.idol-stat-meter,.idol-growth-gauge{font-weight:400}
+.idol-stat-summary{min-width:0}
+.idol-stat-summary .effect-number-change{display:block;font-size:9px;line-height:1.2}
+
+/* 数值组成与剩余培养分别由可见色段触发，空白标尺不接收悬停。 */
+.idol-stat-track>button{padding:0;border:0;min-height:0;cursor:help}
+.idol-stat-track>.idol-stat-fill{background:var(--stat-color)}
+.idol-stat-track>.idol-stat-reachable{background:#a9b3c3}
+.idol-growth-gauge .gauge-fill,.idol-growth-gauge .gauge-reachable{pointer-events:stroke;cursor:help}
+.idol-growth-gauge .gauge-track,.idol-growth-gauge .gauge-tick,.idol-growth-gauge .gauge-label{pointer-events:none}
+.idol-growth-gauge [role=button]:focus-visible{outline:2px solid var(--stat-color);outline-offset:3px}
+
+/* 属性组成提示按文字收缩，鼠标定位由共享浮层组件处理。 */
+.support-reward-popover.support-pointer-popover{width:max-content;max-width:calc(100vw - 24px);padding:6px 9px;border-radius:6px}
+
+/* 附魔次数控件与选项标题同排，次数与累计费用仅用于当前预览。 */
+.customization-option-header{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.customization-option-header h5{margin:0!important}
+.customization-preview-controls{display:flex;align-items:center;gap:4px;margin-left:auto;font-size:10px;color:var(--muted)}
+.customization-preview-controls button{width:24px;min-height:24px;padding:0;font-size:15px;line-height:1}
+.customization-preview-controls output{min-width:16px;text-align:center;font-size:12px;color:var(--ink);font-variant-numeric:tabular-nums}
+.customizations-expanded .customization-option-header{padding:8px 12px;background:#edf2f8;border-bottom:1px solid #dce3ed}
+.customization-preview-inactive,.customization-preview-inactive .effect-reading-line{color:var(--muted)}
+
+.support-art-viewer{width:100%;margin:auto}
+.support-art-viewer .illustration.support-full{display:block;width:100%;height:min(65dvh,640px);background:transparent}
+.support-art-viewer .illustration.support-full img{width:100%;height:100%;object-fit:contain}
+
+.idol-exclusive-rewards:has([data-reward-scope]){padding-bottom:16px}
+.idol-exclusive-reward[data-reward-scope]{position:relative}
+.idol-reward-scope{position:absolute;top:calc(100% + 3px);left:0;right:0;font-size:10px;line-height:1.3;color:var(--muted);text-align:center;white-space:nowrap}
+
+/* P 道具按自身稀有度叠加背景，卡内图标与详情复用同一素材层。 */
+.support-item-thumbnail{position:relative;display:block;width:40px;height:40px;isolation:isolate}
+.support-item-background{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}
+.support-item-thumbnail .illustration.reward-art{position:absolute;inset:0;width:100%;height:100%;background:transparent}
+.support-item-header .support-item-thumbnail{width:52px;height:52px}
+
+/* 列表、卡组和奖励使用同一缩略图层；紧凑模式只省略微小数值，不丢失外部记录标记。 */
+.support-skill-thumbnail.entry-art{width:46px;height:46px;flex:none;border-radius:7px}
+.deck-strip.compact .support-skill-thumbnail{width:40px;height:40px}
+.exam-summary .support-skill-thumbnail,.exam-summary .support-item-thumbnail{width:32px;height:32px}
+.thumbnail-compact .support-skill-enhanced{width:12px;height:12px}
+.selection-deck-card>.support-skill-thumbnail{margin-bottom:8px}
+.selection-item>.support-item-thumbnail{width:52px;height:52px;margin-bottom:8px}
+@media(max-width:599px){.support-skill-thumbnail.entry-art{width:36px;height:36px}}
+
+/* 同类筛选使用上方标题、下方选项；角色匹配模式与选择组一起显示。 */
+.filter-classification.idol-classification{grid-template-columns:minmax(240px,.75fr) minmax(0,1.5fr)}
+.filter-group-heading{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+#advanced-filters .filter-match-toggle{display:inline-flex;flex-direction:row;align-items:center;gap:5px;font-size:11px;color:var(--muted)}
+.filter-match-toggle input{width:auto;margin:0;accent-color:var(--accent)}
+@media(max-width:599px){.filter-classification.idol-classification{grid-template-columns:1fr}}
+
+.customization-step-cost{font-size:11px;line-height:1.5;margin:8px 0 0;text-align:right}
+
+/* 换行正文保持独立起点，行首图标与第一行的行框垂直居中。 */
+.effect-reading .effect-reading-line.effect-reading-hanging{display:grid;grid-template-columns:auto minmax(0,1fr);column-gap:3px;align-items:start}
+.effect-leading-icons{display:flex;align-items:center;gap:3px;height:1lh}
+.effect-reading-line .effect-leading-icons>.effect-inline-icon{margin:0;flex:none}
+.effect-line-text{min-width:0}
+
+.support-item-enhanced{position:absolute;right:4%;top:4%;width:32%;height:32%;object-fit:contain;pointer-events:none;filter:drop-shadow(0 1px 1px #21314988)}
+
+/* 沉浸模式保留完整立绘、卡面开关与单行卡名。 */
+.idol-catalog.idol-immersive{grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
+.idol-immersive .idol-card{padding:0}
+.idol-immersive .idol-hero{display:block}
+.idol-immersive .idol-name{margin:0;padding:0 8px 9px;font-size:13px;line-height:1.5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;overflow-wrap:normal}
+@media(max-width:480px){
+  .idol-catalog.idol-immersive{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+  .workspace-search .ownership-controls{flex-wrap:wrap;justify-content:flex-end}
+}
+
+/* 支援卡沉浸模式保留横向原图与下方单行卡名。 */
+.support-catalog.support-immersive{grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px}
+.support-immersive .support-card{padding:0}
+.support-immersive .support-face::after{display:none}
+.support-immersive .support-card>.support-name{display:block;margin:0;padding:8px;font-size:13px;line-height:1.5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;overflow-wrap:normal}
+@media(max-width:480px){
+  .support-catalog.support-immersive{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+}
+
+/* 主题装扮沉浸模式沿用立绘网格，卡面开关与偶像卡共用偏好。 */
+.skin-name{display:block;user-select:text}
+.skin-catalog.skin-immersive{grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
+.skin-immersive .skin-card{padding:0}
+.skin-immersive .skin-body{padding:0 8px 9px}
+.skin-immersive .skin-body h3{margin:6px 0 0;font-size:13px;line-height:1.5}
+.skin-immersive .skin-name{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@media(max-width:480px){
+  .skin-catalog.skin-immersive{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+}
+
+/* 排序开关紧邻下拉框，窄屏整组换行。 */
+.filters{flex-wrap:wrap}
+#catalog-sort-controls{display:flex;align-items:center;gap:8px;margin-left:auto;min-width:0}
+#catalog-sort-controls>label{min-width:0}
+
+/* 当前值与条件上限并列，推算依据按需展开。 */
+.selection-star{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:7px;font-variant-numeric:tabular-nums}
+.selection-star-label{font-size:11px;font-weight:700;color:var(--muted)}
+.selection-star-track{position:relative;height:14px;border-radius:5px;background:#e9edf3;overflow:hidden}
+.selection-star-track>button{position:absolute;top:0;height:100%;min-height:0;padding:0;border:0;border-radius:0;cursor:help}
+.selection-star-track>.selection-star-current{left:0;background:#9466d9}
+.selection-star-track>.selection-star-remaining{background:#a9b3c3}
+.selection-star-track>button:focus-visible{outline:2px solid var(--accent-deep);outline-offset:-2px}
+.selection-star-final{font-size:16px;color:var(--accent-deep)}
+.selection-cleared-time{margin-left:auto;flex-shrink:0;text-align:right;font-size:10px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.selection-card-eyebrow>span{flex-shrink:0}
+
+/* 完整卡组保留逐张记录与原文，图标与正文在同一行对齐。 */
+.selection-deck-card,.selection-item{display:grid;grid-template-columns:46px minmax(0,1fr);gap:10px;align-items:start;background:var(--paper)}
+.selection-deck-card>.support-skill-thumbnail{width:46px;height:46px;margin:0}
+.selection-deck-card>div,.selection-item>div{min-width:0}
+.selection-deck-card .semantic-entry h4,.selection-item .semantic-entry h4{margin-top:0}
+
+/* 装备筛选以紧凑图标区分技能版本，名称通过悬停和辅助标签提供。 */
+.selection-loadout-filters>fieldset{min-width:0;border:0;margin:0;padding:0}
+.selection-loadout-filters legend{font-size:12px;font-weight:650;margin-bottom:8px}
+.selection-filter-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;max-height:310px;overflow-y:auto;overscroll-behavior:contain;padding:2px 4px 2px 2px;align-content:start;scrollbar-gutter:stable}
+.selection-filter-choice{--selection-choice-size:48px;position:relative;display:grid;place-items:center;width:var(--selection-choice-size);height:var(--selection-choice-size);min-width:0;min-height:0;padding:0;border:0;border-radius:0;background:transparent}
+.selection-filter-choice[data-choice-kind=cards]{--selection-choice-size:64px}
+.selection-filter-choice[aria-pressed=true]{border-color:var(--accent);background:var(--selected);color:var(--accent-deep)}
+.selection-filter-choice .support-skill-thumbnail,.selection-filter-choice .support-item-thumbnail{width:100%;height:100%;flex:none}
+.selection-filter-choice .choice-check{position:absolute;right:-3px;top:-3px;z-index:5;display:grid;place-items:center;width:19px;height:19px;margin:0;border:2px solid white;border-radius:50%;background:#b93849;color:white;font-size:15px;font-weight:700;line-height:1;box-shadow:0 1px 3px #24324a40;pointer-events:none}
+@media(max-width:700px){.selection-filter-list{grid-template-columns:1fr;max-height:270px}}
+
+#advanced-filters .selection-match-toggle{font-size:11px;margin-bottom:8px;color:var(--muted)}
+
+/* 选择窗口保留草稿，外部只显示已应用的选项。 */
+.selection-selected-list{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:9px}
+.selection-match-summary{grid-column:1/-1;font-size:11px;color:var(--muted);margin:0 0 3px}
+#selection-picker{width:min(780px,calc(100% - 24px));padding:0;overflow:hidden;max-height:88dvh}
+#selection-picker[open]{display:flex;flex-direction:column}
+#selection-picker .dialog-head{padding:14px 18px;margin:0;flex:none}
+#selection-picker-list{min-height:0;max-height:none;overflow-y:auto;padding:4px 18px 16px;grid-template-columns:1fr;gap:16px}
+#selection-picker-list .selection-filter-choice{cursor:pointer;width:var(--selection-choice-size);height:var(--selection-choice-size);padding:0;border:0;border-radius:0;background:transparent;display:block}
+#selection-picker-list .selection-filter-choice .support-skill-thumbnail,#selection-picker-list .selection-filter-choice .support-item-thumbnail{width:100%;height:100%}
+#selection-picker-list .selection-filter-choice:focus-within{outline:2px solid var(--accent);outline-offset:3px}
+#selection-picker-list .selection-filter-choice:has(input:checked){background:transparent}
+#selection-picker-list input{position:absolute;right:3px;top:3px;z-index:2;box-shadow:0 0 0 2px white;border-radius:2px}
+#selection-picker-list input{width:auto;min-height:0;flex:none;margin:0;accent-color:var(--accent)}
+.selection-picker-footer{display:flex;justify-content:space-between;gap:12px;padding:12px 18px;border-top:1px solid var(--line);flex:none}
+
+
+.selection-picker-filters{display:flex;flex-wrap:wrap;gap:8px 14px;padding:12px 18px 0;flex:none}
+.selection-picker-filters label{display:flex;align-items:center;gap:6px;font-size:12px}
+.selection-picker-filters select{font-size:12px;min-width:80px;min-height:32px;padding:4px 8px}
+.selection-picker-empty{grid-column:1/-1;color:var(--muted);font-size:12px;padding:20px 0}
+
+/* 来源分行展示，每组横向铺开图标，共用完整窗口宽度。 */
+.selection-source-column{min-width:0}
+.selection-source-column>h3{display:flex;align-items:center;gap:7px;font-size:12px;margin:0 0 10px;padding-bottom:7px;border-bottom:1px solid var(--line)}
+.selection-source-count{font-size:10px;font-weight:400;color:var(--muted)}
+.selection-source-options{display:grid;grid-template-columns:repeat(auto-fill,78px);gap:10px;align-content:start}
+.ability-choice-preview{display:block;width:48px;height:48px;flex:none}
+.ability-picker #selection-picker-list{display:grid;grid-template-columns:minmax(0,1fr);gap:16px}
+.ability-picker-options{display:grid;grid-template-columns:repeat(auto-fill,48px);gap:12px}
+.ability-picker-group[data-ability-group=hif] .ability-picker-options{grid-template-columns:repeat(auto-fill,64px)}
+.ability-picker-group[data-ability-group=hif] .ability-picker-choice,.ability-picker-group[data-ability-group=hif] .ability-choice-preview{width:64px;height:64px}
+.ability-matching-rule{display:block;margin-top:5px;font-size:12px;font-weight:400;color:var(--muted)}
+.ability-picker-choice{position:relative;display:block;width:48px;height:48px;cursor:pointer;min-width:0;border-radius:5px}
+.ability-picker-choice:has(input:checked){background:var(--selected);border-color:var(--accent)}
+.ability-picker-choice:focus-within{outline:2px solid var(--accent);outline-offset:3px}
+.ability-picker #selection-picker-list input{position:absolute;right:2px;top:2px;box-shadow:0 0 0 1px var(--paper)}
+@media(max-width:599px){.ability-picker-options{grid-template-columns:repeat(auto-fill,38px)}.ability-picker-choice,.ability-picker .ability-choice-preview,.selection-selected-list .ability-choice-preview{width:38px;height:38px}}
+@media(max-width:599px){.ability-picker-group[data-ability-group=hif] .ability-picker-options{grid-template-columns:repeat(auto-fill,56px)}.ability-picker-group[data-ability-group=hif] .ability-picker-choice,.ability-picker-group[data-ability-group=hif] .ability-choice-preview{width:56px;height:56px}}
+.selection-source-column[data-source=unknown]{grid-column:1/-1}
+
+
+#selection-picker-list input{width:17px;height:17px}
+
+/* 已选项沿用无外框卡图，保留键盘焦点提示。 */
+.selection-selected-list .selection-filter-choice{border:0;background:transparent;border-radius:0}
+.selection-selected-list .selection-filter-choice:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+.selection-choice-actions{display:flex;align-items:center;flex-wrap:wrap;gap:10px}
+#selection-skill-open,#selection-item-open{font-weight:400}
+.selection-choice-actions .filter-match-toggle{font-size:12px;font-weight:400;color:var(--muted)}
+
+/* 运算符放在条件之间，括号明确组内优先级。 */
+.filter-logic-operator{font-size:10px;font-weight:650;color:var(--muted);align-self:center;flex:none}
+.filter-logic-bracket{font-size:20px;color:var(--muted);line-height:1;flex:none}
+.filter-logic-group{display:inline-flex;align-items:center;flex-wrap:wrap;gap:5px;min-width:0;max-width:100%}
+.selection-loadout-filters.has-both-groups{grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:12px}
+#memory-loadout-expression{border-top:1px solid var(--line);padding-top:14px}
+#inheritance-skill-open,#inheritance-ability-open,#memory-skill-open,#memory-item-open{font-weight:400}
+#inheritance-expression.has-both-groups{position:relative;grid-template-columns:repeat(2,minmax(0,1fr));gap:24px}
+#inheritance-and{position:absolute;left:50%;top:40px;transform:translateX(-50%);font-size:10px}
+@media(max-width:599px){#inheritance-expression.has-both-groups{grid-template-columns:minmax(0,1fr);gap:16px}#inheritance-and{position:static;transform:none}}
+@media(max-width:599px){.selection-loadout-filters.has-both-groups{grid-template-columns:1fr;gap:10px}#selection-loadout-and,#memory-loadout-and,#inheritance-and{justify-self:center}}
+
+/* 附魔道具按完整组合展示原文，部件单独浏览，不猜测叠放顺序。 */
+.selection-customize-item>.small{margin-top:10px}
+.selection-customize-parts{margin:10px 0;font-size:12px;color:var(--muted)}
+.selection-customize-parts summary{cursor:pointer}
+.selection-customize-images{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.illustration.customize-item-part{display:block;width:72px;height:72px;background:var(--canvas)}
+.illustration.customize-item-part img{width:100%;height:100%;object-fit:contain}
+
+.selection-customize-heading{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+.selection-customize-heading h4{margin:0}
+.illustration.customize-item-complete{display:block;width:80px;height:80px;flex:none;background:transparent}
+.illustration.customize-item-complete img{width:100%;height:100%;object-fit:contain}
+
+/* 全部卡组及两类道具直接在卡片内显示，详细说明复用浮层。 */
+.selection-section-label{font-size:11px;font-weight:500;margin:0;color:var(--muted)}
+.selection-preview-trigger .illustration.customize-item-thumbnail{display:block;width:40px;height:40px;background:transparent}
+.selection-preview-trigger .customize-item-thumbnail img{width:100%;height:100%;object-fit:contain}
+@media(max-width:599px){.selection-preview-trigger .illustration.customize-item-thumbnail{width:34px;height:34px}}
+
+/* 选拔回忆复用偶像卡奖励组件，角标覆盖在完整缩略图上。 */
+.selection-preview-strip .support-art-event .selection-preview-trigger{width:48px;height:48px}
+.selection-preview-strip .support-art-event .selection-preview-trigger[data-entry-kind=cards]{width:64px;height:64px}
+.selection-preview-strip .selection-preview-trigger .support-skill-thumbnail,.selection-preview-strip .selection-preview-trigger .support-item-thumbnail{width:100%;height:100%}
+.selection-preview-strip .selection-custom-count,.selection-preview-strip .selection-from-memory{z-index:5}
+.selection-preview-strip .selection-item-exhausted::before{content:"";position:absolute;inset:0;z-index:1;border-radius:inherit;background:#0009;pointer-events:none}
+.selection-preview-strip .selection-item-exhausted::after{background:transparent}
+@media(max-width:599px){
+  .selection-preview-strip .support-art-event .selection-preview-trigger{width:38px;height:38px}
+  .selection-preview-strip .support-art-event .selection-preview-trigger[data-entry-kind=cards]{width:56px;height:56px}
+}
+
+.support-skill-header-costs{display:flex;flex-wrap:wrap;gap:4px 12px;margin-top:5px;color:var(--muted);font-size:12px}
+.support-skill-header-cost{display:inline-flex;align-items:center;gap:4px}
+.support-skill-header-cost img{display:block;width:20px;height:20px;object-fit:contain;flex:none}
+
+.support-skill-header-status-icon{position:relative;display:block;width:20px;height:20px;flex:none}
+.support-skill-header-status-icon img{position:absolute;inset:0;width:100%;height:100%}
+.support-skill-header-status-icon .foreground{inset:11.5%;width:77%;height:77%}
+
+.recorded-customization-effects{margin-top:14px;padding-top:12px;border-top:1px solid var(--line)}
+.recorded-customization-effects>h5{margin:0 0 8px;font-size:12px;color:var(--muted)}
+.recorded-customization-effects .customization-effect h6{margin:8px 0 4px;font-size:12px}
+
+.support-skill-header>div{min-width:0}
+.support-skill-title{display:flex;align-items:center;gap:8px;margin:3px 0 5px}
+.reward-description .support-skill-title h4{flex:1;min-width:0;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.support-skill-title .support-unupgraded{flex:none;gap:4px;font-size:11px;white-space:nowrap}
+
+.customizations-compact>.customization-heading{display:flex;align-items:center;justify-content:space-between;gap:8px;list-style:none;font-size:13px}
+.customization-heading::-webkit-details-marker{display:none}
+summary.customization-heading>.customization-title::before{content:'▸ ';}
+details[open]>summary.customization-heading>.customization-title::before{content:'▾ ';}
+.customizations-compact>.customization-heading>.customization-count{flex:none;margin:0;white-space:nowrap;font-size:11px}
+
+.support-skill-restrictions{margin-top:5px;color:#167795}
+.support-reward-popover .support-skill-restrictions .effect-reading-line{margin:2px 0;padding:0;border:0;font-size:11px;line-height:1.5}
+
+.support-skill-artwork .support-skill-category{margin-top:5px;text-align:center;font-size:10px;line-height:1.4;white-space:nowrap}
+
+.effect-card-reference .support-skill-thumbnail{display:inline-block;width:28px;height:28px;flex:none;vertical-align:middle}
+
+@media(max-width:599px){
+  .selection-filter-choice{--selection-choice-size:38px}
+  .selection-filter-choice[data-choice-kind=cards]{--selection-choice-size:56px}
+}
+
+.selection-character-hint{display:inline-block;margin-left:10px;font-weight:400}
+
+.selection-loadout{grid-column:2;min-width:0;align-self:start;border-top:1px solid var(--line)}
+.selection-loadouts{grid-column:2;min-width:0;align-self:start}
+.selection-loadout>summary{padding:10px 0;font-size:12px;color:var(--muted);cursor:pointer}
+.selection-loadout>.selection-preview-dock{padding:0 0 12px;border:0}
+.selection-missing-rewards{border-top-style:dashed}
+.selection-missing-title{margin:0;font-size:12px;color:var(--muted)}
+.selection-preview-skeleton{display:block;width:48px;height:48px;border-radius:5px;background:var(--line);opacity:.45}
+.selection-preview-section[data-selection-group=cards] .selection-preview-skeleton{width:64px;height:64px}
+@media(max-width:599px){.selection-preview-skeleton{width:38px;height:38px}.selection-preview-section[data-selection-group=cards] .selection-preview-skeleton{width:56px;height:56px}}
+@media(max-width:599px){.selection-loadouts{grid-column:1/-1;margin-left:10px}}
+
+.skin-heading{margin:10px 12px;font-size:16px;line-height:1.5;overflow-wrap:anywhere}
+@media(max-width:599px){.skin-heading{margin:8px 9px;font-size:12px}}
+
+.skin-heading .skin-name{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+.skin-card>.collection-state{display:flex;align-items:center;justify-content:space-between;gap:6px;white-space:nowrap}
+.skin-card>.collection-state .idol-card-art-options{padding:0;margin:0;color:inherit;font-weight:400;white-space:nowrap}
+@media(max-width:599px){
+  .skin-card>.collection-state{padding:4px 6px;font-size:10px;gap:3px}
+  .skin-card>.collection-state .idol-card-art-options{font-size:9px;gap:3px}
+  .skin-card>.collection-state .idol-card-art-options input[role=switch]{width:24px;height:16px}
+  .skin-card>.collection-state .idol-card-art-options input[role=switch]::before{width:10px;height:10px}
+  .skin-card>.collection-state .idol-card-art-options input[role=switch]:checked::before{left:12px}
+}
+
+/* 普通回忆以继承技能和培养能力为主，比赛配置按需展开。 */
+.compact-grid.memory-catalog{grid-template-columns:repeat(auto-fit,minmax(min(100%,360px),1fr));gap:16px;align-items:start}
+.compact-grid.memory-catalog .memory-card{--memory-art-width:64px;--memory-column-gap:12px;display:flex;flex-direction:column;align-items:stretch;gap:12px;min-width:0;padding:14px;border:1px solid var(--line);border-top:4px solid var(--character-color,var(--line));border-radius:10px;background:var(--paper)}
+.compact-grid.memory-catalog .memory-card.selected{border-color:var(--accent);border-top-color:var(--character-color,var(--accent));background:#f7faff;box-shadow:0 0 0 1px var(--accent)}
+.memory-card-topline{display:flex;align-items:center;justify-content:space-between;gap:8px;min-width:0}
+.memory-card-character{display:grid;grid-template-columns:var(--memory-art-width) minmax(0,1fr);align-items:center;gap:var(--memory-column-gap);flex:1;min-width:0;font-size:12px}
+.memory-card-character .illustration.face{width:24px;height:24px}
+.memory-card-plan{display:inline-flex;align-items:center;gap:6px;color:var(--muted);font-size:11px;margin-left:3px}
+.memory-card-plan .filter-symbol{width:18px;height:18px}
+.compact-grid.memory-catalog .memory-card>.memory-card-footer .pick{position:static;display:flex;align-items:center;gap:5px;min-height:32px;flex:none;font-size:11px;color:var(--muted)}
+.memory-card .pick input{margin:0;accent-color:var(--accent);width:15px;height:15px}
+.memory-inheritance{display:grid;grid-template-columns:var(--memory-art-width) minmax(0,1fr);gap:var(--memory-column-gap);align-items:start}
+.memory-inheritance-heading{display:grid;gap:6px;min-width:0;align-content:start}
+.memory-inheritance h3{font-size:16px;line-height:1.5;margin:2px 0 5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;user-select:text}
+.memory-section-label{font-size:11px;font-weight:500;line-height:1.5;color:var(--muted);margin:0 0 5px}
+.memory-card-status{display:flex;align-items:center;flex-wrap:wrap;gap:4px;font-size:10px}
+.memory-card-status:empty{display:none}
+.memory-card-status .badge,.memory-card-status .memory-use{font-size:10px}
+.memory-abilities .ability-chips{display:grid;grid-template-columns:minmax(0,1fr);gap:0}
+.memory-card .memory-abilities .ability-chip{display:block;min-height:36px;padding:6px 0;border:0;border-radius:0;background:transparent;text-align:left;font-weight:400;color:var(--ink)}
+.memory-abilities .ability-hint+.ability-hint{border-top:1px solid var(--line)}
+.memory-card .memory-abilities .ability-chip:hover{background:var(--selected)}
+.memory-abilities .semantic-entry{padding:0;margin:0;border:0}
+.memory-abilities .semantic-entry h4{margin:0;font-size:12px}
+.memory-abilities .effect-reading-line{margin:2px 0;font-size:13px;line-height:1.8;overflow-wrap:anywhere}
+.memory-card .memory-card-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;padding:10px 0 0;border-top:1px solid var(--line)}
+.memory-card-stats .stat{display:flex;flex-direction:column;gap:3px;font-size:11px}
+.memory-card-stats .stat strong{font-size:15px;font-variant-numeric:tabular-nums}
+.memory-card-stats .stat:last-child strong{color:#267357}
+.memory-card-footer{display:flex;align-items:center;justify-content:flex-end;gap:8px;padding-top:10px;border-top:1px solid var(--line)}
+.memory-card-tools>.entry-date{flex:none;align-self:flex-end;width:auto;margin:0;text-align:right;font-size:10px;line-height:18px;color:var(--muted);font-variant-numeric:tabular-nums}
+.compact-grid.memory-catalog .memory-card .entry-main{display:block;flex:none;padding:5px 8px;min-height:34px;border:1px solid var(--line);border-radius:6px;background:var(--paper);font-size:11px;color:var(--accent-deep)}
+.memory-card-note{font-size:11px;line-height:1.5;color:var(--muted);margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.memory-battle{border-top:1px solid var(--line);padding-top:8px;min-width:0}
+.memory-battle>summary{font-size:11px;color:var(--muted);cursor:pointer;line-height:1.7}
+.memory-battle-contents{display:grid;gap:10px}
+.memory-item-strip,.memory-skill-strip{display:flex;flex-wrap:wrap;gap:7px}
+.memory-card .selection-custom-count{z-index:5}
+.memory-start-inherit{position:absolute;top:0;left:50%;transform:translateX(-50%);z-index:6;display:grid;place-items:center;width:17px;height:17px;border:1px solid #518cce;border-radius:4px;background:#e6f6ff;color:#2566b3;font-size:12px;font-weight:700;line-height:1;pointer-events:none}
+@media(max-width:599px){
+  .compact-grid.memory-catalog{grid-template-columns:minmax(0,1fr)}
+  .compact-grid.memory-catalog .memory-card{padding:12px;gap:10px}
+  .compact-grid.memory-catalog .memory-card{--memory-art-width:56px;--memory-column-gap:10px}
+  .memory-inheritance h3{font-size:15px}
+}
+
+.selection-star button.selection-star-final{min-width:44px;min-height:36px;padding:0 3px;border:0;background:transparent;color:var(--accent-deep);font-weight:700;cursor:help;font-variant-numeric:tabular-nums}
+.selection-star button.selection-star-final:hover{background:var(--selected)}
+@media(max-width:359px){
+  .selection-card-eyebrow{flex-wrap:wrap}
+  .selection-card-eyebrow .selection-card-name{flex:1 0 100%;white-space:normal;overflow-wrap:anywhere}
+  .selection-cleared-time{margin-left:auto}
+}
+.navigation-shell{position:relative}
+.navigation-scroll{position:absolute;top:0;bottom:1px;width:32px;min-height:36px;padding:0;border:0;border-radius:0;font-size:25px;color:var(--accent-deep);z-index:2}
+.navigation-scroll.previous{left:0;background:linear-gradient(to right,var(--paper) 65%,#ffffff00)}
+.navigation-scroll.next{right:0;background:linear-gradient(to left,var(--paper) 65%,#ffffff00)}
+
+.selection-star-breakdown{display:grid;gap:4px;margin:8px 0;font-variant-numeric:tabular-nums}
+.selection-star-breakdown>div{display:flex;justify-content:space-between;gap:24px}
+
+.support-reward-popover:has(.selection-star-estimate){width:min(300px,calc(100vw - 24px));padding:14px}
+.selection-star-estimate{font-size:12px;font-variant-numeric:tabular-nums}
+.star-estimate-head{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:12px}
+.star-estimate-head>div:last-child{text-align:right;color:var(--accent-deep)}
+.star-estimate-head small{display:block;font-size:11px;font-weight:400;color:var(--muted)}
+.star-estimate-head strong{display:block;font-size:24px;line-height:1.4}
+.star-estimate-group{padding:10px 0;border-top:1px solid var(--line)}
+.star-estimate-total{display:flex;justify-content:space-between;gap:12px;font-weight:650}
+.selection-star-estimate .selection-star-breakdown{margin:7px 0 0;padding-left:10px;border-left:2px solid var(--line);font-size:11px;color:var(--muted)}
+.selection-star-estimate .star-estimate-note{margin:5px 0 0;font-size:11px;line-height:1.6;color:var(--muted)}
+.star-estimate-cap{padding:7px 0;margin:0;color:var(--accent-deep);font-size:11px;border-top:1px solid var(--line)}
+
+.selection-star-estimate .star-estimate-footnote{color:#8590a2;font-weight:400}
+
+/* 数值条保持自身语义色，不使用通用按钮的浅蓝悬停背景。 */
+.selection-star-track>.selection-star-current:hover:enabled{background:#9466d9;filter:brightness(.9)}
+.idol-stat-track>.idol-stat-fill:hover:enabled{background:var(--stat-color);filter:brightness(.9)}
+.selection-star-track>.selection-star-remaining:hover:enabled,.idol-stat-track>.idol-stat-reachable:hover:enabled{background:#a9b3c3;filter:brightness(.88)}
+.idol-growth-gauge .gauge-fill:hover,.idol-growth-gauge .gauge-reachable:hover{filter:brightness(.9)}
+
+.star-estimate-head.remaining-only{grid-template-columns:1fr}
+.star-estimate-head.remaining-only>div:last-child{text-align:left}
+
+/* 剧本适用范围与重复发动限制独立成行，作为次要条件呈现。 */
+.effect-reading-structured .effect-line-restriction{color:var(--muted);font-size:11px}
+
+.memory-abilities .ability-hint{display:block;min-width:0}
+.ability-preview{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;line-height:28px}
+.ability-preview .effect-line-text{display:inline}
+.ability-preview .effect-leading-icons{display:inline-flex;vertical-align:middle;margin-right:4px}
+.ability-effect-popover .semantic-entry{margin:0;padding:0;border:0}
+.ability-effect-popover .effect-reading-line{font-size:13px;line-height:1.8}
+
+.ability-lesson-icon{position:relative;display:inline-flex;vertical-align:middle;padding-bottom:5px;margin-right:3px}
+.ability-lesson-label{white-space:nowrap;word-break:normal;overflow-wrap:normal;position:absolute;bottom:0;left:50%;transform:translateX(-50%);padding:0 2px;border-radius:3px;background:var(--paper);font-size:9px;line-height:11px;color:var(--vo)}
+.ability-lesson-icon[data-lesson=Da] .ability-lesson-label{color:var(--da)}
+.ability-lesson-icon[data-lesson=Vi] .ability-lesson-label{color:var(--vi)}
+
+.ability-preview .ability-trigger-card{display:inline-block;width:24px;height:24px;flex:0 0 24px;vertical-align:middle}
+.ability-effect-popover .ability-trigger-card{display:inline-block;width:18px;height:18px;flex:0 0 18px;vertical-align:middle}
+
+.ability-icon-value{position:absolute;z-index:2;bottom:-3px;right:-3px;padding:0 1px;border-radius:2px;background:var(--paper);color:var(--ink);font-size:9px;line-height:11px;font-weight:700;letter-spacing:-.4px;white-space:nowrap}
+.ability-value-icon{overflow:visible}
+.ability-preview .ability-value-icon{margin-right:3px}
+.ability-effect-popover .ability-icon-value{font-size:8px;line-height:10px}
+
+.memory-inheritance-title{display:flex;align-items:center;gap:6px;min-width:0}
+.memory-inheritance-title h3{flex:1;min-width:0;margin:0}
+.memory-inheritance-title .memory-card-status{flex:1;max-width:100%;justify-content:flex-start}
+.game-memory-tag{display:inline-block;max-width:calc(6em + 10px);overflow:hidden;text-overflow:ellipsis;vertical-align:middle}
+
+.memory-plan-stats{display:flex;align-items:center;flex-wrap:wrap;gap:4px 8px;min-width:0;white-space:nowrap;font-size:11px;line-height:18px}
+.memory-plan-stats .memory-card-plan{margin:0;font-size:inherit}
+.memory-card-power{display:inline-flex;align-items:baseline;gap:4px;padding-left:8px;border-left:1px solid var(--line);font-size:inherit;color:var(--muted);white-space:nowrap}
+.memory-card-power strong{font-size:inherit;font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums}
+
+/* 培养能力与 P 道具使用同一尺寸，辅助效果在主图标底部并排显示。 */
+.memory-abilities .ability-chips{display:flex;flex-wrap:nowrap;gap:5px;overflow-x:auto;padding:2px 0 4px}
+.memory-abilities .ability-hint{flex:none}
+.memory-abilities .ability-hint+.ability-hint{border:0}
+.memory-card .memory-abilities .ability-chip{width:48px;height:48px;min-height:0;padding:0;border-radius:5px}
+.ability-icon-preview{position:relative;display:block;width:100%;height:100%;isolation:isolate}
+.ability-icon-preview>.effect-inline-icon,.ability-icon-preview>.support-skill-thumbnail,.ability-icon-preview>.ability-lesson-icon,
+.ability-icon-preview>.ability-lesson-icon>.effect-inline-icon{display:block;width:100%;height:100%;margin:0;padding:0}
+.ability-extra-icons{position:absolute;right:0;bottom:0;display:flex;justify-content:flex-end;width:100%;z-index:3}
+.ability-extra-icons>.effect-inline-icon,.ability-extra-icons>.ability-remove-card-icon{flex:0 1 20px;width:20px;height:auto;aspect-ratio:1;min-width:0;margin:0;padding:0;box-shadow:0 0 0 1px var(--paper);border-radius:3px}
+.ability-remove-card-icon{position:relative;display:inline-block;width:18px;height:18px;flex:0 0 18px;vertical-align:middle}
+.ability-remove-card-icon>.support-skill-thumbnail{width:100%;height:100%}
+.ability-remove-card-mark{position:absolute;right:-1px;bottom:-1px;background:#a33340;color:#fff;border-radius:50%;width:10px;height:10px;font-size:10px;line-height:9px;text-align:center}
+.ability-icon-preview .ability-lesson-label{left:1px;bottom:1px;transform:none;font-size:11px;line-height:13px;z-index:4}
+.ability-icon-preview .ability-icon-value{bottom:0;right:0;font-size:11px;line-height:13px;letter-spacing:0}
+@media(max-width:599px){
+  .memory-card .memory-abilities .ability-chip{width:38px;height:38px}
+  .ability-extra-icons>.effect-inline-icon,.ability-extra-icons>.ability-remove-card-icon{flex-basis:17px;width:17px}
+}
+
+.memory-score-icon{width:18px;height:18px;flex:none;align-self:center;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;color:var(--accent-deep)}
+
+.memory-inheritance-heading .memory-abilities{min-width:0}
+
+.memory-card-grade{font-size:11px;line-height:18px;font-weight:700;color:var(--accent-deep);white-space:nowrap}
+
+.memory-card-subject{display:inline-flex;align-items:center;gap:6px;min-width:0;max-width:100%}
+.memory-card-subject>.support-skill-thumbnail{width:24px;height:24px;flex:0 0 24px}
+.memory-subject-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* 左侧卡图下放单行名称，右侧能力与名称底边对齐，操作区保留在右上方。 */
+.memory-inheritance-visual{display:flex;flex-direction:column;justify-content:space-between;gap:4px;min-width:0;align-self:stretch}
+.memory-inheritance-visual>h3{font-size:12px;line-height:16px;margin:0;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.memory-inheritance-heading{display:flex;flex-direction:column;justify-content:space-between;align-self:stretch;height:auto;gap:6px}
+.memory-inheritance-title{align-self:stretch;align-items:center;justify-content:flex-end;min-height:32px}
+.memory-inheritance-title .memory-card-status{margin-left:0;margin-right:auto;justify-content:flex-start}
+.memory-inheritance-title .memory-card-status{flex-wrap:wrap}
+.memory-inheritance-title .badge,.memory-inheritance-title .memory-use{font-size:9px;line-height:12px;padding-top:0;padding-bottom:0}
+.memory-inheritance-heading .ability-chips{padding:0;height:48px}
+@media(max-width:599px){
+  .memory-inheritance-heading .ability-chips{height:38px}
+}
+
+.memory-inheritance-title .memory-use{white-space:nowrap;flex:none}
+.memory-inheritance-title .badge.protection{flex:none}
+.memory-inheritance-title .game-memory-tag{min-width:0;flex:0 1 auto}
+
+.memory-card-subject[data-subject-kind=skill]>.support-skill-thumbnail{width:40px;height:40px;flex:0 0 40px}
+
+/* 保留窄屏横向滑动，隐藏滚动条并阻止垂直滚动条占用图标空间。 */
+.memory-inheritance-heading .ability-chips{overflow-x:auto;overflow-y:hidden;scrollbar-width:none}
+.memory-inheritance-heading .ability-chips::-webkit-scrollbar{display:none}
+
+/* 属性以固定配色和清晰数值区分，不引入没有上限依据的进度条。 */
+.memory-card .memory-card-stats{gap:6px;padding:0;border:0}
+.memory-card-stats .stat{position:relative;gap:4px;padding:7px 8px;border-radius:5px;background:#f5f7fa;border-top:3px solid var(--stat-accent);color:var(--ink)}
+.memory-card-stats .stat:nth-child(1){--stat-accent:#ed5b91;background:#fff1f6}
+.memory-card-stats .stat:nth-child(2){--stat-accent:#4d9be8;background:#eef6ff}
+.memory-card-stats .stat:nth-child(3){--stat-accent:#e9bf38;background:#fff9e8}
+.memory-card-stats .stat:nth-child(4){--stat-accent:#63aa85;background:#eff8f2}
+.memory-card-stats .stat>span{font-size:11px;font-weight:500}
+.memory-card-stats .stat strong{font-size:17px;line-height:1.3;font-weight:650}
+
+.memory-attribute-ratio{order:-1;grid-column:1/-1;display:flex;height:9px;overflow:hidden;border-radius:4px;gap:1px;margin-bottom:2px}
+.memory-attribute-segment{display:block;min-width:0}
+.memory-attribute-segment:nth-child(1){background:#ed5b91}
+.memory-attribute-segment:nth-child(2){background:#4d9be8}
+.memory-attribute-segment:nth-child(3){background:#e9bf38}
+.memory-attribute-percent{font-size:10px;line-height:1.3;color:var(--muted);font-variant-numeric:tabular-nums}
+
+.selection-copy-target{cursor:copy}
+.selection-card-name .selection-name-copy{display:block;max-width:100%;padding:0;border:0;border-radius:0;background:transparent;color:inherit;font:inherit;line-height:inherit;text-align:left;white-space:inherit;overflow:hidden;text-overflow:ellipsis}
+.selection-card-name .selection-name-copy:hover{background:transparent;color:var(--accent-deep)}
+.selection-copy-target:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+.selection-copy-notice{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);z-index:1000;max-width:calc(100vw - 32px);padding:10px 16px;border-radius:8px;background:var(--ink);color:white;font-size:13px;box-shadow:0 3px 14px #0002}
+
+.memory-footer-actions{display:flex;align-items:center;gap:6px}
+/* 分享入口与名称或收藏同排，反馈不改变按钮宽度。 */
+.share-button{display:inline-grid;place-items:center;flex:none;width:30px;height:30px;min-height:30px;padding:5px;border:0;background:transparent;color:var(--muted)}
+.share-button svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.share-button:hover{color:var(--accent-deep);background:var(--canvas)}
+.collection-state.unowned .share-button{color:inherit}
+.collection-state.unowned .share-button:hover:enabled{color:inherit;background:#ffffff1f}
+.card-social-actions{display:flex;align-items:center;gap:2px;flex:none}
+.memory-card-tools{display:flex;flex-direction:column;align-items:flex-end;align-self:flex-start;gap:2px;flex:none;margin-left:auto}
+.memory-card-tools time{white-space:nowrap}
+.memory-card-tools .card-social-actions{justify-content:flex-end}
+.selection-card-name{display:flex;align-items:center;gap:6px}
+.selection-card-name .selection-name-copy{flex:1;min-width:0}
+.selection-link-actions{display:flex;justify-content:center;margin:6px 0}
+.memory-link-target{outline:2px solid var(--accent);outline-offset:2px}
+
+
+.selection-link-actions{gap:6px}
+.selection-details-button{font-size:11px;min-height:34px;padding:5px 8px}
+.selection-details-dialog{width:min(940px,calc(100vw - 24px));max-height:calc(100dvh - 24px);overflow:auto;padding:18px;border:1px solid var(--line);border-radius:12px;color:var(--ink);background:var(--paper)}
+.selection-details-identity{display:flex;align-items:center;gap:10px;min-width:0;font-size:18px}
+.selection-details-identity>.support-skill-thumbnail{width:48px;height:48px;flex:none}
+.selection-details-identity>span:last-child{min-width:0;overflow-wrap:anywhere}
+.selection-details-name{display:flex;align-items:baseline;flex-wrap:wrap;gap:4px 12px}
+.selection-details-time{font-size:12px;font-weight:400;color:var(--muted);white-space:nowrap}
+.selection-details-dialog>.dialog-head>button{flex:none}
+.selection-loadout-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,380px);gap:18px;align-items:start}
+.selection-loadout-layout>section{min-width:0}
+.selection-loadout-layout>section>h3{font-size:15px;margin:14px 0 10px}
+.compact-grid.memory-catalog.selection-detail-memory-grid{grid-template-columns:minmax(0,1fr);gap:10px}
+.selection-detail-slot-head{display:flex;align-items:center;gap:6px;min-width:0;font-size:11px}
+.selection-slot-identity{display:flex;align-items:center;gap:6px;min-width:0;margin-right:auto}
+.selection-slot-identity>span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.selection-detail-slot-head>strong,.selection-detail-slot-head>.badge{flex:none}
+.selection-detail-memory-card .memory-card-plan{margin:0}
+.selection-slot-triggers{font-size:11px;border-top:1px solid var(--line);padding-top:6px}
+.selection-slot-triggers .semantic-entry{border:0;padding:0;margin:5px 0}
+.selection-detail-support-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.selection-detail-support-card{container-type:inline-size;position:relative;display:block;width:100%;aspect-ratio:16/9;min-height:0;overflow:hidden;padding:0;border:1px solid var(--line);border-radius:7px;background:var(--paper)}
+.selection-detail-support-card .selection-detail-support-art{display:block;width:100%;height:100%;border-radius:0;background:transparent}
+.selection-detail-support-status{position:absolute;inset:auto 0 5%;z-index:2;display:flex;align-items:flex-end;justify-content:flex-start;gap:1.4%;padding:0 2%;color:white;pointer-events:none}
+.selection-detail-support-level{display:flex;flex-direction:column;align-items:flex-start;flex:none;font-weight:800;line-height:.9;paint-order:stroke fill;-webkit-text-stroke:1px #465259;text-shadow:0 1px 1px #263840}
+.selection-detail-support-level>small{font-size:clamp(9px,7cqw,18px);font-weight:800;line-height:1}
+.selection-detail-support-level>strong{font-size:clamp(22px,17cqw,46px);font-weight:800;line-height:.9;letter-spacing:-.05em}
+.selection-detail-support-status .rank-flowers{--flower-size:clamp(11px,11.5cqw,30px);gap:0;flex:none}
+.selection-detail-support-type{position:absolute;right:3%;bottom:7%;z-index:2;width:14%;height:auto;aspect-ratio:1;object-fit:contain;pointer-events:none}
+.selection-detail-support-rarity{position:absolute;inset:0;z-index:1;pointer-events:none}
+.selection-rarity-definitions{position:absolute;pointer-events:none}
+.selection-detail-support-card[data-rarity=SSR] .selection-detail-support-rarity{background:linear-gradient(100deg,#ffbada,#c8b5ff 24%,#9bd8ff 48%,#b6f2d8 72%,#faf5a6)}
+.selection-detail-support-card[data-rarity=SR] .selection-detail-support-rarity{background:linear-gradient(100deg,#ffec69,#fff5b8 24%,#ffd374)}
+.selection-detail-support-card:is([data-rarity=N],[data-rarity=R]) .selection-detail-support-rarity{background:linear-gradient(100deg,#c2c9d0,#fff,#d7dde3)}
+.selection-detail-rental{position:absolute;z-index:3;top:5px;right:5px;padding:2px 6px;border-radius:4px;background:#e63878;color:white;font-size:11px;line-height:1.4;pointer-events:none}
+@media(max-width:760px){.selection-loadout-layout{grid-template-columns:minmax(0,1fr);gap:8px}}
+@media(max-width:399px){.selection-details-dialog{padding:12px}}
+
+
+/* 成就页沿用角色色和游戏成就图，记录状态与公开奖励分层显示。 */
+.achievement-controls{display:flex;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:16px}
+.achievement-mode{display:inline-flex;gap:4px;padding:3px;background:var(--line);border-radius:8px}
+.achievement-mode button{border:0;background:transparent;min-width:82px;padding:7px 14px;font-size:13px}
+.achievement-mode button[aria-pressed=true]{background:var(--paper);color:var(--accent-deep);box-shadow:0 1px 3px #0001}
+.achievement-filters{display:flex;gap:12px;margin-left:auto;flex-wrap:wrap}
+.achievement-filters label{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)}
+.achievement-hint{flex:1 0 100%;margin:0;font-size:12px;line-height:1.7;color:var(--muted)}
+.ending-catalog,.achievement-catalog{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr));gap:16px;align-items:start}
+.ending-card,.achievement-card{min-width:0;padding:16px;background:var(--paper);border:1px solid var(--line);border-radius:10px;border-top:3px solid var(--character-color,var(--line))}
+.ending-card-head{display:flex;align-items:center;gap:10px;padding-bottom:12px}
+.ending-card-head .illustration.face{width:32px;height:32px;flex:0 0 32px}
+.ending-card-head h3{font-size:16px;margin:0}
+.ending-chapter{border-top:1px solid var(--line);padding:12px 0}
+.ending-chapter:last-child{padding-bottom:0}
+.ending-chapter-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:9px;font-size:13px}
+.ending-reward-values{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.ending-reward-stat{display:grid;gap:3px;font-variant-numeric:tabular-nums}
+.ending-reward-stat>span{font-size:10px;color:var(--muted)}
+.ending-reward-stat>strong{font-size:17px;font-weight:650}
+.ending-reward-stat[data-attribute=Vo]>strong{color:var(--vo)}
+.ending-reward-stat[data-attribute=Da]>strong{color:var(--da)}
+.ending-reward-stat[data-attribute=Vi]>strong{color:var(--vi)}
+.ending-reward-stat>small{font-size:10px;color:var(--muted)}
+.achievement-card-head{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+.achievement-card-identity{min-width:0;flex:1}
+.achievement-card h3{font-size:14px;line-height:1.5;margin:0 0 4px;overflow-wrap:anywhere}
+.achievement-card .illustration.achievement-art{width:92px;height:64px;flex:0 0 92px;background:transparent}
+.achievement-card .achievement-art img{object-fit:contain}
+.achievement-description{font-size:12px;line-height:1.8;margin:0 0 12px;overflow-wrap:anywhere}
+.achievement-status{display:inline-block;white-space:nowrap;font-size:10px;line-height:1.5;padding:2px 6px;border-radius:4px;color:var(--muted);background:#f0f2f6}
+.achievement-status.received{color:#267357;background:#eaf5ee}
+.achievement-status.claimable{color:#8a6415;background:#fff4d6}
+.achievement-status.progress{color:var(--accent-deep);background:var(--selected)}
+.achievement-progress-line{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.achievement-progress-value{font-size:11px;font-variant-numeric:tabular-nums;color:var(--muted)}
+.achievement-progress{display:block;width:100%;height:6px;margin-top:8px;accent-color:var(--accent)}
+.achievement-rewards{display:flex;flex-wrap:wrap;gap:5px 12px;margin-top:10px}
+.achievement-reward{font-size:11px;color:var(--muted)}
+.achievement-stages{margin-top:12px;padding-top:10px;border-top:1px solid var(--line);font-size:11px}
+.achievement-stages summary{cursor:pointer;color:var(--muted)}
+.achievement-stage{padding:10px 0;border-bottom:1px solid var(--line)}
+.achievement-stage:last-child{border-bottom:0;padding-bottom:0}
+.achievement-stage>.achievement-status{margin-left:8px}
+.achievement-stage>p{line-height:1.7;margin:6px 0}
+@media(max-width:599px){
+ .achievement-filters{margin-left:0;gap:8px}
+.achievement-filters select{max-width:120px;font-size:12px}
+ .ending-card,.achievement-card{padding:12px}
+}
+
+/* 阶段详情独立滚动，不再拉长列表中单张成就卡。 */
+.achievement-result{flex:1 0 100%;font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+.achievement-controls .achievement-hint{font-size:12px;color:var(--muted);flex:1 0 100%}
+button.achievement-stages{display:block;width:100%;min-height:38px;text-align:left;color:var(--accent);border:0;border-top:1px solid var(--line);border-radius:0;padding:10px 0 0;background:transparent;font-size:12px}
+.achievement-stage-dialog{width:min(900px,calc(100vw - 24px));max-height:calc(100dvh - 24px);padding:0;overflow:hidden}
+.achievement-stage-dialog[open]{display:flex;flex-direction:column}
+.achievement-stage-dialog>.dialog-head{flex:none;margin:0;padding:16px 22px}
+.achievement-stage-dialog .dialog-head h2{font-size:18px;overflow-wrap:anywhere}
+.achievement-stage-dialog .dialog-head button{flex:none}
+.achievement-dialog-title{display:flex;align-items:center;gap:12px;min-width:0}
+.achievement-dialog-title>.achievement-art{width:44px;height:44px;flex:none;background:transparent}
+.achievement-dialog-title>h2{margin:0;min-width:0}
+.achievement-detail-summary{flex:none;padding:12px 22px;background:#f3f6fb;border-bottom:1px solid var(--line);font-size:13px}
+.achievement-detail-summary p{font-size:12px;color:var(--muted);margin-top:4px}
+.achievement-stage-scroll{min-height:0;overflow:auto;overscroll-behavior:contain;padding:16px 22px}
+.achievement-stage-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;padding:0;margin:0;list-style:none}
+.achievement-stage-list .achievement-stage{border:1px solid var(--line);border-radius:9px;padding:14px;font-size:12px;min-width:0}
+/* 阶段条目只承接阅读焦点，不是可选择控件；当前阶段由文字和 aria-current 表达。 */
+.achievement-stage-list .achievement-stage:focus{outline:none}
+.achievement-stage-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:7px}
+.achievement-stage-head>strong{font-size:11px;color:var(--muted)}
+.achievement-stage-list .achievement-stage>p{line-height:1.75;margin:0;overflow-wrap:anywhere}
+.achievement-stage-list .achievement-status{font-size:11px}
+.ending-reward-stat>strong.is-zero,.ending-reward-stat>small.is-zero{color:#8893a5}
+.ending-stamina{display:inline-block;font-size:11px;color:#367857;background:#edf6ef;border-radius:5px;padding:3px 8px;margin-top:9px}
+@media(max-width:599px){
+ .achievement-stage-dialog{width:calc(100vw - 16px);max-height:calc(100dvh - 16px)}
+ .achievement-stage-dialog>.dialog-head,.achievement-detail-summary{padding:12px 16px}
+ .achievement-stage-scroll{padding:12px 16px}
+ .achievement-stage-list{grid-template-columns:1fr}
+ .achievement-stage-dialog .dialog-head h2{font-size:16px}
+ .achievement-filters{margin-left:0;width:100%;gap:8px}
+ .achievement-filters label{flex-wrap:wrap}
+}
+
+/* 账号数据包的密码与确认信息保持单列，窄屏不挤压输入框。 */
+#account-package-dialog p{font-size:13px;line-height:1.7;color:var(--muted)}
+.package-summary{overflow-wrap:anywhere;margin-bottom:16px}
+.package-password-fields{display:grid;gap:12px;margin:14px 0}
+.package-password-fields[hidden]{display:none}
+.package-password-fields label{display:grid;gap:6px;font-size:13px}
+.package-password-fields input{width:100%;min-width:0;box-sizing:border-box}
+.package-password-fields .package-password-visibility{display:flex;align-items:center;gap:8px}
+.package-password-visibility input[type="checkbox"]{width:auto;flex:none}
+#account-package-dialog .actions{margin-top:16px}
+
+/* 账号清理单独强调确认范围，不与普通导入按钮混用。 */
+button.danger-button{color:#a52b24;border-color:#e9b4af;background:#fff8f7}
+button.danger-button:hover:enabled{color:#8b211c;border-color:#c7645d;background:#ffebe8}
+button.danger-confirm{color:white;background:#b5332a;border-color:#b5332a}
+button.danger-confirm:hover:enabled{color:white;background:#952a23}
+#account-cleanup-dialog p{font-size:13px;line-height:1.7;color:var(--muted);margin:10px 0}
+#account-cleanup-dialog .check-label{display:flex;align-items:flex-start;gap:8px;margin:18px 0}
+#account-cleanup-dialog .check-label input{flex-shrink:0;margin-top:2px}
+
+.data-status{border-top:1px solid var(--line);padding-top:12px;margin-top:12px;color:var(--muted);font-size:12px}
+.data-status button{margin-top:8px}
+
+/* 两类回忆共用标签，卡片收藏始终提供独立的键盘入口。 */
+.custom-tags{display:flex;align-items:center;flex-wrap:wrap;gap:6px;min-width:0;margin:10px 0}
+.custom-tag{display:inline-flex;align-items:center;gap:3px;min-width:0;font-size:12px;line-height:1.6;color:#805215;background:#fff4df;border:1px solid #d8b26b;border-radius:5px;padding:2px 7px;overflow-wrap:anywhere;max-width:100%}
+.edit-custom-tags{font-size:12px;padding:5px 9px;color:var(--muted)}
+.inline-tags{display:contents}
+.inline-tags .edit-custom-tags,.inline-tags .custom-tag{display:inline-flex;align-items:center;flex:none;max-width:100%;min-height:0;margin:0;padding:0 4px;border:1px solid #d8b26b;border-radius:4px;background:#fff4df;color:#805215;font-size:10px;font-weight:400;line-height:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.inline-tags .custom-tag{display:inline-flex;flex:0 1 auto}
+.inline-tags .edit-custom-tags:hover:enabled{background:#ffebc2;border-color:#b68a41}
+.custom-tag-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tag-chip-remove,.tag-remove-confirm{flex:none;min-height:0;margin:0;padding:0 2px;border:0;border-radius:2px;background:transparent;color:inherit;font:inherit;line-height:inherit}
+.tag-chip-remove:hover:enabled,.tag-remove-confirm:hover:enabled{background:#f5dcab}
+.tag-chip-remove{display:inline-grid;place-items:center;box-sizing:border-box;width:12px;height:12px;padding:0;border:1px solid currentColor;border-radius:50%;font-size:10px;line-height:1}
+.tag-remove-confirm{color:#a13b3b}
+.custom-tag.tag-remove-pending{border-color:#bd9292}
+
+.selection-card-name:has(.inline-tags){flex-wrap:wrap;overflow:visible;gap:4px 6px}
+.selection-card-name:has(.inline-tags) .selection-name-copy{flex:0 1 auto;min-width:0;max-width:100%}
+
+#tag-controls{gap:8px;flex-wrap:wrap}
+#tag-controls label{display:flex;align-items:center;gap:6px;font-size:12px;min-width:0}
+#custom-tag-filter{max-width:190px}
+#tags-dialog{width:min(540px,calc(100vw - 24px));max-height:calc(100dvh - 24px)}
+#tags-hint{font-size:13px;color:var(--muted);line-height:1.7}
+#tag-form{margin:16px 0;align-items:center;flex-wrap:wrap}
+#tag-name{flex:1;min-width:120px;width:180px}
+#tag-list{display:grid;gap:8px}
+.tag-manager-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;border-top:1px solid var(--line);padding:12px 0}
+.tag-manager-name{display:flex;align-items:center;gap:8px;flex:1;min-width:100px;overflow-wrap:anywhere}
+.tag-manager-name input{flex:none;width:18px;height:18px}
+.tag-manager-actions{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.tag-manager-actions button{font-size:12px;padding:6px 9px}
+#tags-dialog.tag-picker{width:min(460px,calc(100vw - 24px))}
+.tag-picker #tag-list{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+.tag-picker .tag-manager-row{display:block;max-width:100%;padding:0;border:0}
+.tag-picker .tag-manager-name{display:flex;min-width:0;gap:7px;padding:7px 9px;border:1px solid var(--line);border-radius:5px;cursor:pointer;font-size:12px}
+.tag-picker .tag-manager-name:has(input:checked){color:#805215;background:#fff4df;border-color:#d8b26b}
+.tag-picker .tag-manager-name input{accent-color:#9b6725}
+.idol-card,.support-card{position:relative}
+.favorite-button{position:static;flex:none;display:grid;place-items:center;width:32px;height:32px;min-height:32px;padding:0;border:0;border-radius:5px;background:transparent;color:inherit;font-size:inherit;line-height:1;box-shadow:none}
+/* 心形随所在栏文字缩放，空心与实心共用轮廓，点击区域独立保持。 */
+.favorite-button svg{display:block;width:1em;height:1em;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.favorite-button[aria-pressed=true] svg{fill:currentColor}
+.memory-card-tools .favorite-button{font-size:12px}
+.favorite-button[aria-pressed=true]{color:#c13d6c;background:transparent}
+.favorite-button:hover:enabled{background:#3163c012}
+.collection-state.unowned .favorite-button[aria-pressed=true]{color:#ffb2ce}
+.favorite-button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+@media(max-width:599px){#tag-controls{width:100%}#tags-dialog{padding:16px}.tag-manager-actions{margin-left:auto}}
+
+/* 文件校验码完整展示，允许窄屏换行和手动选取。 */
+.package-checksum{display:grid;gap:6px;margin:12px 0;min-width:0}
+.package-checksum[hidden]{display:none}
+.package-checksum code,.package-checksum>span{overflow-wrap:anywhere;user-select:text}
+.package-checksum button{justify-self:start}
+
+/* 账号管理采用档案摘要与收发卡片，清理操作独立收在底部。 */
+.account-manager{width:min(760px,calc(100vw - 32px));padding:0;border-radius:18px;max-height:calc(100dvh - 32px)}
+.account-manager>.dialog-head{padding:22px 26px;margin:0;gap:12px;background:var(--paper);border-bottom:1px solid var(--line)}
+.account-heading{flex:1;min-width:0}
+.account-heading h2{font-size:21px;letter-spacing:.01em}
+.account-heading p{font-size:12px;color:var(--muted);margin-top:4px}
+.account-manager-body{padding:22px 26px 16px}
+.account-overview{position:relative;border-left:4px solid var(--accent);background:#f1f5fc;border-radius:0 10px 10px 0;padding:16px 20px}
+.account-caption{display:block;font-size:11px;font-weight:600;letter-spacing:.08em;color:var(--muted);margin-bottom:5px}
+.account-identity{display:flex;align-items:center;justify-content:space-between;gap:12px;min-width:0}
+.account-identity code{font:600 18px/1.5 ui-monospace,"Cascadia Code",Consolas,monospace;letter-spacing:.03em;overflow-wrap:anywhere;min-width:0}
+.account-identity .account-visibility{flex:none;font-size:11px;min-height:32px;padding:5px 8px;border-color:transparent;background:transparent;color:var(--accent)}
+.account-identity .account-visibility:hover{border-color:#c6d7f3;background:#e7effc}
+.account-overview-counts{display:flex;gap:24px;flex-wrap:wrap;margin-top:12px}
+.account-overview-counts>span{display:flex;gap:7px;align-items:baseline;font-size:11px;color:var(--muted)}
+.account-overview-counts b{font-size:17px;font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums}
+.account-overview-counts p{font-size:12px;color:var(--muted)}
+.account-manager .panel-section{padding:22px 0 0}
+.account-manager .panel-section h3{margin:0;font-size:14px}
+.account-section-heading{display:flex;justify-content:space-between;gap:12px;align-items:baseline;margin-bottom:10px}
+.account-section-heading>span{font-size:11px;color:var(--muted)}
+.account-transfer-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.account-transfer-card{display:grid;grid-template-columns:30px minmax(0,1fr);grid-template-rows:1fr auto;gap:10px 12px;border:1px solid var(--line);border-radius:12px;padding:16px;background:var(--paper)}
+.transfer-symbol{width:30px;height:30px;border-radius:8px;background:#edf3ff;color:var(--accent);display:grid;place-items:center;font-size:22px;line-height:1}
+.account-transfer-card h4{font-size:14px;line-height:30px}
+.account-manager .account-transfer-card p{font-size:12px;line-height:1.7;margin:5px 0 0;color:var(--muted)}
+.account-transfer-card>button{grid-column:1/-1;width:100%;margin-top:3px;font-size:13px;min-height:40px}
+.account-manager .account-directory-section,.account-manager .account-cleanup-section{display:flex;align-items:center;justify-content:space-between;gap:20px;margin-top:20px;padding:18px 0 0;border-top:1px solid var(--line)}
+.account-manager .account-directory-section p,.account-manager .account-cleanup-section p{margin:5px 0 0;font-size:12px;line-height:1.7;max-width:390px}
+.account-directory-section>button,.account-cleanup-section>button{flex:none;font-size:12px;min-height:38px}
+.account-cleanup-section h3{color:#984d45}
+.account-manager .data-status{border:0;margin-top:20px;padding:0;font-size:11px;color:var(--muted)}
+.account-flow-dialog{width:min(640px,calc(100vw - 32px));padding:24px;border-radius:16px}
+.account-flow-dialog .package-summary{border-left:3px solid var(--accent);padding:14px 16px;background:#f1f5fc;border-radius:0 9px 9px 0;margin:18px 0}
+.package-counts{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin:16px 0 0;padding-top:12px;border-top:1px solid #dce5f4}
+.package-counts dt{font-size:11px;color:var(--muted)}
+.package-counts dd{font-size:18px;font-weight:600;margin:4px 0 0;line-height:1.3}
+.package-encryption-toggle{display:flex;align-items:center;gap:10px;padding:14px;margin-top:14px;background:#f7f9fc;border:1px solid var(--line);border-radius:9px;font-size:13px}
+.package-encryption-toggle input{flex:none}
+.account-flow-dialog .package-password-fields{padding:14px;background:#f7f9fc;border-radius:9px}
+.account-flow-dialog .actions{display:flex;justify-content:flex-end;padding-top:16px;border-top:1px solid var(--line)}
+.account-flow-dialog .actions>.primary,.account-flow-dialog .actions>.danger-confirm{min-width:150px;min-height:42px}
+.account-flow-dialog #package-import-confirm>button{display:block;margin:16px 0 0 auto;min-width:150px;min-height:42px}
+.account-flow-dialog .package-checksum,.account-manager .package-checksum{border:1px solid var(--line);border-radius:9px;padding:12px;background:#fafbfd;gap:5px;font-size:11px}
+.package-checksum strong{font-size:12px}
+.package-checksum code{font-size:11px;line-height:1.6;color:#476084;letter-spacing:.02em}
+.package-checksum button{font-size:11px;min-height:30px;padding:4px 9px;margin-top:3px}
+.account-manager .message,.account-flow-dialog .message{margin-top:12px}
+@media(max-width:599px){
+ .account-manager{width:calc(100vw - 16px);max-height:calc(100dvh - 16px);border-radius:12px}
+ .account-manager>.dialog-head{padding:16px;flex-wrap:wrap;gap:8px}
+ .account-heading{flex:1;min-width:0}
+ .account-manager>.dialog-head #close-data{order:2;margin-left:auto}
+ .account-heading h2{font-size:17px}
+ .account-manager-body{padding:16px}
+ .account-overview{padding:12px}
+ .account-identity{gap:6px}
+ .account-identity code{font-size:15px}
+ .account-overview-counts{gap:10px 16px}
+ .account-overview-counts>span{gap:5px}
+ .account-overview-counts b{font-size:15px}
+ .account-transfer-grid{grid-template-columns:1fr;gap:10px}
+ .account-transfer-card{grid-template-columns:26px minmax(0,1fr);padding:13px;gap:7px 10px}
+ .transfer-symbol{width:26px;height:26px;font-size:20px}
+ .account-transfer-card h4{line-height:26px}
+ .account-manager .account-directory-section,.account-manager .account-cleanup-section{display:block;margin-top:16px;padding-top:16px}
+ .account-directory-section>button,.account-cleanup-section>button{margin-top:10px;width:100%}
+ .account-section-heading{flex-wrap:wrap;gap:4px 12px}
+ .account-flow-dialog{width:calc(100vw - 16px);padding:16px;max-height:calc(100dvh - 16px)}
+ .account-flow-dialog .package-summary{padding:12px}
+ .package-counts{grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+ .account-flow-dialog .actions>button,.account-flow-dialog #package-import-confirm>button{width:100%}
+}
+
+/* 普通卡片的收藏与持有状态同栏；沉浸卡片的收藏紧邻名称，不覆盖插图。 */
+.idol-card:has(>.collection-state),.support-card:has(>.collection-state),.skin-card:has(>.collection-state){padding-top:36px}
+.idol-card>.collection-state,.support-card>.collection-state,.skin-card>.collection-state{display:flex;align-items:center;justify-content:space-between;gap:8px;height:36px;padding:0 6px 0 12px}
+.collection-state .favorite-button{width:30px;height:30px;min-height:30px}
+.immersive-card-caption{display:flex;align-items:center;gap:4px;min-width:0;padding:4px 6px;font-size:13px}
+.idol-immersive .immersive-card-caption .idol-name,.support-immersive .immersive-card-caption .support-name{flex:1;min-width:0;display:block;margin:0;padding:0;font-size:13px;line-height:1.5;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;overflow-wrap:normal}
+.immersive-card-caption .favorite-button{width:32px;height:32px;min-height:32px}
+.skin-card{container-type:inline-size}
+@container (max-width:230px){
+ .skin-card>.collection-state{gap:3px;padding:0 4px;font-size:10px}
+ .skin-card>.collection-state .card-social-actions{gap:1px}
+ .skin-card>.collection-state .share-button,.skin-card>.collection-state .favorite-button{width:24px;height:30px;min-height:30px}
+ .skin-card>.collection-state .idol-card-art-options>span{display:none}
+ .skin-card>.collection-state .idol-card-art-options{gap:0}
+ .skin-card>.collection-state .idol-card-art-options input[role=switch]{width:24px;height:16px}
+ .skin-card>.collection-state .idol-card-art-options input[role=switch]::before{width:10px;height:10px}
+ .skin-card>.collection-state .idol-card-art-options input[role=switch]:checked::before{left:12px}
+}
+.skin-immersive .skin-body.immersive-card-caption{padding:4px 6px}
+.skin-immersive .immersive-card-caption h3{flex:1;min-width:0;margin:0;font-size:13px;line-height:1.5}
+
+/* 自定义标签作为两类回忆的最后一组筛选，管理入口统一置于页头。 */
+#advanced-filters>#tag-controls{margin-top:14px;padding-top:14px;border-top:1px solid var(--line)}
+#advanced-filters>#tag-controls label{align-items:stretch;font-size:12px;color:var(--muted)}
+
+.header-account-actions{display:flex;align-items:center;gap:6px;flex:none}
+
+/* Ending 徽章取自对应 True End 成就，与章节标题并排，保留完整比例。 */
+.ending-chapter-label{display:flex;align-items:center;gap:10px;min-width:0}
+.ending-chapter-label .ending-icon{width:48px;height:48px;flex:0 0 48px;background:transparent}
+.ending-chapter-label .ending-icon img{object-fit:contain}
+@media(max-width:599px){.ending-chapter-label .ending-icon{width:42px;height:42px;flex-basis:42px}}
+
+/* 成就以角色立绘为入口，宽屏横向浏览，窄屏按角色纵向展开。 */
+#achievement-browser{min-width:0;scroll-margin-top:12px}
+.character-quick-nav{position:sticky;top:0;z-index:12;display:flex;gap:8px;overflow-x:auto;padding:10px 12px;background:#f6fafcf2;border-bottom:1px solid #d4e4ed;backdrop-filter:blur(16px)}
+.character-quick-nav button{display:grid;place-items:center;line-height:0;aspect-ratio:1;align-self:center;padding:3px;border:2px solid transparent;border-radius:50%;background:transparent;flex:none}
+.character-quick-nav button[aria-current=true]{border-color:#2985a6;background:#fff}
+.character-quick-nav .face{width:48px;height:48px;min-width:0;border-radius:50%}
+.character-gallery-heading{display:flex;align-items:baseline;gap:24px;padding:20px 12px 8px}
+.character-gallery-heading h1{font-size:32px;margin:0}.character-gallery-heading p{color:#57717e}.character-gallery-controls{margin-left:auto;display:flex;gap:8px}
+.character-gallery{display:flex;overflow-x:auto;gap:18px;padding:12px 12px 24px;cursor:grab;overscroll-behavior-x:contain;touch-action:pan-x pan-y}
+.character-gallery.is-dragging{cursor:grabbing;user-select:none}
+.character-portal{position:relative;flex:0 0 clamp(280px,29vw,430px);height:auto;aspect-ratio:var(--portrait-card-ratio);overflow:hidden;padding:0;border:1px solid #dce7ed;border-radius:24px;background:linear-gradient(155deg,color-mix(in srgb,var(--character-color,#769ead) 16%,white),#fff 70%);text-align:left;cursor:inherit;isolation:isolate;scroll-margin-top:90px}
+.character-portal:hover{border-color:var(--character-color,#2985a6);box-shadow:0 10px 30px #25485c14}
+.character-portal>.portrait{position:absolute;inset:16px 0 0;width:100%;height:100%;border:0;background:none;border-radius:0;pointer-events:none}
+.character-portal>.portrait img{width:100%;height:100%;object-fit:contain;object-position:center top;filter:drop-shadow(0 12px 14px #24465a18)}
+.character-portal[data-character-portal=nasr]>.portrait{inset:16px 0 auto;height:calc(100% - 190px)}
+.character-ending-badges{display:flex;gap:5px;flex-wrap:wrap}.character-portal>.character-ending-badges{position:absolute;top:16px;right:12px;max-width:90px;justify-content:flex-end;z-index:2}
+.character-ending-badges .ending-icon{width:70px;height:70px;background:#ffffffe8;border:1px solid #ffffff;border-radius:10px;box-shadow:0 2px 10px #18374d18}
+.character-portal-caption{position:absolute;bottom:0;left:0;right:0;display:flex;flex-direction:column;gap:6px;padding:65px 24px 24px;background:linear-gradient(transparent,#fffffff5 40%);pointer-events:none}
+.character-portal-caption strong{font-size:29px;letter-spacing:.05em;color:#193849}.character-portal-caption span{font-size:14px;color:#375e70}.character-portal-caption small{color:#647f8c}
+.character-back{margin:20px 0 0}.character-detail-hero{position:relative;min-height:245px;overflow:hidden;display:flex;align-items:center;padding:30px 36px;margin:16px 0 28px;border-radius:24px;background:linear-gradient(100deg,color-mix(in srgb,var(--character-color,#769ead) 17%,white),#fff)}
+.character-detail-hero>div{position:relative;z-index:1}.character-detail-title{font-size:42px;margin:10px 0 18px}.character-eyebrow{letter-spacing:.15em;color:#537181}
+.character-detail-hero>.portrait{position:absolute;right:3%;top:0;width:280px;height:550px;border:0;background:none}.character-detail-hero>.portrait img{width:100%;height:100%;object-fit:contain;object-position:center top}
+.character-ending-totals{display:grid;grid-template-columns:1fr 1fr;gap:16px}.character-ending-total{padding:18px 22px;border:1px solid #d9e7ee;border-radius:16px;background:#fff}.character-ending-total h3{margin:0 0 18px;font-size:16px}.character-ending-total p{margin:12px 0 0}
+.character-detail-endings>.ending-card{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;padding:0;background:none;border:0;box-shadow:none}.character-detail-endings .ending-card-head{display:none}.character-detail-endings .ending-chapter{border:1px solid #d9e7ee;border-radius:16px;padding:18px;background:#fff;margin:0}
+.character-achievements{margin-top:24px;scroll-margin-top:90px}.character-achievement-filters{display:flex;gap:14px;align-items:end;flex-wrap:wrap}.character-achievement-filters input{flex:1;min-width:180px}.character-achievement-filters label{display:flex;flex-direction:column;gap:6px}.character-achievement-result{color:#627e8d}.character-achievement-pager{display:flex;align-items:center;justify-content:center;gap:16px;padding:24px}
+@media(max-width:760px){.character-quick-nav{gap:4px;padding:8px 4px}.character-quick-nav .face{width:38px;height:38px}.character-gallery-heading{flex-wrap:wrap;gap:8px;padding:18px 4px}.character-gallery-heading p{width:100%;margin:0}.character-gallery-controls{display:none}.character-gallery{display:grid;grid-template-columns:minmax(0,1fr);overflow:visible;padding:12px 0;gap:18px;cursor:pointer}.character-portal{width:100%;scroll-margin-top:72px}.character-portal>.portrait{inset:10px 0 0}.character-detail-hero{padding:24px 18px;min-height:225px}.character-detail-title{font-size:28px}.character-detail-hero>.portrait{right:-45px;width:200px;opacity:.55}.character-ending-totals{grid-template-columns:1fr}.character-detail-endings>.ending-card{grid-template-columns:1fr}.character-achievement-filters input{width:100%;flex-basis:100%}.character-achievement-filters label{flex:1;min-width:100px}.character-achievement-filters select{max-width:100%;width:100%}.character-achievements{scroll-margin-top:72px}}
+
+
+/* 根緒亜紗里的全身原图保留头脚边界，不沿用角色详情的局部裁切。 */
+
+/* 摘要按成就项目汇总，缺失记录单列，不当作未完成。 */
+.character-portal-caption .character-achievement-summary{font-size:12px;line-height:1.7;color:#526e7e}
+.character-achievement-summary>span{display:block;font-size:12px}
+.character-quick-nav{scrollbar-width:thin;scrollbar-color:#bccdd6 transparent}
+
+/* 角色内部区分通用目标与卡片目标，同一卡片的成就保持成组。 */
+.achievement-scope-switch{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0}
+.achievement-scope-switch [aria-pressed=true]{background:var(--selected);border-color:var(--accent);color:var(--accent-deep)}
+.achievement-card-groups{display:grid;gap:24px}
+.achievement-idol-group{min-width:0;border:1px solid var(--line);border-radius:16px;padding:16px;background:#fafdff}
+.achievement-idol-heading{display:flex;align-items:center;gap:14px;margin-bottom:16px}
+.achievement-idol-heading h3{font-size:18px;flex:1}.achievement-idol-heading>span:last-child{font-size:12px;color:var(--muted);flex:none}
+.achievement-idol-art{width:96px;height:72px}.achievement-idol-art img{width:100%;height:100%;object-fit:contain}
+@media(max-width:760px){.achievement-idol-group{padding:10px}.achievement-idol-heading{flex-wrap:wrap;gap:8px}.achievement-idol-heading h3{font-size:16px}.achievement-idol-art{width:80px;height:60px}}
+
+/* 角色名与完成度集中在左上角，右下角显示原始角色签名。 */
+.character-portal-caption{top:18px;bottom:auto;left:18px;right:90px;padding:0;background:none;gap:5px;z-index:3;text-shadow:0 1px 4px #fff}
+.character-portal-caption strong{font-size:clamp(21px,2vw,27px);line-height:1.3;overflow-wrap:anywhere}
+.character-portal-caption .character-achievement-summary>span{font-size:13px;line-height:1.6}
+.character-signature{position:absolute;right:18px;bottom:20px;width:32%;height:auto;aspect-ratio:1;max-height:150px;object-fit:contain;object-position:right bottom;filter:invert(1);z-index:2;pointer-events:none}
+/* 立绘独立铺满主体区域，文字、Ending 和签名在上层覆盖，不占用立绘布局空间。 */
+.character-portal>.portrait,.character-portal[data-character-portal=nasr]>.portrait{inset:16px 0 auto;height:calc(100% - 32px);z-index:0}
+
+.character-ending-badges .ending-icon[data-achieved=false]{filter:grayscale(1);opacity:.38}
+
+/* 共用最高立绘视口，统一脚部基线，原图透明边距通过定位消除。 */
+.character-portal>.portrait,.character-portal[data-character-portal=nasr]>.portrait{inset:24px 0 auto;height:calc(100% - 48px);overflow:visible}
+.character-detail-hero{height:340px;min-height:340px}
+.character-detail-hero>.portrait{top:16px;right:16px;width:40%;max-width:280px;height:calc(100% - 32px);opacity:1;overflow:visible;pointer-events:none}
+.character-portal>.normalized-portrait img,.character-detail-hero>.normalized-portrait img{position:absolute;inset:auto;top:var(--portrait-image-top);left:50%;width:auto;max-width:none;height:var(--portrait-image-height);object-fit:fill;transform:translateX(-50%);transform-origin:center}
+@media(max-width:760px){.character-detail-hero .character-ending-badges .ending-icon{width:40px;height:40px}}
+
+/* 三张属性卡承载初始值、奖励色条与成长率；奖励分解交互沿用数值组件。 */
+.ending-reward-card{width:min(100%,680px);padding:20px;border:1px solid var(--line);border-radius:18px;background:white}
+.ending-reward-card>header{display:flex;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:16px}
+.ending-heading-identity{display:flex;align-items:center;gap:10px;min-width:0}
+.ending-heading-identity .character-ending-badges{flex-wrap:nowrap;gap:4px}
+.ending-heading-identity .ending-icon{width:36px;height:36px;flex:none}
+.ending-reward-card h2{font-size:19px;white-space:nowrap}
+.ending-heading-mark{color:#7d8ed6;font-size:30px;line-height:1}
+.ending-reward-card .idol-current-stats.ending-attributes{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;background:none;padding:0;margin:0;border-radius:0}
+.ending-attribute-card{min-width:0;padding:16px 14px 10px;border:1px solid color-mix(in srgb,var(--stat-color) 16%,white);border-radius:12px;background:linear-gradient(145deg,color-mix(in srgb,var(--stat-color) 4%,white),#fff 85%);box-shadow:0 2px 7px #26374a05}
+.ending-attribute-heading{display:flex;align-items:center;gap:10px}
+.ending-attribute-heading img{width:34px;height:34px;object-fit:contain}
+.ending-attribute-heading strong{font-size:18px}
+.ending-attribute-card .idol-stat-meter{display:flex;flex-direction:column;gap:12px;margin:10px 0 18px;align-items:stretch}
+.ending-attribute-card .idol-stat-meter>strong{order:0;font-size:30px;line-height:1.15;font-weight:700;text-align:center}
+.ending-attribute-card .idol-stat-track{order:1;width:100%;height:10px}
+.ending-attribute-card .idol-growth-gauge{position:relative}
+.ending-attribute-card .idol-growth-gauge svg{width:100%;max-width:116px}
+.ending-attribute-card .idol-growth-gauge>strong{position:absolute;top:27px;left:0;width:100%;font-size:19px;line-height:1.5}
+.ending-growth-label{display:block;font-size:10px;letter-spacing:.12em;color:#77859e;margin-top:3px}
+.ending-reward-card .idol-stat-summary.ending-stamina-summary{display:flex;flex-direction:row;align-items:center;gap:8px;margin-left:auto;padding:5px 10px;border:1px solid #e5ebf4;border-radius:999px;background:#ffffffc9;white-space:nowrap}
+.ending-stamina-summary small{font-size:12px}
+.ending-reward-card .ending-stamina-summary button,.ending-reward-card .ending-stamina-summary>strong{padding:0;border:0;min-height:0;background:transparent;font-size:17px;font-weight:650;cursor:help}
+.ending-stamina-earned{color:#218449}.ending-stamina-pending{color:#8a95a5}
+.ending-reward-breakdown{min-width:130px;display:grid;gap:5px}.ending-reward-breakdown p{display:flex;justify-content:space-between;gap:22px}
+.character-detail-identity{width:230px;display:flex;flex-direction:column;justify-content:center;align-self:stretch;min-width:0}
+.character-detail-identity .character-eyebrow{font-size:12px}
+.character-detail-identity .character-detail-title{font-size:36px;line-height:1.2;margin:5px 0 8px}
+.character-profile-signature{display:block;width:145px;height:50px;max-width:100%;filter:invert(1);opacity:.7;flex:none}
+.character-profile-quote{margin:8px 0 0;white-space:pre-line;font-size:12px;line-height:1.55;color:#42546e}
+.character-detail-identity .character-ending-badges{margin-top:12px}
+.character-detail-identity .ending-icon{width:52px;height:52px}
+@media(min-width:1100px){
+  .character-detail-overview:has(.character-detail-endings){display:grid;grid-template-columns:280px minmax(0,1fr) 240px;align-items:center;margin:16px 0 28px}
+  .character-detail-overview:has(.character-detail-endings)>.character-detail-hero{grid-column:1/-1;grid-row:1;margin:0}
+  .character-detail-overview>.character-detail-endings{grid-column:2;grid-row:1;min-width:0;z-index:2;justify-self:center;width:100%}
+  .character-detail-overview>.character-detail-endings .ending-reward-card{width:min(100%,700px);margin:auto;padding:16px;border:0;background:transparent}
+}
+@media(max-width:760px){
+  .ending-reward-card{padding:14px}.ending-reward-card>header{gap:6px;margin-bottom:12px}.ending-reward-card h2{font-size:16px}.ending-heading-mark{font-size:24px}
+  .ending-reward-card .idol-current-stats.ending-attributes{gap:7px}.ending-attribute-card{padding:10px 6px 8px;border-radius:10px}
+  .ending-attribute-heading{gap:5px}.ending-attribute-heading img{width:25px;height:25px}.ending-attribute-heading strong{font-size:15px}
+  .ending-attribute-card .idol-stat-meter{gap:10px;margin:9px 0 12px}.ending-attribute-card .idol-stat-meter>strong{font-size:24px}
+  .ending-attribute-card .idol-growth-gauge svg{max-width:90px}.ending-attribute-card .idol-growth-gauge>strong{top:15px;font-size:15px}.ending-growth-label{font-size:9px;letter-spacing:.05em}
+  .ending-reward-card .idol-stat-summary.ending-stamina-summary{gap:5px;padding:4px 7px}.ending-stamina-summary small{font-size:10px}.ending-reward-card .ending-stamina-summary button,.ending-reward-card .ending-stamina-summary>strong{font-size:14px}
+  .character-detail-identity{width:calc(100% - 130px);max-width:200px}.character-detail-identity .character-detail-title{font-size:clamp(20px,6.8vw,26px);margin:4px 0 6px}
+  .character-profile-signature{width:120px;height:40px}.character-profile-quote{font-size:11px;line-height:1.4;margin-top:6px}
+  .character-detail-identity .character-ending-badges{margin-top:8px}
+}
+
+/* 卡片专属成就以卡图为主体，右上固定三个目标入口；特训阶段在弹窗中展开。 */
+.achievement-card-groups{grid-template-columns:repeat(4,minmax(0,1fr));gap:20px}
+.achievement-idol-group{position:relative;overflow:hidden;padding:28px 0 0;border-radius:16px;background:white}
+.achievement-card-art{display:block;width:100%;height:auto;aspect-ratio:9/16;border-radius:0;background:#f4f6fa}
+.achievement-card-art img{width:100%;height:100%;object-fit:contain}
+.achievement-idol-name{padding:14px 16px;font-size:16px;line-height:1.5}
+.card-achievement-icons{position:absolute;top:40px;right:12px;display:grid;grid-template-rows:repeat(3,80px);gap:6px;z-index:2}
+.card-achievement-icon{position:relative;display:grid;place-items:center;width:80px;height:80px;min-height:0;padding:3px;border:1px solid white;border-radius:12px;background:#ffffffed;box-shadow:0 2px 8px #24324a15}
+.card-achievement-icon .achievement-art{width:100%;height:100%;background:transparent}
+.card-achievement-icon[data-achieved=false] .achievement-art{filter:grayscale(1);opacity:.38}
+.achievement-training-rank{position:absolute;right:-3px;bottom:-3px;min-width:19px;height:19px;padding:0 4px;border-radius:6px;border:1px solid var(--line);background:white;font-size:11px;line-height:17px}
+.achievement-stage-head>.achievement-art{width:54px;height:54px}
+@media(max-width:760px){.achievement-card-groups{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.card-achievement-icons{top:36px;right:8px;grid-template-rows:repeat(3,64px);gap:5px}.card-achievement-icon{width:64px;height:64px;padding:2px;border-radius:8px}.achievement-idol-name{padding:10px;font-size:13px}}
+
+/* 通用成就以图标和阶段进度为主体，条件与奖励在点击后展开。 */
+.achievement-icon-catalog{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
+.achievement-card.achievement-icon-card{padding:0;border:1px solid var(--line);min-width:0;background:white}
+.achievement-icon-card .achievement-icon-trigger{display:grid;align-content:start;gap:10px;width:100%;height:100%;min-height:0;margin:0;padding:12px;border:0;background:transparent}
+.achievement-icon-card .achievement-art{width:100%;height:auto;max-width:112px;aspect-ratio:1;margin:auto;background:transparent}
+.achievement-icon-trigger[data-achieved=false] .achievement-art{filter:grayscale(1);opacity:.5}
+.achievement-icon-track{display:block;height:7px;width:100%;border-radius:8px;background:#e1e6ee;overflow:hidden}
+.achievement-icon-remaining{display:block;min-width:0;font-size:11px;line-height:1.5;color:var(--muted);overflow-wrap:anywhere;text-align:center}
+.achievement-icon-fill{display:block;height:100%;border-radius:inherit;background:var(--character-color,var(--accent))}
+.achievement-progress-hint{max-width:300px;display:grid;gap:6px;font-size:13px}
+.achievement-hint-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.achievement-hint-heading>strong{min-width:0;overflow-wrap:anywhere}
+.achievement-hint-heading>.achievement-status{flex:none}
+@media(max-width:760px){.achievement-icon-catalog{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.achievement-icon-card .achievement-icon-trigger{padding:9px;gap:10px}}
+
+.achievement-icon-catalog>p,.achievement-card-groups>p{grid-column:1/-1}
+
+/* 持有状态沿用主题装扮；灰色仅作用于卡面，不影响独立成就状态。 */
+.achievement-idol-group[data-ownership=unowned] .achievement-card-art,.achievement-idol-group[data-ownership=unknown] .achievement-card-art{filter:grayscale(1);opacity:.4}
+.achievement-icon-title{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;width:100%;height:36px;min-width:0;overflow:hidden;overflow-wrap:anywhere;white-space:normal;text-overflow:ellipsis;font-size:12px;line-height:18px;font-weight:600;text-align:center}
+
+/* 详情签名与角色一览统一覆盖在立绘右下角。 */
+.character-detail-hero>.character-profile-signature{position:absolute;right:20px;bottom:20px;width:145px;height:80px;max-width:32%;z-index:3;pointer-events:none}
+@media(max-width:760px){.character-detail-hero>.character-profile-signature{right:14px;bottom:16px;width:100px;height:65px}}
+
+/* 累计星数紧随角色台词，独立于各成就的阶段进度。 */
+.character-master-progress{display:flex;flex-direction:column;align-items:center;gap:6px;width:70%;max-width:150px;margin-top:10px;color:var(--character-color);font-size:16px}
+.character-master-meter{display:flex;align-items:center;gap:7px;width:100%}
+.character-master-progress>.card-achievement-icon{width:80px;height:80px;padding:0;border:0;border-radius:0;background:transparent;box-shadow:none}
+.character-master-track{display:block;flex:1;min-width:0;height:7px;overflow:hidden;border-radius:8px;background:#dce4ed}
+.character-master-fill{display:block;height:100%;border-radius:inherit;background:var(--character-color)}
+.character-master-value{display:flex;flex-direction:column;align-items:center;flex:none;color:var(--ink);font-size:12px;line-height:1.2;font-variant-numeric:tabular-nums;white-space:nowrap}
+@media(max-width:760px){.character-master-progress{gap:5px;margin-top:8px;font-size:14px}.character-master-progress>.card-achievement-icon{width:64px;height:64px}.character-master-meter{gap:5px}.character-master-value{font-size:11px}}
+
+.character-portal .character-master-icon{width:90px;height:90px;background:transparent;border:0;box-shadow:none}
+.character-portal .character-master-icon[data-achieved=false]{filter:grayscale(1);opacity:.38}
+
+@media(max-width:760px){.ending-heading-identity{gap:6px}.ending-heading-identity .ending-icon{width:32px;height:32px}}
+
+/* 完成项降低强调，仍可升阶的项目保留阶段进度及差值。 */
+.achievement-icon-progress{display:flex;flex-direction:column;justify-content:center;gap:7px;min-height:47px;width:100%;text-align:center}
+.achievement-icon-complete{color:#68796e;font-size:12px;font-weight:500}
+.character-achievement-heading{display:grid;grid-template-columns:auto auto minmax(0,1fr) auto;align-items:center;gap:10px 16px;margin-bottom:16px}
+.character-achievement-heading h2{margin:0;font-size:20px}
+.character-achievement-heading .achievement-scope-switch{margin:0}
+.character-achievement-filters{gap:12px}
+.character-achievement-result{margin:12px 0}
+
+.achievement-incomplete-first{margin-left:auto}
+
+@media(max-width:760px){.character-achievement-heading{grid-template-columns:1fr auto}.character-achievement-heading h2{grid-column:1;grid-row:1}.achievement-incomplete-first{grid-column:2;grid-row:1}.character-achievement-heading .achievement-scope-switch{grid-column:1/-1;grid-row:2}}
+
+/* 奖励、状态和排序并入成就标题栏，窄屏在同一栏内换行。 */
+.character-achievement-heading .character-achievement-filters{justify-content:flex-end;align-items:center;gap:10px}
+.character-achievement-heading .character-achievement-filters label{flex-direction:row;align-items:center;gap:6px;min-width:0;white-space:nowrap;font-size:12px}
+.character-achievement-heading .character-achievement-filters select{width:auto;min-width:90px;max-width:100%;font-size:13px}
+@media(max-width:1100px){
+  .character-achievement-heading{grid-template-columns:1fr auto}
+  .character-achievement-heading h2{grid-column:1;grid-row:1}
+  .achievement-incomplete-first{grid-column:2;grid-row:1}
+  .character-achievement-heading .achievement-scope-switch{grid-column:1/-1;grid-row:2}
+  .character-achievement-heading .character-achievement-filters{grid-column:1/-1;grid-row:3;justify-content:flex-start}
+}
+@media(max-width:760px){
+  .character-achievement-heading .character-achievement-filters{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+  .character-achievement-heading .character-achievement-filters label{flex-direction:column;align-items:stretch;gap:4px}
+  .character-achievement-heading .character-achievement-filters select{width:100%;min-width:0}
+  .character-achievement-heading [data-achievement-control=achievementReward]{grid-column:1/-1}
+}
+
+/* 带入回忆仅保留继承技能、能力与必要的租借标记。 */
+.selection-detail-memory-card .memory-inheritance-title{min-height:16px}
+.selection-detail-memory-card .memory-inheritance-title h3{font-size:13px;line-height:18px;margin:0}
+.selection-detail-memory-card .memory-inheritance-heading{gap:4px}
+.selection-detail-memory-card .ability-chips{flex-wrap:wrap;height:auto;overflow:visible}
+.selection-detail-memory-card .selection-memory-rental{flex:none;font-size:10px}
+
+.filter-reset-confirming{color:#a33340;border-color:#a33340}
+
+.support-effect-filters>#support-search-basis{margin:0 0 12px}
+
+/* 考试配置逐张对照基准，同一配置固定在上下两行的同一列。 */
+.comparison-pairs{--comparison-item-size:48px;--comparison-skill-size:64px;--comparison-slot-size:72px;display:grid;gap:5px;padding:6px;min-width:max-content}
+.comparison-pair{display:flex;align-items:start;gap:16px;border-top:1px solid var(--line);padding-top:5px}
+.comparison-pair-labels{display:grid;grid-template-rows:18px var(--comparison-slot-size) var(--comparison-slot-size);width:150px;flex:none}
+.comparison-pair-label{display:flex;align-items:center;padding:0 7px;font-size:11px;line-height:1.4;overflow:hidden}
+.comparison-pair-caption{height:18px;font-size:11px;color:var(--muted)}
+.comparison-aligned-grid{display:grid;grid-template-columns:repeat(var(--pair-columns),var(--comparison-slot-size));grid-template-rows:repeat(2,var(--comparison-slot-size))}
+.comparison-aligned-slot{display:flex;align-items:center;justify-content:center;border-bottom:1px solid var(--line)}
+.comparison-aligned-slot .comparison-item>.support-art-event>.support-reward-trigger,.comparison-aligned-slot .comparison-item>.support-art-event>button .support-reward-art,.comparison-aligned-slot .comparison-item>.support-art-event>button .support-skill-thumbnail{width:var(--comparison-skill-size);height:var(--comparison-skill-size)}
+.comparison-pair-config[data-compare-field=examBattleProduceItemIds] .comparison-aligned-grid{grid-template-columns:repeat(var(--pair-columns),calc(var(--comparison-item-size) + 8px))}
+.comparison-pair-config[data-compare-field=examBattleProduceItemIds] .comparison-item>.support-art-event>.support-reward-trigger,.comparison-pair-config[data-compare-field=examBattleProduceItemIds] .comparison-item>.support-art-event>button .support-reward-art,.comparison-pair-config[data-compare-field=examBattleProduceItemIds] .comparison-item>.support-art-event>button .support-item-thumbnail{width:var(--comparison-item-size);height:var(--comparison-item-size)}
+
+#comparison .comparison-stat-row>th,#comparison .comparison-stat-row>td{padding-top:3px;padding-bottom:3px}
+#comparison thead th{padding-top:5px;padding-bottom:5px}
+
+@media(max-width:599px){.comparison-pairs{--comparison-item-size:38px;--comparison-skill-size:56px;--comparison-slot-size:64px}}
