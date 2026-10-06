@@ -115,6 +115,9 @@ def check(browser_path=None):
                 expect(page.locator('#ending-review button button')).to_have_count(0)
                 trigger=page.locator('#ending-review .ending-state-trigger').first
                 trigger.focus();trigger.press('Enter');expect(trigger).to_have_attribute('aria-expanded','true')
+                # 迟到但位置未变的滚动通知不能关闭刚由键盘打开的说明。
+                page.evaluate("document.dispatchEvent(new Event('scroll'))")
+                expect(trigger).to_have_attribute('aria-expanded','true')
                 page.keyboard.press('Escape');expect(trigger).to_have_attribute('aria-expanded','false')
                 trigger.dispatch_event('pointerenter',{'pointerType':'mouse'})
                 page.evaluate('()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)))')

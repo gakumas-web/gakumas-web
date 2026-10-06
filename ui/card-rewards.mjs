@@ -3,9 +3,14 @@ import {t} from '../i18n.mjs';
 import {skillThumbnail,itemThumbnail} from './illustrations.mjs';
 import {skillCardDetails} from './skill-card-details.mjs';
 import {semanticContent} from './semantic-view.mjs';
-let activeRewardPopover=null,rewardPopoverId=0;
-export function closeRewardPopover(){if(activeRewardPopover?.matches(':popover-open'))activeRewardPopover.hidePopover();activeRewardPopover=null;}
-document.addEventListener('scroll',event=>{if(activeRewardPopover&&!activeRewardPopover.contains(event.target))closeRewardPopover();},true);
+let activeRewardPopover=null,activeRewardAnchor=null,activeRewardBounds=null,rewardPopoverId=0;
+export function closeRewardPopover(){if(activeRewardPopover?.matches(':popover-open'))activeRewardPopover.hidePopover();activeRewardPopover=null;activeRewardAnchor=null;activeRewardBounds=null;}
+// 焦点滚动的通知可能晚于打开；只有入口位置实际变化才关闭浮层。
+document.addEventListener('scroll',event=>{
+  if(!activeRewardPopover||activeRewardPopover.contains(event.target))return;
+  const bounds=activeRewardAnchor?.getBoundingClientRect();
+  if(!bounds||bounds.top!==activeRewardBounds?.top||bounds.left!==activeRewardBounds?.left)closeRewardPopover();
+},true);
 window.addEventListener('resize',closeRewardPopover);
 document.addEventListener('keydown',event=>{if(event.key==='Escape'&&activeRewardPopover?.matches(':popover-open')){event.preventDefault();event.stopPropagation();activeRewardPopover.dispatchEvent(new Event('reward-dismiss'));}},true);
 // 模态关闭时归还焦点，不把这次程序性聚焦当作再次请求说明。
@@ -54,7 +59,7 @@ export function supportHint(button,body,{container,followPointer=false,hoverOnly
     clearTimeout(timer);if(popup.matches(':popover-open')){if(pointer&&!pinned)positionAtPointer(pointer);return;}
     if(build){popup.append(build());build=null;}
     closeRewardPopover();popup.showPopover();activeRewardPopover=popup;button.setAttribute('aria-expanded','true');
-    positionPopup(pointer);
+    positionPopup(pointer);activeRewardAnchor=button;activeRewardBounds=button.getBoundingClientRect();
   }
   function leave(){
     clearTimeout(timer);timer=setTimeout(()=>{
@@ -72,7 +77,7 @@ export function supportHint(button,body,{container,followPointer=false,hoverOnly
     }));
   };button.addEventListener('blur',()=>{focusSuppressed=false;focusReturnSuppressed=false;});wrapper.addEventListener('focusout',leave);
   if(!hoverOnly)button.onclick=()=>{if(pinned){popup.hidePopover();pinned=false;}else{show();pinned=true;}};
-  popup.addEventListener('toggle',()=>{const open=popup.matches(':popover-open');button.setAttribute('aria-expanded',String(open));if(!open){focusSuppressed=focusReturnSuppressed||document.activeElement===button;pinned=false;if(activeRewardPopover===popup)activeRewardPopover=null;}});
+  popup.addEventListener('toggle',()=>{const open=popup.matches(':popover-open');button.setAttribute('aria-expanded',String(open));if(!open){focusSuppressed=focusReturnSuppressed||document.activeElement===button;pinned=false;if(activeRewardPopover===popup){activeRewardPopover=null;activeRewardAnchor=null;activeRewardBounds=null;}}});
   if(!container)wrapper.append(button);wrapper.append(popup);return wrapper;
 }
 export function itemRewardDetails(reward,{effectContent}={}){
