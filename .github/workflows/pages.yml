@@ -27,12 +27,12 @@ jobs:
       - run: node --test tests/*.test.mjs
       - run: python -B tools/check_public.py
       - run: pip install -r requirements-build.txt
-      - run: python -B tools/build_pages.py
       - run: python -B -m unittest discover -s tests -p 'test_*.py'
       - run: pip install -r requirements-test.txt
       - run: python -m playwright install --with-deps chromium
       - run: python -B tests/browser_content_updates.py
       - run: python -B tests/browser_image_delivery.py
+      - run: python -B tools/build_pages.py
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v4
         with:

@@ -18,7 +18,7 @@ def category(name):
         return 'artwork-decoration' if 'full.' in name else 'core'
     if re.search(r'[-_]full\.webp$',name):return 'artwork-idol' if 'cidol-' in name else 'artwork-other'
     if 'achievement_' in name:
-        match=re.search(r'achievement_char_([a-z]+)-',name)
+        match=re.search(r'achievement_(?:char_)?([a-z]{4})-',name)
         return 'achievements-'+(match[1] if match else 'common')
     if 'skillcard_' in name:return 'memories-skills'
     if re.search(r'produceitem|memoryability|ability|item_',name):return 'memories-items'

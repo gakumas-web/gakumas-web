@@ -56,7 +56,8 @@ def check(browser_path=None):
                 await_marker=page.evaluate("""async()=>{const {createImageStore}=await import('./application/image-store.mjs');await createImageStore().put('synthetic-public-object',new Blob(['synthetic']));return true;}""")
                 assert await_marker
                 page.once('dialog',lambda dialog:dialog.accept())
-                page.locator('#image-clear').click();page.wait_for_load_state('networkidle')
+                with page.expect_navigation(wait_until='networkidle'):
+                    page.locator('#image-clear').click()
                 expect(page.locator('#profile')).to_have_value('account-'+ACCOUNT)
                 assert page.evaluate("""async()=>{const {createImageStore}=await import('./application/image-store.mjs');return !await createImageStore().get('synthetic-public-object');}""")
                 page.locator('#data-open').click()
