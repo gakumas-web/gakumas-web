@@ -1,6 +1,11 @@
 name: 发布 GitHub Pages
 on:
   workflow_dispatch:
+    inputs:
+      publish:
+        description: '构建后发布到 Pages；关闭时只验证构建与缓存'
+        type: boolean
+        default: true
 permissions:
   contents: read
   pages: write
@@ -9,11 +14,8 @@ concurrency:
   group: pages
   cancel-in-progress: false
 jobs:
-  deploy:
+  build:
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -33,11 +35,48 @@ jobs:
       - run: python -B tests/browser_content_updates.py
       - run: python -B tests/browser_image_delivery.py
       - run: python -B tests/browser_review_regressions.py
-      - run: python -B tools/build_pages.py
+      - name: 计算图片缓存身份
+        id: image-key
+        run: echo "key=$(python -B tools/build_pages.py --cache-key)" >> "$GITHUB_OUTPUT"
+      - name: 恢复图片构建缓存
+        uses: actions/cache/restore@v6
+        continue-on-error: true
+        with:
+          path: local/pages-image-cache/${{ steps.image-key.outputs.key }}
+          key: ${{ steps.image-key.outputs.key }}
+          restore-keys: |
+            ${{ steps.image-key.outputs.key }}-
+      - name: 构建当前程序并复用图片
+        id: site
+        run: python -B tools/build_pages.py --image-cache local/pages-image-cache
+      - name: 保存新生成的图片缓存
+        if: steps.site.outputs.cache_saved == 'true'
+        uses: actions/cache/save@v6
+        continue-on-error: true
+        with:
+          path: local/pages-image-cache/${{ steps.image-key.outputs.key }}
+          key: ${{ steps.image-key.outputs.key }}-${{ github.run_id }}-${{ github.run_attempt }}
+      - name: 保存构建报告
+        uses: actions/upload-artifact@v4
+        with:
+          name: pages-build-report
+          path: |
+            dist/build-report.json
+            dist/release.json
       - uses: actions/configure-pages@v5
+        if: inputs.publish
       - uses: actions/upload-pages-artifact@v4
+        if: inputs.publish
         with:
           path: dist/
+  deploy:
+    if: inputs.publish
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
       - name: 发布
         id: deployment
         uses: actions/deploy-pages@v4

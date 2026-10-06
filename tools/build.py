@@ -16,7 +16,7 @@ from resource_release import prepare, write_config, public_url
 from install_content import read_release, requirements_for, install_release
 from content_contract import require_web_version, validate_manifest, validate_part, sha256
 
-def build(output, asset_lock=None, content_lock=None, mirror_images=False):
+def build(output, asset_lock=None, content_lock=None, mirror_images=False, image_cache=None, cache_report=None):
     if output.is_symlink():
         raise ValueError('输出目录不能是符号链接')
     output = output.resolve()
@@ -63,7 +63,7 @@ def build(output, asset_lock=None, content_lock=None, mirror_images=False):
         if resource_lock.get('mode') != 'none' and (resource_lock.get('schema_version') != 1 or resource_lock.get('sha256') != content_data[1]['files']['assets-index.json']['sha256']):
             raise ValueError('初始内容与资源锁不匹配')
     if mirror_images and not content_data:raise ValueError('同源图片部署必须固定初始内容')
-    config, resources, image_hosts = prepare(asset_lock or ROOT/'resources/asset-lock.json', staging, requirements, mirror_images)
+    config, resources, image_hosts = prepare(asset_lock or ROOT/'resources/asset-lock.json', staging, requirements, mirror_images, image_cache, cache_report)
     write_config(staging/'image-config.mjs', config)
     (staging / 'ui-icons').mkdir(exist_ok=True)
     (staging / 'ui-icons/unavailable.svg').write_text(
@@ -120,5 +120,6 @@ if __name__ == '__main__':
     parser.add_argument('--asset-lock', type=Path, help='显式资源锁文件；默认 resources/asset-lock.json 禁用游戏图片')
     parser.add_argument('--content-lock', type=Path, help='可选初始内容版本；后续更新使用 install_content.py，无需重建程序')
     parser.add_argument('--mirror-images', action='store_true', help='下载并校验图片分段和增量，随站点同源发布；资源更新须重新构建')
+    parser.add_argument('--image-cache', type=Path, help='可选图片构建缓存目录；仅用于同源图片构建')
     args = parser.parse_args()
-    print(f'静态程序构建完成：{build(args.output, args.asset_lock, args.content_lock, args.mirror_images)} 个程序文件；内容独立发布。')
+    print(f'静态程序构建完成：{build(args.output, args.asset_lock, args.content_lock, args.mirror_images, args.image_cache)} 个程序文件；内容独立发布。')
