@@ -93,8 +93,11 @@ def check(browser_path=None):
                 second_path=urlsplit(index('multi')['baseline']['packages'][1]['url']).path;blocked.add(second_path)
                 retry_context=browser.new_context();retry_page=retry_context.new_page();retry_page.goto(url,wait_until='networkidle');retry_page.locator('#data-open').click()
                 expect(retry_page.locator('#image-retry')).to_be_visible(timeout=20000)
+                retry_page.evaluate("""async()=>{const {uiIconURL}=await import('./resources.mjs');const {watchImage}=await import('./ui/image-loading.mjs');const image=new Image();image.id='failed-image-probe';watchImage(image,()=>{image.dataset.ready='true';},()=>{image.dataset.failed='true';});image.src=uiIconURL('second.png');document.body.append(image);}""")
+                expect(retry_page.locator('#failed-image-probe')).to_have_attribute('data-failed','true')
                 before=len(requested);blocked.clear();retry_page.locator('#image-retry').click();retry_page.wait_for_load_state('networkidle')
                 ready(retry_page)
+                expect(retry_page.locator('#failed-image-probe')).to_have_attribute('data-ready','true')
                 assert requested[before:]==[second_path]
                 assert show_image(retry_page,'second.png')['width']==1
                 retry_context.close()

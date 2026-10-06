@@ -27,6 +27,10 @@ function applyCachedImages(index,urls){
   if(typeof document!=='undefined')document.documentElement.style.setProperty('--effect-positive-bg',`url("${assetURL('img_general_icon_produce-effect_bg-positive.webp')}")`);
 }
 imageManager.onAvailable(urls=>{if(lastDelivery)applyCachedImages(lastDelivery,urls);});
+imageManager.subscribe(state=>{
+  if(typeof document==='undefined'||!['error','cancelled'].includes(state.phase))return;
+  for(const node of document.querySelectorAll('img[src*="#resource="]'))node.dispatchEvent(new Event('resource-error'));
+});
 export async function retryContentImages(){
   if(lastDelivery)await imageManager.retry();
 }
