@@ -1,9 +1,9 @@
 import {validProfile} from '../domain/account.mjs';
 import {selectedValues} from '../domain/model.mjs';
 
-export const defaults=()=>({customTag:'',achievementSection:'ending',achievementScope:'common',achievementCharacter:'',achievementFocus:'hski',achievementCategory:'',achievementState:'',achievementReward:'',achievementSort:'original',achievementIncompleteFirst:true,selectionCharacter:[],selectionPlan:'',selectionGrade:'',selectionProtection:'all',selectionLoadoutCollapsed:true,selectionSkill:[],selectionItem:[],selectionSkillAll:true,selectionItemAll:true,selectionSort:'original',skinCharacter:[],skinTheme:'',skinImmersive:false,memoryGrade:'',memoryExamSkill:[],memoryExamItem:[],memoryExamSkillAll:true,memoryExamItemAll:true,ownership:'owned',idolCharacter:[],idolRarity:'',idolImmersive:false,idolPlan:'',idolEffect:[],supportRarity:'',supportImmersive:false,supportType:'',supportPlan:'',supportPlanCommon:true,supportReward:'',supportEffect:[],supportEffectAttribute:[],supportCharacter:[],supportCharacterAll:true,supportTrigger:'',query:'',plan:'',skill:[],ability:[],character:[],protection:'all',sort:'ordinal',catalogSort:'original',ownedFirst:false,purpose:'all',page:0});
+export const defaults=()=>({customTag:'',achievementSection:'ending',achievementScope:'common',achievementCharacter:'',achievementFocus:'hski',achievementCategory:'',achievementState:'',achievementReward:'',achievementSort:'original',achievementIncompleteFirst:true,selectionCharacter:[],selectionPlan:'',selectionGrade:'',selectionProtection:'all',selectionLoadoutCollapsed:true,selectionSkill:[],selectionItem:[],selectionSkillAll:true,selectionItemAll:true,selectionSort:'original',skinCharacter:[],skinTheme:'',memoryGrade:'',memoryExamSkill:[],memoryExamItem:[],memoryExamSkillAll:true,memoryExamItemAll:true,ownership:'owned',idolCharacter:[],idolRarity:'',idolImmersive:false,idolPlan:'',idolEffect:[],supportRarity:'',supportImmersive:false,supportType:'',supportPlan:'',supportPlanCommon:true,supportReward:'',supportEffect:[],supportEffectAttribute:[],supportCharacter:[],supportCharacterAll:true,supportTrigger:'',query:'',plan:'',skill:[],ability:[],character:[],protection:'all',sort:'ordinal',catalogSort:'original',ownedFirst:false,purpose:'all',page:0});
 
-export const FILTER_BINDINGS=[['custom-tag-filter','customTag'],['selection-character','selectionCharacter'],['selection-plan','selectionPlan'],['selection-grade','selectionGrade'],['selection-loadout-collapsed','selectionLoadoutCollapsed'],['selection-skill','selectionSkill'],['selection-item','selectionItem'],['selection-skill-all','selectionSkillAll'],['selection-item-all','selectionItemAll'],['selection-sort','selectionSort'],['skin-character','skinCharacter'],['skin-theme','skinTheme'],['skin-immersive','skinImmersive'],['memory-grade','memoryGrade'],['memory-skill','memoryExamSkill'],['memory-item','memoryExamItem'],['memory-skill-all','memoryExamSkillAll'],['memory-item-all','memoryExamItemAll'],['ownership','ownership'],['search','query'],['character','character'],['sort','sort'],['idol-sort','catalogSort'],['catalog-owned-first','ownedFirst'],['purpose','purpose'],['plan','plan'],['skill','skill'],['ability','ability'],['idol-character','idolCharacter'],['idol-rarity','idolRarity'],['idol-immersive','idolImmersive'],['idol-plan','idolPlan'],['idol-effect','idolEffect'],["support-character", "supportCharacter"],["support-character-all", "supportCharacterAll"],["support-rarity", "supportRarity"],["support-immersive", "supportImmersive"],["support-type", "supportType"],["support-plan", "supportPlan"],["support-plan-common", "supportPlanCommon"],["support-reward", "supportReward"],["support-effect", "supportEffect"],["support-effect-attribute", "supportEffectAttribute"],["support-trigger", "supportTrigger"]];
+export const FILTER_BINDINGS=[['custom-tag-filter','customTag'],['selection-character','selectionCharacter'],['selection-plan','selectionPlan'],['selection-grade','selectionGrade'],['selection-loadout-collapsed','selectionLoadoutCollapsed'],['selection-skill','selectionSkill'],['selection-item','selectionItem'],['selection-skill-all','selectionSkillAll'],['selection-item-all','selectionItemAll'],['selection-sort','selectionSort'],['skin-character','skinCharacter'],['skin-theme','skinTheme'],['memory-grade','memoryGrade'],['memory-skill','memoryExamSkill'],['memory-item','memoryExamItem'],['memory-skill-all','memoryExamSkillAll'],['memory-item-all','memoryExamItemAll'],['ownership','ownership'],['search','query'],['character','character'],['sort','sort'],['idol-sort','catalogSort'],['catalog-owned-first','ownedFirst'],['purpose','purpose'],['plan','plan'],['skill','skill'],['ability','ability'],['idol-character','idolCharacter'],['idol-rarity','idolRarity'],['idol-immersive','idolImmersive'],['idol-plan','idolPlan'],['idol-effect','idolEffect'],["support-character", "supportCharacter"],["support-character-all", "supportCharacterAll"],["support-rarity", "supportRarity"],["support-immersive", "supportImmersive"],["support-type", "supportType"],["support-plan", "supportPlan"],["support-plan-common", "supportPlanCommon"],["support-reward", "supportReward"],["support-effect", "supportEffect"],["support-effect-attribute", "supportEffectAttribute"],["support-trigger", "supportTrigger"]];
 export const CHOICE_GROUPS=[
     ['selection-character-chips','selection-character','selectionCharacter',true,'selectionMemories'],
     ['selection-plan-chips','selection-plan','selectionPlan',false,'selectionMemories'],
@@ -50,7 +50,6 @@ export function normalizeView(v){
   v.selectionSkillAll=v.selectionSkillAll!==false;
   v.selectionItemAll=v.selectionItemAll!==false;
   v.ownedFirst=v.ownedFirst===true;
-  v.skinImmersive=v.skinImmersive===true;
   v.supportImmersive=v.supportImmersive===true;
   v.idolImmersive=v.idolImmersive===true;
   v.supportCharacterAll=v.supportCharacterAll!==false;
@@ -127,4 +126,18 @@ export function parsePreferences(raw){
     }
   }
   return {views,tab,idolArt:restoreIdolArt(saved.idolArt),recovered};
+}
+
+// 常用筛选与库存独立恢复；不保留无法识别的条目结构。
+export function parseSavedViews(raw){
+  try{
+    const saved=raw==null?[]:JSON.parse(raw);
+    if(!Array.isArray(saved)||saved.length>1000||saved.some(item=>!object(item)||typeof item.name!=='string'||!item.name.trim()||item.name.length>60||!object(item.view)))return {values:[],recovered:true};
+    return {values:saved.map(item=>({name:item.name,view:createView(item.view)})),recovered:false};
+  }catch{return {values:[],recovered:true};}
+}
+
+export function readSavedViews(profile,storage){
+  try{return parseSavedViews((storage??globalThis.localStorage).getItem(`gakumas-web:saved-views:${profile}`));}
+  catch{return {values:[],recovered:true};}
 }

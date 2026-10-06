@@ -29,14 +29,9 @@ export function skinEntry({held,info},options={}){
   const name=el('span',info.theme||info.name,'skin-name');name.title=info.theme||info.name;
   const heading=el('h3');heading.append(name);
   const social=el('div','','card-social-actions');social.append(shareLinkButton(held.idolCardSkinId,'skin'),favoriteButton(options.favorite??false,options.onFavorite??(()=>{}),options.favoriteDisabled??false));
-  const body=el('div','','skin-body');
-  if(options.immersive){
-    body.classList.add('immersive-card-caption');body.append(heading,social);row.append(button,body);if(control)row.append(control);
-  }else{
-    heading.classList.add('skin-heading');
-    const status=collectionState(held);if(control){control.title=t('特训后卡面');social.prepend(control);}status.append(social);
-    row.append(status,heading,button);
-  }
+  heading.classList.add('skin-heading');
+  const status=collectionState(held);if(control){control.title=t('特训后卡面');social.prepend(control);}status.append(social);
+  row.append(status,heading,button);
   return row;
 }
 export function showSkin(held,options={}){

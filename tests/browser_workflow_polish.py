@@ -1,0 +1,35 @@
+"""在实际应用入口验证常用筛选恢复、收藏节点稳定、备份计数和撤销边界。"""
+from playwright.sync_api import expect
+
+
+def check_workflow_polish(page, account):
+    page.locator('[data-tab="memories"]').click()
+    expect(page.locator('.memory-row').first).to_be_visible()
+    page.locator('.memory-row').first.evaluate('el=>window.polishRow=el')
+    favorite=page.locator('.memory-row .favorite-button').first
+    favorite.click();expect(favorite).to_have_attribute('aria-pressed','true')
+    assert page.evaluate('polishRow.isConnected')
+    favorite.click();expect(favorite).to_have_attribute('aria-pressed','false')
+    assert page.evaluate('polishRow.isConnected')
+    favorite.click()
+    page.locator('#data-open').click();page.locator('#export-account-package').click()
+    expect(page.locator('#package-summary dt',has_text='收藏').locator('xpath=following-sibling::dd')).to_have_text('1')
+    page.locator('#close-package').click();page.locator('#close-data').click()
+    page.locator('#search').fill('no-match-polish')
+    expect(page.locator('#clear-active-filters')).to_be_visible()
+    page.locator('#clear-active-filters').click();expect(page.locator('#search')).to_have_value('')
+    page.locator('#filter-undo').click();expect(page.locator('#search')).to_have_value('no-match-polish')
+    page.locator('#clear-active-filters').click();page.locator('#search').fill('new-choice')
+    expect(page.locator('#filter-undo-notice')).to_be_hidden()
+    page.locator('#clear-active-filters').click();page.locator('[data-tab="selectionMemories"]').click()
+    expect(page.locator('#filter-undo-notice')).to_be_hidden()
+    page.locator('[data-tab="memories"]').click()
+    page.evaluate("profile=>localStorage.setItem('gakumas-web:saved-views:'+profile,'{')",'account-'+account)
+    page.reload(wait_until='networkidle')
+    expect(page.locator('.memory-row').first).to_be_visible()
+    expect(page.locator('#message')).to_contain_text('常用筛选无法读取')
+    page.locator('#data-open').click();page.locator('#export-account-package').click()
+    expect(page.locator('#package-download')).to_be_enabled()
+    page.locator('#close-package').click();page.locator('#close-data').click()
+    page.evaluate("profile=>localStorage.removeItem('gakumas-web:saved-views:'+profile)",'account-'+account)
+    page.locator('.memory-row .favorite-button').first.click()

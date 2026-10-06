@@ -30,7 +30,12 @@ export function favoriteButton(active,onChange,disabled=false){
   button.setAttribute('aria-label',t(active?'取消收藏':'添加收藏'));button.title=t(active?'取消收藏':'添加收藏');
   const heart=document.createElementNS('http://www.w3.org/2000/svg','svg');heart.setAttribute('viewBox','0 0 24 24');heart.setAttribute('aria-hidden','true');
   const path=document.createElementNS(heart.namespaceURI,'path');path.setAttribute('d','M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8Z');heart.append(path);button.append(heart);
-  button.onclick=()=>onChange(!active);return button;
+  button.onclick=()=>{
+    const next=button.getAttribute('aria-pressed')!=='true';
+    if(onChange(next)===false)return;
+    button.setAttribute('aria-pressed',String(next));
+    const label=t(next?'取消收藏':'添加收藏');button.setAttribute('aria-label',label);button.title=label;
+  };return button;
 }
 export function setupLibraryUI({current,changed}){
   const dialog=$('tags-dialog');let record=null,renaming=null,pendingDelete=null,restoreFocus=null;

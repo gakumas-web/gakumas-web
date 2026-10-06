@@ -37,9 +37,9 @@ test('活动档案只接受账号身份，空偏好及旧槽位返回未选择�
 });
 
 test('保存视图只恢复当前字段，退役阅读模式不进入运行状态',()=>{
-  const restored=createView({purpose:'battle',layout:'list',supportAttribute:'old',query:'保留',idolCharacter:['hski','hski']});
+  const restored=createView({purpose:'battle',layout:'list',supportAttribute:'old',skinImmersive:true,query:'保留',idolCharacter:['hski','hski']});
   assert.equal(restored.purpose,'all');assert.equal(restored.query,'保留');
-  assert.equal('layout' in restored,false);assert.equal('supportAttribute' in restored,false);
+  assert.equal('layout' in restored,false);assert.equal('supportAttribute' in restored,false);assert.equal('skinImmersive' in restored,false);
   assert.deepEqual(restored.idolCharacter,['hski']);
 });
 test('筛选标签与清空共用字段，保留范围、稀有度、排序和其它页条件',()=>{
@@ -102,4 +102,13 @@ test('损坏的本地偏好单独降级，不再把非法字段带入页面',asy
   assert.equal(createViews(null).achievements.query,'');assert.equal(createView(null).page,0);
   const restored=parsePreferences(JSON.stringify({tab:'achievements',views:{achievements:{query:'保留',page:2}}}));
   assert.equal(restored.recovered,false);assert.equal(restored.tab,'achievements');assert.equal(restored.views.achievements.query,'保留');assert.equal(restored.views.achievements.page,2);
+});
+
+test('常用筛选读取隔离损坏结构与存储异常，保留有效条件',async()=>{
+  const {parseSavedViews,readSavedViews}=await import('../application/view-state.mjs');
+  for(const raw of ['{','null','{}','[null]','[{"name":"x","view":null}]'])assert.deepEqual(parseSavedViews(raw),{values:[],recovered:true});
+  assert.deepEqual(readSavedViews('account-test',{getItem(){throw new Error('storage unavailable');}}),{values:[],recovered:true});
+  const result=parseSavedViews(JSON.stringify([{name:'收藏',view:{query:'关键词',page:-1}}]));
+  assert.equal(result.recovered,false);assert.equal(result.values[0].view.query,'关键词');assert.equal(result.values[0].view.page,0);
+  assert.deepEqual(parseSavedViews(null),{values:[],recovered:false});
 });

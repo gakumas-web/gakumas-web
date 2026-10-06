@@ -1,9 +1,9 @@
 import {$,el,openDialog} from './dom.mjs';
-import {t,onLocaleChange} from '../i18n.mjs';
+import {t,locale,onLocaleChange} from '../i18n.mjs';
 import {accountIdentity} from './shared.mjs';
 import {AccountPackageError,PACKAGE_FILE_LIMIT,inspectAccountPackage,encodeAccountPackage,decodeAccountPackage} from '../application/account-package.mjs';
 
-export function setupAccountPackage({capture,restore,lock,report}){
+export function setupAccountPackage({capture,restore,lock,report,currentAccount=()=>null}){
   const dialog=$('account-package-dialog');
   let busy=false,mode='export',payload=null,envelope=null;
   const passwords=()=>[$('package-password'),$('package-password-confirm'),$('package-import-password')];
@@ -43,10 +43,11 @@ export function setupAccountPackage({capture,restore,lock,report}){
     const box=$('package-summary');box.replaceChildren();if(!payload)return;
     box.append(el('span',t('游戏账号'),'account-caption'),accountIdentity(payload.publicUserId));
     const counts=el('dl','','package-counts');
-    for(const [label,value] of [['库存历史',payload.snapshots.length],['选拔回忆',payload.selectionSnapshot?.count??t('未采集')],['已关联详情',payload.selectionSnapshot?.details?.length??0],['标签',payload.library.tags.length],['收藏',payload.library.favorites.idolCards.length+payload.library.favorites.supportCards.length]]){
+    for(const [label,value] of [['库存历史',payload.snapshots.length],['选拔回忆',payload.selectionSnapshot?.count??t('未采集')],['已关联详情',payload.selectionSnapshot?.details?.length??0],['标签',payload.library.tags.length],['收藏',Object.values(payload.library.favorites).reduce((total,items)=>total+items.length,0)]]){
       const item=el('div');item.append(el('dt',t(label)),el('dd',String(value)));counts.append(item);
     }
-    box.append(counts);
+    box.append(counts,el('p',t('备份导出时间：{0}',[new Date(payload.exportedAt).toLocaleString(locale())])));
+    if(mode==='import')box.append(el('p',t(currentAccount()===payload.publicUserId?'将更新当前账号。':'将导入到此数据包所属账号，其他账号保留。')));
   }
   function open(next){
     mode=next;payload=null;envelope=null;resetPasswords();
@@ -92,7 +93,7 @@ export function setupAccountPackage({capture,restore,lock,report}){
     dialog.close();report(t(encrypted?'已导出加密账号数据包。':'已导出账号数据包。'));
   });
   $('package-decrypt').onclick=()=>void run(async()=>{payload=await decodeAccountPackage(envelope,$('package-import-password').value);showImport();});
-  $('package-apply').onclick=()=>void run(async()=>{await restore(payload);resetPasswords();dialog.close();report(t('账号数据包已导入。'));});
+  $('package-apply').onclick=()=>void run(async()=>{await restore(payload);resetPasswords();dialog.close();report(t('账号数据包已导入。'),false,{transient:true});});
   $('close-package').onclick=()=>{if(!busy)dialog.close();};
   dialog.addEventListener('cancel',event=>{if(busy)event.preventDefault();});
   dialog.addEventListener('close',()=>{payload=null;envelope=null;resetPasswords();});

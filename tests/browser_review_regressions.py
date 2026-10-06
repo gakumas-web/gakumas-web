@@ -15,6 +15,7 @@ from playwright.sync_api import sync_playwright, expect
 from test_content_install import fixture, build, ROOT
 from prepare_locks import prepare
 from browser_static import fixtures, ACCOUNT
+from browser_workflow_polish import check_workflow_polish
 
 
 class Handler(SimpleHTTPRequestHandler):
@@ -95,6 +96,7 @@ def check(browser_path=None):
                 page.locator('#manage-tags').click();expect(page.locator('#tags-dialog')).to_be_visible()
                 page.locator('#close-tags').click();expect(page.locator('#manage-tags')).to_be_focused()
                 page.locator('#close-resources').click();expect(page.locator('#resources-open')).to_be_focused()
+                check_workflow_polish(page,ACCOUNT)
                 # 对本地偏好边界逐项恢复，账号和导出入口始终可用。
                 cases=['{','null','[]',json.dumps({'views':None}),json.dumps({'tab':'retired','views':{'achievements':{'query':[],'page':'bad'}}})]
                 for raw in cases:

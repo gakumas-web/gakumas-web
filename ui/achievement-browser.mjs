@@ -22,9 +22,9 @@ function entryFace(id){
 function portrait(id,eager=false){
   let frame;
   if(id==='nasr'){
-    frame=characterArt(id,true);const img=el('img');img.hidden=true;img.src=uiIconURL('neo-asari-full.png');img.alt=entryName(id);
+    frame=characterArt(id,true,{fullResolution:true});const img=el('img');img.hidden=true;img.src=uiIconURL('neo-asari-full.png');img.alt=entryName(id);
     watchImage(img,()=>{frame.querySelector('.art-fallback').hidden=true;},()=>{frame.querySelector('.art-fallback').hidden=false;});frame.prepend(img);
-  }else frame=characterArt(id,true);
+  }else frame=characterArt(id,true,{fullResolution:true});
   if(eager){const image=frame.querySelector('img');if(image){image.loading='eager';image.fetchPriority='high';}}
   const layout=portraitLayout(id);
   if(layout){frame.classList.add('normalized-portrait');frame.style.setProperty('--portrait-image-height',`${layout.height*100}%`);frame.style.setProperty('--portrait-image-top',`${layout.top*100}%`);}

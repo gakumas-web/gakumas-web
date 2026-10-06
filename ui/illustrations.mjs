@@ -8,7 +8,7 @@ function node(tag, text, className = '') {
   const element = document.createElement(tag); element.textContent = text; element.className = className;
   return element;
 }
-export function illustration(filename, label, variant = '', {characterId} = {}) {
+export function illustration(filename, label, variant = '', {characterId,fullResolution=false} = {}) {
   const frame = node('span', '', `illustration ${variant}`);
   frame.title = label;
   const fallback = node('span', filename ? t('插图载入中') : t('未解析插图'), 'art-fallback');
@@ -24,7 +24,7 @@ export function illustration(filename, label, variant = '', {characterId} = {}) 
     const image = document.createElement('img'); image.alt = label;
     image.hidden=true;image.width = variant === 'portrait' ? 112 : 128; image.height = variant === 'portrait' ? 160 : 128; image.loading = imageLoading(); image.decoding = 'async';
     watchImage(image,()=>{if(image.src.endsWith('/ui-icons/unavailable.svg')){image.hidden=true;fallback.hidden=false;return;}fallback.hidden=true;},willRetry=>{fallback.hidden=false;const text=fallback.querySelector('span')??fallback;text.textContent=t(willRetry?'插图暂不可用，稍后自动重试':'插图暂不可用');});
-    image.src = assetURL(filename,!variant.includes('full')); frame.append(image);
+    image.src = assetURL(filename,!fullResolution&&!variant.includes('full')); frame.append(image);
   }
   frame.append(fallback);return frame;
 }
@@ -33,9 +33,9 @@ export function characterAccent(element,id){
   if(color){element.style.setProperty('--character-color',color);element.classList.add('character-accent');}
   return element;
 }
-export function characterArt(id, portrait = false) {
+export function characterArt(id, portrait = false, {fullResolution=false} = {}) {
   const c = characterInfo(id);
-  return characterAccent(illustration(portrait ? c.portrait : c.face, t("{0} · 角色插图（非回忆照片）",[c.name]), portrait ? 'portrait' : 'face',{characterId:id}),id);
+  return characterAccent(illustration(portrait ? c.portrait : c.face, t("{0} · 角色插图（非回忆照片）",[c.name]), portrait ? 'portrait' : 'face',{characterId:id,fullResolution}),id);
 }
 export function skillArt(card, characterId, compact = false, showRarity = false) {
   const info = cardInfo(card, characterId);

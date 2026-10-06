@@ -1,3 +1,4 @@
+import {readSavedViews} from './view-state.mjs';
 import {parseLibrary,emptyLibrary,mergeLibraries} from '../domain/personal-library.mjs';
 import {libraryKey} from './personal-library.mjs';
 import {accountProfile,profileAccountId} from '../domain/account.mjs';
@@ -16,7 +17,7 @@ export async function captureAccountBackup(profile,preferences,library){
   return parseAccountBackup({format:'gakumas-web-account-backup',version:1,publicUserId,exportedAt:new Date().toISOString(),
     currentSnapshotId,snapshots:[...snapshots.values()],
     selectionSnapshot:selection?.snapshot??null,library,preferences,
-    savedViews:JSON.parse(localStorage.getItem(`gakumas-web:saved-views:${profile}`)??'[]')});
+    savedViews:readSavedViews(profile).values});
 }
 
 export async function importAccountBackup(input){

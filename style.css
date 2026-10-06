@@ -384,7 +384,7 @@ button,.entry-identity,.ability-label{overflow-wrap:anywhere}
 .effect-card-reference{display:inline-flex;align-items:center;gap:4px;vertical-align:middle;max-width:100%;font-weight:600}
 .effect-card-reference>img{width:32px;height:32px;object-fit:contain;border-radius:4px;flex:none}
 /* 支援卡缩小到适合缩略图的宽度，当前效果仍直接可读。 */
-.support-catalog{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),340px));gap:14px;align-items:start}
+.support-catalog{display:grid;grid-template-columns:repeat(3,minmax(0,340px));gap:14px;align-items:start}
 .support-card{background:var(--paper);border:1px solid var(--line);border-radius:9px;overflow:hidden;min-width:0}
 .support-art-open{padding:0;border:0;background:none;flex:none}
 .support-name{display:block;text-align:left;border:0;background:none;padding:3px 0;font-size:15px;font-weight:700;min-height:0}
@@ -395,8 +395,11 @@ button,.entry-identity,.ability-label{overflow-wrap:anywhere}
 .support-effect-list .effect-reading{display:flex;align-items:flex-start;gap:8px}
 .support-effect-list .effect-reading-body{min-width:0;flex:1}
 .support-effect-list .effect-reading-line{display:inline;font-size:13px}
-@media(max-width:900px){
-  .support-catalog{grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),340px))}
+@media(max-width:1100px){
+  .support-catalog{grid-template-columns:repeat(2,minmax(0,340px))}
+}
+@media(max-width:700px){
+  .support-catalog{grid-template-columns:minmax(0,340px)}
 }
 @media(max-width:599px){
   .support-name{font-size:13px}
@@ -482,6 +485,9 @@ html:has(dialog[open]){overflow:hidden}
 }
 /* 支援卡效果标题保留独立层次。 */
 .support-card .support-chance{display:inline-block;margin-right:8px}
+.support-locked-effects{margin-top:6px;border-top:1px solid var(--line)}
+.support-locked-effects>summary{cursor:pointer;padding:9px 0;color:var(--muted);font-size:12px}
+.support-locked-effects[open]>summary{margin-bottom:4px}
 .support-card .support-effects>h4{display:block;font-size:12px;border-top:1px solid var(--line);margin:8px 0}
 .support-effect-list .effect-reading-line{line-height:1.65}
 /* 透明浅色考试图标需要稳定深底；自带背景的培育图标保持原样。 */
@@ -939,7 +945,8 @@ html:has(dialog[open]){overflow:hidden}
 .support-art-event.locked .support-reward-trigger{filter:grayscale(1)}
 .support-art-event.preview-unlocked .support-reward-trigger{border-color:#429478;box-shadow:0 0 0 1px #429478}
 .support-event-fallback{font-size:9px;line-height:1.15;overflow-wrap:anywhere;max-height:100%;overflow:auto}
-.support-card-meta{padding:9px 12px;display:flex;justify-content:space-between;gap:6px 16px;flex-wrap:wrap;border-bottom:1px solid var(--line);font-size:11px;color:var(--muted)}
+.support-card-meta{padding:7px 12px;display:grid;gap:4px;min-width:0;border-bottom:1px solid var(--line);font-size:11px;color:var(--muted)}
+.support-characters{display:block;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .support-card-meta .support-chance{margin:0;font-size:11px}
 .support-card .support-effects>h4{border:0;padding-top:0;margin-top:0}
 .support-search-basis{font-size:11px;color:var(--muted);margin-top:8px}
@@ -1416,16 +1423,7 @@ html:has(dialog[open]){overflow:hidden}
   .support-catalog.support-immersive{grid-template-columns:repeat(2,minmax(0,240px));gap:8px}
 }
 
-/* 主题装扮沉浸模式沿用立绘网格，卡面开关与偶像卡共用偏好。 */
 .skin-name{display:block;user-select:text}
-.skin-catalog.skin-immersive{grid-template-columns:repeat(auto-fill,minmax(140px,170px));gap:10px}
-.skin-immersive .skin-card{padding:0}
-.skin-immersive .skin-body{padding:0 8px 9px}
-.skin-immersive .skin-body h3{margin:6px 0 0;font-size:13px;line-height:1.5}
-.skin-immersive .skin-name{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-@media(max-width:480px){
-  .skin-catalog.skin-immersive{grid-template-columns:repeat(2,minmax(0,170px));gap:8px}
-}
 
 /* 排序开关紧邻下拉框，窄屏整组换行。 */
 .filters{flex-wrap:wrap}
@@ -2035,11 +2033,15 @@ button.danger-confirm:hover:enabled{color:white;background:#952a23}
 
 /* 账号管理采用档案摘要与收发卡片，清理操作独立收在底部。 */
 .account-manager{width:min(760px,calc(100vw - 32px));padding:0;border-radius:18px;max-height:calc(100dvh - 32px)}
+.account-manager[open]{display:grid;grid-template-rows:auto minmax(0,1fr);overflow:hidden}
 .account-manager>.dialog-head{padding:22px 26px;margin:0;gap:12px;background:var(--paper);border-bottom:1px solid var(--line)}
 .account-heading{flex:1;min-width:0}
 .account-heading h2{font-size:21px;letter-spacing:.01em}
 .account-heading p{font-size:12px;color:var(--muted);margin-top:4px}
-.account-manager-body{padding:22px 26px 16px}
+.account-manager-body{padding:22px 26px 16px;min-height:0;overflow:auto}
+#mobile-view-controls:empty{display:none}
+#mobile-view-controls{display:flex;flex-direction:column;gap:12px}
+#mobile-view-controls .ownership-controls{flex-wrap:wrap;justify-content:flex-start}
 .account-overview{position:relative;border-left:4px solid var(--accent);background:#f1f5fc;border-radius:0 10px 10px 0;padding:16px 20px}
 .account-caption{display:block;font-size:11px;font-weight:600;letter-spacing:.08em;color:var(--muted);margin-bottom:5px}
 .account-identity{display:flex;align-items:center;justify-content:space-between;gap:12px;min-width:0}
@@ -2083,7 +2085,8 @@ button.danger-confirm:hover:enabled{color:white;background:#952a23}
 .account-manager .message,.account-flow-dialog .message{margin-top:12px}
 @media(max-width:599px){
  .account-manager{width:calc(100vw - 16px);max-height:calc(100dvh - 16px);border-radius:12px}
- .account-manager>.dialog-head{padding:16px;flex-wrap:wrap;gap:8px}
+ .account-manager[open]{display:grid;grid-template-rows:auto minmax(0,1fr);overflow:hidden}
+.account-manager>.dialog-head{padding:16px;flex-wrap:wrap;gap:8px}
  .account-heading{flex:1;min-width:0}
  .account-manager>.dialog-head #close-data{order:2;margin-left:auto}
  .account-heading h2{font-size:17px}
@@ -2125,8 +2128,6 @@ button.danger-confirm:hover:enabled{color:white;background:#952a23}
  .skin-card>.collection-state .idol-card-art-options input[role=switch]::before{width:10px;height:10px}
  .skin-card>.collection-state .idol-card-art-options input[role=switch]:checked::before{left:12px}
 }
-.skin-immersive .skin-body.immersive-card-caption{padding:4px 6px}
-.skin-immersive .immersive-card-caption h3{flex:1;min-width:0;margin:0;font-size:13px;line-height:1.5}
 
 /* 自定义标签作为两类回忆的最后一组筛选，管理入口统一置于页头。 */
 #advanced-filters>#tag-controls{margin-top:14px;padding-top:14px;border-top:1px solid var(--line)}
@@ -2343,7 +2344,6 @@ button.danger-confirm:hover:enabled{color:white;background:#952a23}
 .selection-detail-memory-card .ability-chips{flex-wrap:wrap;height:auto;overflow:visible}
 .selection-detail-memory-card .selection-memory-rental{flex:none;font-size:10px}
 
-.filter-reset-confirming{color:#a33340;border-color:#a33340}
 
 .support-effect-filters>#support-search-basis{margin:0 0 12px}
 

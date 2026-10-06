@@ -52,7 +52,6 @@ export function setupContentControls({loaded=()=>{},canReload=()=>true}={}){
     let text=working?t(['verifying','waiting','unpacking','saving'].includes(state.phase)?'正在完成图片准备…':phases[state.phase]):state.phase==='ready'?t(state.full?'图片已保存到本机，后续只补充缺失图片。':'已请求的图片已准备好。'):state.phase==='cancelled'?t('图片下载已停止，已完成部分保留。'):'';
     if(state.failed||state.error)text=t(errors[state.error]??'部分图片准备失败，已完成部分保留，可重试。');
     if(imageError)text=imageError;
-    if($('image-status').textContent!==text)$('image-status').textContent=text;
     $('image-retry').hidden=!(state.failed||state.phase==='cancelled');
     $('resource-status').hidden=state.phase==='idle'&&!contentWorking&&!content.error;
     const issue=Boolean(content.error||state.failed||state.error||imageError||importError);

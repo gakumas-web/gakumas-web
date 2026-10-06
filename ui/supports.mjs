@@ -52,7 +52,7 @@ function supportEffects(held,target){
   const section=el('section','','support-effects');
   if(effects===null){section.append(el('p',t('当前卡片的成长数据未收录，无法预览。'),'muted small'));return section;}
   if(!effects.length)section.append(el('p',t('当前等级尚未解锁支援效果'),'muted small'));
-  const list=el('ul','','support-effect-list');
+  const list=el('ul','','support-effect-list'),lockedList=el('ul','','support-effect-list');
   for(const effect of effects){
     const item=el('li','','support-skill'+(effect.locked?' support-skill-locked':''));item.dataset.skillId=effect.id;
     item.classList.toggle('support-skill-gained',effect.gained);item.classList.toggle('support-skill-lost',effect.lost);
@@ -63,9 +63,14 @@ function supportEffects(held,target){
       item.append(status);
     }else if(effect.gained)item.append(el('div',t('预览解锁'),'support-skill-status'));
     else if(effect.changed&&!effect.numberChanges.length)item.append(el('div',t('效果变化'),'support-skill-status'));
-    item.append(effectReading(effect.text,{descriptionParts:effect.descriptionParts,effectIds:effect.effectIds,cardReferences:effect.cardReferences,numberChanges:effect.numberChanges}));list.append(item);
+    item.append(effectReading(effect.text,{descriptionParts:effect.descriptionParts,effectIds:effect.effectIds,cardReferences:effect.cardReferences,numberChanges:effect.numberChanges}));(effect.locked?lockedList:list).append(item);
   }
-  section.append(list);return section;
+  section.append(list);
+  if(lockedList.children.length){
+    const locked=el('details','','support-locked-effects');
+    locked.append(el('summary',t('未解锁效果（{0}）',[lockedList.children.length])),lockedList);section.append(locked);
+  }
+  return section;
 }
 function levelControls(held,model,value,onChange){
   const controls=el('div','','support-card-controls'),line=el('div','','support-inline-level'),group=el('div','','support-level-controls');
@@ -109,13 +114,15 @@ export function supportEntry({held,info},{favorite=false,onFavorite=()=>{},favor
   const controls=model?levelControls(held,model,targetLevel,level=>{onTarget(level);draw(level);}):null;
   const preview=el('details','','support-level-preview');preview.append(el('summary',t('等级变动预览')));
   const face=supportFace(held,info);
-  const summary=el('div','','support-card-meta');summary.append(el('span',`${t('关联角色')}：${info.characters}`,'support-characters'));
+  const summary=el('div','','support-card-meta'),characters=el('span',`${t('关联角色')}：${info.characters}`,'support-characters');characters.title=characters.textContent;summary.append(characters);
   if(Number.isFinite(info.supportChance))summary.append(el('span',t('支援发生率：{0}%（{1}）',[info.supportChance,info.supportAttribute??'—']),'support-chance'));
   const status=el('p','','support-inline-status'),effects=el('div');status.setAttribute('role','status');
   const ownership=collectionState(held);ownership.append(social);row.append(ownership,face,summary);if(controls){preview.append(controls.element);row.append(preview);}row.append(status,effects);
   function draw(level){
     closeRewardPopover();row.dataset.previewLevel=String(level);
+    const expanded=effects.querySelector('.support-locked-effects')?.open;
     effects.replaceChildren(supportEffects(held,level));
+    const locked=effects.querySelector('.support-locked-effects');if(locked)locked.open=Boolean(expanded);
     face.querySelector('.support-art-events').replaceWith(compactEvents(held,info,level));
     status.hidden=level===held.level;
     status.textContent=t(isReference(held)?'参考 Lv.{0} → 预览 Lv.{1}':'当前 Lv.{0} → 预览 Lv.{1}',[held.level,level]);

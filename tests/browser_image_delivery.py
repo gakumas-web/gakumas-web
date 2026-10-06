@@ -52,7 +52,7 @@ def check(browser_path=None):
             site_thread=Thread(target=site_server.serve_forever,daemon=True);site_thread.start()
             url=f'http://127.0.0.1:{site_server.server_port}/dist/'
             def ready(page):
-                expect(page.locator('#image-status')).to_contain_text(re.compile('图片已保存到本机|已请求的图片已准备好'),timeout=20000)
+                expect(page.locator('#image-notice')).to_contain_text(re.compile('图片已保存到本机|已请求的图片已准备好'),timeout=20000)
             def show_image(page,name):
                 return page.evaluate('''async name=>{
                     const {uiIconURL}=await import('./resources.mjs');const url=uiIconURL(name);
@@ -75,7 +75,7 @@ def check(browser_path=None):
                 expect(page.locator('#content-version')).to_contain_text('one',timeout=20000)
                 expect(page.locator('#empty-import-account')).to_be_enabled()
                 expect(page.locator('#startup-status')).to_be_hidden()
-                expect(page.locator('#image-status')).to_contain_text('正在下载',timeout=20000)
+                expect(page.locator('#image-notice')).to_contain_text('正在下载',timeout=20000)
                 for route in held:route.continue_()
                 context.unroute(image_origin+'/**')
                 page.locator('#resources-open').click();ready(page)

@@ -19,7 +19,7 @@ import {restoreSelectionSnapshot,selectionEntries,withoutSecondExclusiveSkills,w
 import {setupSelectionOptions,renderSelectionChoices,renderLoadoutChoices,renderInheritanceChoices,selectionCapacity,selectionMemoryEntry} from './ui/selection-memories.mjs';
 import {loadMaster,masterReadyFor,masterLoadingFor} from './application/master-loader.mjs';
 import {setupContentControls} from './ui/content-controls.mjs';
-import {defaults,createView,createViews,parsePreferences,activeFilterKeys,resetFilters,FILTER_BINDINGS,CHOICE_GROUPS,PROFILE_PREFERENCE_KEY,normalizeProfile,restoreIdolArt} from './application/view-state.mjs';
+import {defaults,createView,createViews,parsePreferences,readSavedViews,activeFilterKeys,resetFilters,FILTER_BINDINGS,CHOICE_GROUPS,PROFILE_PREFERENCE_KEY,normalizeProfile,restoreIdolArt} from './application/view-state.mjs';
 import {setupFilterOptions,syncMemoryFilterOptions,syncFilterControls,renderFilterChoices,renderTabCount,renderActiveFilters} from './ui/filters.mjs';
 import {t,locale,setLocale,onLocaleChange,staticTranslations} from './i18n.mjs';
 import {title, memoryUse, selectedValues} from './domain/model.mjs';
@@ -77,13 +77,19 @@ let loading=false,searchTimer,controlsPending=false;
 const masterTasks=new Map(),masterFailures=new Set();
 const groups=new Map();
 const view=()=>state.views[state.tab];
-function message(text,error=false){
+let messageTimer;
+function message(text,error=false,{transient=false}={}){
+  clearTimeout(messageTimer);
   $('message').textContent=text;$('message').hidden=!text;$('message').classList.toggle('error',error);
   if($('data-dialog').open){
     const output=$('data-message');output.textContent=text;output.hidden=!text;output.classList.toggle('error',error);
     output.setAttribute('role',error?'alert':'status');output.setAttribute('aria-live',error?'assertive':'polite');
     if(error&&text){output.focus({preventScroll:true});output.scrollIntoView({block:'nearest'});}
   }
+  if(text&&!error&&transient)messageTimer=setTimeout(()=>{
+    $('message').hidden=true;$('message').textContent='';
+    if($('data-message').textContent===text){$('data-message').hidden=true;$('data-message').textContent='';}
+  },3000);
 }
 function persist(){
   if(!validProfile(state.profile))return;
@@ -127,12 +133,22 @@ function tagContext(kind,key,inDetail=false){return {tags:tagsFor(kind,key),edit
 }};}
 function favoriteContext(kind,id){return {favorite:state.library?.data.favorites[kind].includes(id)??false,favoriteDisabled:!state.library,onFavorite:enabled=>{
   try{
-    state.library.favorite(kind,id,enabled);render();
+    state.library.favorite(kind,id,enabled);
+    if(view().ownership!=='favorites')return true;
+    render();
     const row=[...$('list').children].find(row=>row.dataset[{idolCards:'idolId',supportCards:'supportId',idolCardSkins:'skinId',memories:'memoryKey',selectionMemories:'selectionKey'}[kind]]===id);
-    (row?.querySelector('.favorite-button')??$(({idolCards:'idol',supportCards:'support',idolCardSkins:'skin',memories:'memory',selectionMemories:'selection'})[kind]+'-favorites-only')).focus({preventScroll:true});
-  }catch{message(t('收藏未能保存，请检查浏览器存储空间。'),true);}
+    (row?.querySelector('.favorite-button')??$('filter-toggle')).focus({preventScroll:true});return true;
+  }catch{message(t('收藏未能保存，请检查浏览器存储空间。'),true);return false;}
 }};}
-function savedViews(){if(!validProfile(state.profile))return [];return JSON.parse(localStorage.getItem(`gakumas-web:saved-views:${state.profile}`)??'[]');}
+const savedViewWarnings=new Set();
+function savedViews(){
+  if(!validProfile(state.profile))return [];
+  const result=readSavedViews(state.profile);
+  if(result.recovered&&!savedViewWarnings.has(state.profile)){
+    savedViewWarnings.add(state.profile);message(t('常用筛选无法读取，已使用默认设置；账号库存保留。'),true);
+  }
+  return result.values;
+}
 function refreshSavedViews(selected=''){$('saved-view').replaceChildren(new Option(t('常用筛选'),''),...savedViews().map((v,i)=>new Option(v.name,String(i))));$('saved-view').value=selected;$('delete-view').disabled=$('saved-view').value==='';}
 function renderPendingCatalogCounts(){
   for(const tab of ['idolCards','supportCards','idolCardSkins','achievements'])if(!masterReadyFor(tab))renderTabCount(tab,null,undefined,t(masterLoadingFor(tab)?'加载中…':'待加载'));
@@ -178,6 +194,19 @@ function syncControls(){
 }
 function filteredMemories(){return memoryValues(view());}
 function onFilterChoice(key,value,extra={}){Object.assign(view(),extra,{[key]:value});view().page=0;syncControls();render();persist();}
+const compactFilters=matchMedia('(max-width: 640px)');
+const secondaryControls=['memory-modes','selection-lock-controls','ownership-controls'].map(id=>{
+  const control=$(id),anchor=document.createComment('筛选控件原位置');
+  control.before(anchor);return {control,anchor};
+});
+function placeSecondaryControls(){
+  for(const {control,anchor} of secondaryControls){
+    if(compactFilters.matches)$('mobile-view-controls').append(control);
+    else anchor.after(control);
+  }
+}
+compactFilters.addEventListener('change',placeSecondaryControls);
+placeSecondaryControls();
 function renderFilterDisclosure(){
   const expanded=expandedFilters.has(state.tab),v=view();
   const count=activeFilterKeys(state.tab,v).reduce((total,key)=>total+selectedValues(v[key]).length,0);
@@ -195,17 +224,21 @@ function renderAccountOverview(){
     }
   }else $('data-account-counts').append(el('p',t('导入采集目录或数据包，开始整理收藏。')));
 }
-let pendingFilterReset=null;
-function cancelFilterReset(){
-  if(!pendingFilterReset)return;
-  pendingFilterReset.textContent=t('清空筛选');pendingFilterReset.classList.remove('filter-reset-confirming');pendingFilterReset=null;
+let filterUndo=null,filterUndoTimer;
+function clearFilterUndo(){filterUndo=null;clearTimeout(filterUndoTimer);$('filter-undo-notice').hidden=true;}
+function refreshFilterUndo(){
+  if(filterUndo&&(filterUndo.profile!==state.profile||filterUndo.tab!==state.tab||filterUndo.after!==JSON.stringify(view())))clearFilterUndo();
 }
-function confirmFilterReset(button,action){
-  if(pendingFilterReset===button){cancelFilterReset();action();return;}
-  cancelFilterReset();pendingFilterReset=button;button.textContent=t('确认清空');button.classList.add('filter-reset-confirming');
+function clearFilters(action){
+  clearFilterUndo();const before=structuredClone(view()),profile=state.profile,tab=state.tab;
+  action();filterUndo={before,profile,tab,after:JSON.stringify(view())};
+  $('filter-undo-notice').hidden=false;filterUndoTimer=setTimeout(clearFilterUndo,6000);
 }
-document.addEventListener('pointerdown',event=>{if(pendingFilterReset&&!pendingFilterReset.contains(event.target))cancelFilterReset();},true);
-document.addEventListener('keydown',event=>{if(event.key==='Escape'&&pendingFilterReset){cancelFilterReset();event.preventDefault();}},true);
+$('filter-undo').onclick=()=>{
+  refreshFilterUndo();if(!filterUndo)return;
+  const before=filterUndo.before;clearFilterUndo();state.views[state.tab]=before;
+  syncControls();render();persist();$('filter-toggle').focus({preventScroll:true});
+};
 function renderMasterReadiness(){
   const content=contentManager.status(),hasAccount=Boolean(state.snapshot||state.selectionSnapshot);
   const missing=!masterReadyFor(state.tab),needed=hasAccount||state.tab==='achievements'||!content.version;
@@ -220,7 +253,7 @@ function renderMasterReadiness(){
 function render(){
   renderMasterReadiness();
   beginImageView(state.tab);
-  cancelFilterReset();
+  refreshFilterUndo();
   clearTimeout(searchTimer);resetDeferredContent();
   if($('data-dialog').open)renderAccountOverview();
   const s=state.snapshot??{memories:[]},v=view(),memory=state.tab==='memories',selection=state.tab==='selectionMemories',achievement=state.tab==='achievements',hasData=Boolean(state.snapshot||state.selectionSnapshot||achievement);
@@ -282,7 +315,7 @@ function render(){
   const values=selection?selectionValues(v):memory?filteredMemories():state.tab==='supportCards'?supportEntries(s,v.query.trim().toLowerCase(),v.catalogSort,catalogFilters('supportCards',v)):state.tab==='idolCardSkins'?skinEntries(s,v.query.trim().toLowerCase(),catalogFilters('idolCardSkins',v)):idolEntries(s,v.query.trim().toLowerCase(),v.catalogSort,catalogFilters('idolCards',v));
   const currentPageSize=state.tab==='supportCards'&&!v.supportImmersive?10:pageSize;
   const pages=Math.max(1,Math.ceil(values.length/currentPageSize));v.page=Math.min(v.page,pages-1);
-  const list=$('list');list.className=`inventory-list ${selection?'selection-memory-catalog':memory?'compact-grid':state.tab==='supportCards'?'support-catalog':state.tab==='idolCardSkins'?'skin-catalog':'idol-catalog'}`;list.classList.toggle('memory-catalog',memory);list.classList.toggle('skin-immersive',state.tab==='idolCardSkins'&&v.skinImmersive);list.classList.toggle('support-immersive',state.tab==='supportCards'&&v.supportImmersive);list.classList.toggle('idol-immersive',state.tab==='idolCards'&&v.idolImmersive);const fragment=document.createDocumentFragment();
+  const list=$('list');list.className=`inventory-list ${selection?'selection-memory-catalog':memory?'compact-grid':state.tab==='supportCards'?'support-catalog':state.tab==='idolCardSkins'?'skin-catalog':'idol-catalog'}`;list.classList.toggle('memory-catalog',memory);list.classList.toggle('support-immersive',state.tab==='supportCards'&&v.supportImmersive);list.classList.toggle('idol-immersive',state.tab==='idolCards'&&v.idolImmersive);const fragment=document.createDocumentFragment();
   for(const value of values.slice(v.page*currentPageSize,(v.page+1)*currentPageSize)){
     const targetKey=['supportCards','idolCards'].includes(state.tab)?`${state.profile}:${value.held.supportCardId??value.held.idolCardId}`:'';
     fragment.append(selection?selectionMemoryEntry(value,{...tagContext('selectionMemories',value.memory.key),...favoriteContext('selectionMemories',value.memory.key),collapsed:v.selectionLoadoutCollapsed,detail:state.selectionSnapshot?.details?.find(detail=>detail.key===value.memory.key)}):memory?memoryEntry(value,{...tagContext('memories',value.key),...favoriteContext('memories',value.key),selected:state.selected.has(value.key),active:state.detail===value.key,purpose:v.purpose,sort:v.sort,open:openDetail,select:selectMemory}):state.tab==='supportCards'?supportEntry(value,{...favoriteContext('supportCards',value.held.supportCardId),immersive:v.supportImmersive,targetLevel:state.supportTargets.get(targetKey),onTarget:level=>state.supportTargets.set(targetKey,level)}):state.tab==='idolCards'?idolEntry(value,{...favoriteContext('idolCards',value.held.idolCardId),immersive:v.idolImmersive,target:{...state.idolTargets.get(targetKey),art:state.idolArt[value.held.idolCardId]??state.idolTargets.get(targetKey)?.art},onTarget:target=>state.idolTargets.set(targetKey,target),onArt:art=>{state.idolArt[value.held.idolCardId]=art;persist();}}):skinEntry(value,skinOptions(value.held)));
@@ -299,7 +332,7 @@ function render(){
   });
   $('active-filters').hidden=!activeCount;
   $('clear-active-filters').hidden=!activeCount;
-  $('clear-active-filters').onclick=()=>confirmFilterReset($('clear-active-filters'),()=>{
+  $('clear-active-filters').onclick=()=>clearFilters(()=>{
     resetFilters(v,state.tab,{keys:[...conditions,'query']});syncControls();render();persist();$(achievement?'search':'filter-toggle').focus();
   });
   const trainingCount=s.memories.filter(m=>memoryUse(m)==='training').length;
@@ -321,7 +354,7 @@ function selectionControls(){
   $('selection-items').replaceChildren();
   for(const m of state.snapshot?.memories??[])if(state.selected.has(m.key)){
     const button=el('button',`${cardInfo(m.produceCard,m.characterId).name} ×`,'selection-chip');
-    button.setAttribute('aria-label',t("移除{0}",[title(m)]));button.onclick=()=>{state.selected.delete(m.key);render();};$('selection-items').append(button);
+    button.setAttribute('aria-label',t("移除{0}",[title(m)]));button.onclick=()=>{state.selected.delete(m.key);const row=[...$('list').children].find(row=>row.dataset.memoryKey===m.key);if(row){row.classList.remove('selected');row.querySelector('.pick input').checked=false;}selectionControls();};$('selection-items').append(button);
   }
 }
 function openDetail(m){
@@ -330,15 +363,19 @@ function openDetail(m){
   document.querySelector('.workbench').classList.add('inspecting');
   const values=filteredMemories(),index=values.findIndex(x=>x.key===m.key);
   $('detail-prev').disabled=index<=0;$('detail-next').disabled=index<0||index===values.length-1;
-  render();$('detail-title').focus({preventScroll:true});
+  syncDetailActiveRows();syncMemoryDetailFocus();$('detail-title').focus({preventScroll:true});
+}
+function syncDetailActiveRows(){
+  for(const row of $('list').children)row.classList.toggle('active',row.dataset.memoryKey===state.detail);
 }
 function resetDetail(){
   state.detail=null;$('detail-dialog').hidden=true;document.querySelector('.workbench').classList.remove('inspecting');
 }
 function closeDetail(restoreFocus=false){
-  const key=state.detail;
+  const key=state.detail,previousPage=view().page;
   if(restoreFocus&&key){const index=filteredMemories().findIndex(m=>m.key===key);if(index>=0)view().page=Math.floor(index/pageSize);}
-  resetDetail();render();
+  resetDetail();
+  if(view().page!==previousPage)render();else{syncDetailActiveRows();syncMemoryDetailFocus();}
   if(restoreFocus&&key)restoreMemoryEntryFocus(key);
 }
 $('close-detail').onclick=()=>closeDetail(true);
@@ -364,7 +401,7 @@ $('account-directory-files').onchange=async event=>{
     state.selected.clear();resetDetail();loadLibrary();setup();syncControls();render();persist();
     $('data-dialog').close();void ensureMaster();
     const count=next.selectionSnapshot?.details?.length??0;
-    message(t('账号目录已导入，已关联 {0} 条选拔详情。',[count])+(next.ignoredDetails?t('已略过 {0} 条不在当前选拔列表中的历史详情。',[next.ignoredDetails]):''));
+    message(t('账号目录已导入，已关联 {0} 条选拔详情。',[count])+(next.ignoredDetails?t('已略过 {0} 条不在当前选拔列表中的历史详情。',[next.ignoredDetails]):''),false,{transient:true});
   }catch(error){message(error instanceof AccountDirectoryError?t(error.message):t('账号目录导入失败，请检查快照格式和存储空间；原数据保留。'),true);}
   finally{loading=false;$('profile').disabled=false;render();openMemoryLink();}
 };
@@ -400,8 +437,7 @@ $('owned-only').onclick=()=>onFilterChoice('ownership',view().ownership==='owned
 for(const kind of ['idol','support','memory','selection','skin'])$(kind+'-favorites-only').onchange=event=>onFilterChoice('ownership',event.target.checked?'favorites':'all');
 for(const [kind,key] of [['memory','protection'],['selection','selectionProtection']])$(kind+'-locked-only').onchange=event=>onFilterChoice(key,event.target.checked?'protected':'all');
 $('filter-toggle').onclick=()=>{if(expandedFilters.has(state.tab))expandedFilters.delete(state.tab);else expandedFilters.add(state.tab);renderFilterDisclosure();};
-for(const id of ['reset-selection-filters','reset-idol-filters','reset-support-filters','reset-skin-filters','reset-filters'])$(id).onclick=()=>confirmFilterReset($(id),()=>{resetFilters(view(),state.tab);syncControls();render();persist();});
-for(const id of ['reset-selection-filters','reset-idol-filters','reset-support-filters','reset-skin-filters','reset-filters','clear-active-filters'])$(id).addEventListener('blur',()=>{if(pendingFilterReset===$(id))cancelFilterReset();});
+for(const id of ['reset-selection-filters','reset-idol-filters','reset-support-filters','reset-skin-filters','reset-filters'])$(id).onclick=()=>clearFilters(()=>{resetFilters(view(),state.tab);syncControls();render();persist();});
 function changePage(direction){
   if(state.detail)resetDetail();
   view().page+=direction;render();persist();
@@ -409,7 +445,7 @@ function changePage(direction){
   list.focus({preventScroll:true});list.scrollIntoView({block:'start',behavior:'instant'});
 }
 $('previous').onclick=()=>changePage(-1);$('next').onclick=()=>changePage(1);
-$('clear-selection').onclick=()=>{state.selected.clear();render();};
+$('clear-selection').onclick=()=>{state.selected.clear();for(const row of $('list').querySelectorAll('.selected')){row.classList.remove('selected');row.querySelector('.pick input').checked=false;}selectionControls();};
 $('compare').onclick=()=>showComparison(state.snapshot.memories.filter(m=>state.selected.has(m.key)));
 for(const name of ['compare','data','resources','help','idol'])$('close-'+name).onclick=()=>$(name+'-dialog').close();
 $('resources-open').onclick=()=>openDialog($('resources-dialog'),{dismissOnBackdrop:true});
@@ -472,6 +508,7 @@ onLocaleChange(()=>{
 setupContentControls({loaded:()=>ensureMaster(),canReload:()=>!loading});
 
 setupAccountPackage({
+  currentAccount:()=>profileAccountId(state.profile),
   capture:()=>captureAccountBackup(state.profile,{views:state.views,tab:state.tab,idolArt:state.idolArt},state.library.data),
   restore:async payload=>{
     if(accountProfile(payload.publicUserId)!==state.profile)persist();
@@ -514,7 +551,7 @@ if(state.snapshot||state.selectionSnapshot)markLoading('account-restored');
 
 function skinOptions(held){
   const info=skinInfo(held),id=info.idolCardId;
-  return {...favoriteContext('idolCardSkins',held.idolCardSkinId),immersive:state.views.idolCardSkins.skinImmersive,
+  return {...favoriteContext('idolCardSkins',held.idolCardSkinId),
     idolHeld:state.snapshot?.idolCards?.find(card=>card.idolCardId===id),
     getArt:()=>state.idolArt[id],onArt:art=>{state.idolArt[id]=art;persist();render();}};
 }
