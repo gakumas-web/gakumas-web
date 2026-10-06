@@ -1,6 +1,6 @@
 import {loadingMetrics,markLoading} from '../application/loading-metrics.mjs';
 import {WEB_VERSION} from '../application/version.mjs';
-import {imageManager,retryContentImages} from '../resources.mjs';
+import {imageManager,retryContentImages,completeImageBytes} from '../resources.mjs';
 import {$} from './dom.mjs';
 import {t,onLocaleChange} from '../i18n.mjs';
 import {contentManager,readBounded} from '../application/content-manager.mjs';
@@ -23,28 +23,32 @@ export function setupContentControls({loaded=()=>{},canReload=()=>true}={}){
     $('content-import').disabled=busy;
     $('content-apply').hidden=!state.availableVersion;
   }
-  let timer,lastPhase='',expanded=true;
+  let timer,lastPhase='',expanded=true,autoCollapsed=false;
   const phases={checking:'正在检查已保存图片…',downloading:'正在下载图片…',verifying:'正在校验图片…',waiting:'正在等待处理图片…',unpacking:'正在解包图片…',saving:'正在保存图片…'};
   const errors={image_storage_full:'浏览器空间不足，请清理公共图片缓存后重试。账号数据会保留。',image_hash_mismatch:'图片校验失败，已保留其它成功项。',image_not_found:'图片文件不存在，请刷新页面检查版本。',image_timeout:'图片下载超时，可以重试失败项。',image_source_not_allowed:'图片来源与当前程序不匹配，请刷新页面。'};
   function renderImages(){
     clearTimeout(timer);timer=null;
     const state=imageManager.status(),working=Boolean(phases[state.phase]);
+    if(state.phase==='ready'&&!autoCollapsed){expanded=false;autoCollapsed=true;}
     let text=working?t(phases[state.phase]):state.phase==='ready'?t(state.full?'图片已保存到本机，后续只补充缺失图片。':'当前所需图片已准备好。'):state.phase==='cancelled'?t('图片下载已停止，已完成部分保留。'):'';
     if(state.failed||state.error)text=t(errors[state.error]??'部分图片准备失败，已完成部分保留，可重试。');
-    $('image-status').textContent=text;$('image-retry').hidden=!(state.failed||state.phase==='cancelled');
-    $('resource-status').hidden=state.phase==='idle';$('image-notice').textContent=text;
+    if($('image-status').textContent!==text)$('image-status').textContent=text;
+    $('image-retry').hidden=!(state.failed||state.phase==='cancelled');
+    $('resource-status').hidden=state.phase==='idle';
+    if($('image-notice').textContent!==text)$('image-notice').textContent=text;
     $('resource-progress').hidden=!state.totalBytes;
     if(state.totalBytes){$('resource-progress').max=state.totalBytes;$('resource-progress').value=state.bytes;}
     $('resource-bytes').textContent=state.totalBytes?t('本次任务有效下载 {0} / {1} MiB',[(state.bytes/1048576).toFixed(1),(state.totalBytes/1048576).toFixed(1)]):'';
     const counts=Object.entries(phases).map(([phase,label])=>{const count=state.tasks.filter(task=>task.phase===phase).length;return count?t(label)+' '+count:'';}).filter(Boolean);
-    $('resource-stage').textContent=counts.join(' · ')+(state.total?' · '+t('已就绪 {0} / {1} 个图片对象',[state.completed,state.total]):'');
+    $('resource-stage').textContent=[...counts,...(state.total?[t('已就绪 {0} / {1} 个图片对象',[state.completed,state.total])]:[])].join(' · ');
     $('resource-stop').hidden=!working;$('resource-retry').hidden=!(state.failed||state.phase==='cancelled');
     $('resource-complete').disabled=state.full&&working;
+    $('resource-complete').textContent=t('准备完整图片 · 约 {0} MiB',[Math.ceil(completeImageBytes()/1048576)]);
     $('resource-details').hidden=!expanded;$('resource-toggle').textContent=t(expanded?'收起详情':'查看详情');$('resource-toggle').setAttribute('aria-expanded',String(expanded));
     if(state.phase==='ready')markLoading('image-task-complete');
   }
   imageManager.subscribe(state=>{if(state.phase!==lastPhase){lastPhase=state.phase;renderImages();}else if(!timer)timer=setTimeout(renderImages,150);});onLocaleChange(renderImages);
-  $('resource-toggle').onclick=()=>{expanded=!expanded;renderImages();};
+  $('resource-toggle').onclick=()=>{autoCollapsed=true;expanded=!expanded;renderImages();};
   $('image-retry').onclick=$('resource-retry').onclick=()=>{if(canReload())void retryContentImages();};
   $('resource-stop').onclick=()=>imageManager.cancel();
   $('resource-complete').onclick=()=>{if(canReload())void imageManager.complete();};

@@ -11,8 +11,9 @@ const downloadURLs=Object.fromEntries(Object.entries(imageConfig.downloadURLs??{
 export const imageManager=createImageManager({
   allowedOrigins:[...(imageConfig.allowedOrigins??[]),...(Object.keys(downloadURLs).length||imageConfig.loadingPlan?[root.origin]:[])],downloadURLs,
 });
-let lastDelivery;
+let lastDelivery,totalImageBytes=0;
 export const beginImageView=()=>imageManager.prioritizeView();
+export const completeImageBytes=()=>totalImageBytes;
 function applyCachedImages(index,urls){
   const images=[],icons=[],imageURLs={},iconURLs={};
   for(const path of Object.keys(index.files)){const [folder,name]=path.split('/');if(!urls[path])continue;
@@ -38,7 +39,10 @@ export function installContentResources(index){
     if(plan.version!==index.version||Object.entries(index.files).some(([name,row])=>plan.files[name]?.sha256!==row.sha256||plan.files[name]?.bytes!==row.bytes))throw new Error('image_program_update_required');
     index=validateImageDelivery({...index,files:plan.files,baseline:{version:index.baseline.version,packages:plan.packages.map(pack=>({...pack,url:new URL(pack.url,root).href}))},cdn_objects:[]});
   }
-  lastDelivery=index;imageManager.configure(index);
+  lastDelivery=index;
+  const objects=new Map(Object.entries(index.files).map(([name,row])=>[row.sha256+'.'+name.split('.').at(-1),row.bytes]));
+  totalImageBytes=index.baseline.packages.reduce((sum,pack)=>sum+pack.bytes,0)+index.cdn_objects.reduce((sum,key)=>sum+(objects.get(key)??0),0);
+  imageManager.configure(index);
   // 资料立即可用；基础界面小包独立准备，完整卡图只在实际展示或用户要求时获取。
   const core=new Set(plan?.packages.filter(pack=>pack.group==='core').flatMap(pack=>Object.keys(pack.objects))??[]);
   const names=Object.keys(index.files).filter(name=>core.has(index.files[name].sha256+'.'+name.split('.').at(-1))||name.startsWith('ui-icons/')&&!name.includes('full.'));

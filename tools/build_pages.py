@@ -38,7 +38,14 @@ def build_pages(source, output):
     report={'version':source['version'],'program_files':count,'program_bytes':program,'content_bytes':content,'site_bytes':total,
             'image_delivery':'same-origin-on-demand','groups':groups,'initial_image_bytes':sum(row['bytes'] for row in groups if row['group']=='core'),
             'complete_image_bytes':sum(row['bytes'] for row in groups),'compatibility_archives':'保留当前源版本的原始分段，供此前已打开的页面完成下载；新页面只请求用途包。'}
-    (Path(output)/'build-report.json').write_text(json.dumps(report,ensure_ascii=False,indent=2)+'\n')
+    report_path=Path(output)/'build-report.json'
+    while True:
+        raw=json.dumps(report,ensure_ascii=False,indent=2)+'\n'
+        size=total+len(raw.encode())
+        if report['site_bytes']==size:break
+        report['site_bytes']=size
+    if size>1_000_000_000:raise ValueError('Pages 站点超过 1 GB，停止发布')
+    report_path.write_text(raw)
     if os.environ.get('GITHUB_STEP_SUMMARY'):
         with open(os.environ['GITHUB_STEP_SUMMARY'],'a') as summary:
             summary.write('## Pages 构建体积\n\n| 项目 | MiB |\n| --- | ---: |\n')
