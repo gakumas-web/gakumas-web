@@ -56,7 +56,7 @@ export function setupContentControls({loaded=()=>{},canReload=()=>true}={}){
     $('resource-status').hidden=state.phase==='idle'&&!contentWorking&&!content.error;
     const issue=Boolean(content.error||state.failed||state.error||imageError||importError);
     const badge=issue?'error':contentWorking||working||actionBusy||busy?'busy':content.availableVersion?'update':state.phase==='cancelled'?'paused':'idle';
-    const label=badge==='error'?t('数据：准备未完成，点击查看并重试'):badge==='busy'?t('数据：正在后台准备'):badge==='update'?t('数据：有资料更新可应用'):badge==='paused'?t('数据：图片准备已暂停'):t('数据');
+    const label=badge==='error'?t('资料：准备未完成，点击查看并重试'):badge==='busy'?t('资料：正在后台准备'):badge==='update'?t('资料：有资料更新可应用'):badge==='paused'?t('资料：图片准备已暂停'):t('资料与图片');
     renderBadge(badge,label);
     if($('image-notice').textContent!==(contentWorking||content.error?contentText:text))$('image-notice').textContent=contentWorking||content.error?contentText:text;
     // 自动需求会随浏览增加，不把变化中的下载总量展示成整体完成百分比。
@@ -70,7 +70,8 @@ export function setupContentControls({loaded=()=>{},canReload=()=>true}={}){
     $('resource-stop').hidden=!working;$('resource-retry').hidden=!(state.failed||state.phase==='cancelled');
     $('resource-complete').disabled=actionBusy||!content.version||state.full&&working;
     $('image-clear').disabled=actionBusy;$('resource-retry').disabled=actionBusy;$('image-retry').disabled=actionBusy;
-    $('resource-complete').textContent=t('准备完整图片 · 约 {0} MiB',[Math.ceil(completeImageBytes()/1048576)]);
+    $('resource-complete').textContent=t('准备完整图片');
+    $('image-total-size').textContent=t('完整图片资源总量约 {0} MiB；已有缓存会复用，不代表本次剩余下载量。',[Math.ceil(completeImageBytes()/1048576)]);
     $('resource-details').hidden=!expanded;$('resource-toggle').textContent=t(expanded?'收起详情':'查看详情');$('resource-toggle').setAttribute('aria-expanded',String(expanded));
     const completedKey=[state.version,state.runId,state.total].join(':');
     if(state.phase==='ready'&&lastCompleted!==completedKey){lastCompleted=completedKey;markLoading('image-task-complete',{run:state.runId,version:state.version,total:state.total,full:state.full});}

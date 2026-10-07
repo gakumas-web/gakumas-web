@@ -38,7 +38,8 @@ function abilityEffect(item){
     if(sleepy&&parts.some(part=>part.targetId==='Label_ProduceCardPositionType_Lost'&&part.originProduceExamEffectId===sleepy.originProduceExamEffectId)){
       const reference=[...content.querySelectorAll('.effect-card-reference')].find(reference=>reference.lastChild?.textContent===sleepy.text);
       const thumbnail=reference?.querySelector('.support-skill-thumbnail');
-      if(thumbnail){const icon=node('span','','ability-remove-card-icon');icon.title=t('移除眠气');icon.append(thumbnail.cloneNode(true),node('b','−','ability-remove-card-mark'));leading.append(icon);}
+      // 移动原缩略图以保留加载回调；克隆会让已缓存图片仍隐藏并残留占位符。
+      if(thumbnail){const icon=node('span','','ability-remove-card-icon');icon.title=t('移除眠气');icon.append(thumbnail,node('b','−','ability-remove-card-mark'));leading.append(icon);}
     }
   }
   const effectType=item.description.technical?.slots?.[0]?.effect?.produceEffectType;

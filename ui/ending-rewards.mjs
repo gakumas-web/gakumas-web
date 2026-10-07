@@ -49,7 +49,7 @@ export function endingRewardCard(entry){
   for(const [index,label] of ['Vo','Da','Vi'].entries()){
     const panel=el('section','','ending-attribute-card'),heading=el('div','','ending-attribute-heading');panel.dataset.attribute=label;
     const icon=el('img');icon.src=uiIconURL(`${['vocal','dance','visual'][index]}.webp`);icon.alt='';heading.append(icon,el('strong',label));
-    meters[index].querySelector(':scope>span:not(.idol-stat-track)')?.remove();gauges[index].querySelector('.gauge-label')?.remove();gauges[index].append(el('small',t('成长率'),'ending-growth-label'));
+    meters[index].querySelector(':scope>span:not(.idol-stat-track)')?.remove();gauges[index].querySelector('.gauge-label-zone')?.remove();gauges[index].append(el('small',t('成长率'),'ending-growth-label'));
     panel.append(heading,meters[index],gauges[index]);panels.push(panel);
   }
   summary.classList.add('ending-stamina-summary');head.append(summary);stats.replaceChildren(...panels);stats.classList.add('ending-attributes');card.append(stats);return card;

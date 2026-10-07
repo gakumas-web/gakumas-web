@@ -384,7 +384,7 @@ button,.entry-identity,.ability-label{overflow-wrap:anywhere}
 .effect-card-reference{display:inline-flex;align-items:center;gap:4px;vertical-align:middle;max-width:100%;font-weight:600}
 .effect-card-reference>img{width:32px;height:32px;object-fit:contain;border-radius:4px;flex:none}
 /* 支援卡缩小到适合缩略图的宽度，当前效果仍直接可读。 */
-.support-catalog{display:grid;grid-template-columns:repeat(3,minmax(0,340px));gap:14px;align-items:start}
+.support-catalog{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,340px),1fr));gap:16px;align-items:start}
 .support-card{background:var(--paper);border:1px solid var(--line);border-radius:9px;overflow:hidden;min-width:0}
 .support-art-open{padding:0;border:0;background:none;flex:none}
 .support-name{display:block;text-align:left;border:0;background:none;padding:3px 0;font-size:15px;font-weight:700;min-height:0}
@@ -395,12 +395,6 @@ button,.entry-identity,.ability-label{overflow-wrap:anywhere}
 .support-effect-list .effect-reading{display:flex;align-items:flex-start;gap:8px}
 .support-effect-list .effect-reading-body{min-width:0;flex:1}
 .support-effect-list .effect-reading-line{display:inline;font-size:13px}
-@media(max-width:1100px){
-  .support-catalog{grid-template-columns:repeat(2,minmax(0,340px))}
-}
-@media(max-width:700px){
-  .support-catalog{grid-template-columns:minmax(0,340px)}
-}
 @media(max-width:599px){
   .support-name{font-size:13px}
   .support-effects{padding:12px}
@@ -697,7 +691,7 @@ html:has(dialog[open]){overflow:hidden}
 #advanced-filters .catalog-effect-chips,#advanced-filters .idol-effect-chips{margin:0;padding:0}
 #advanced-filters .catalog-effect-chips legend,#advanced-filters .catalog-character-chips legend{margin-bottom:7px}
 .filter-classification{display:grid;gap:16px;align-items:start;margin:12px 0 16px}
-.support-effect-filters{border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:14px 0;margin:14px 0}
+.support-effect-filters{border-top:1px solid var(--line);padding:14px 0;margin:14px 0}
 .filter-effects-row{display:grid;grid-template-columns:minmax(170px,.7fr) minmax(220px,.9fr) minmax(280px,1.4fr);gap:20px;align-items:start}
 #advanced-filters .effect-trigger-field{gap:7px}
 #advanced-filters .effect-trigger-field select{margin-top:0}
@@ -707,7 +701,7 @@ html:has(dialog[open]){overflow:hidden}
 #advanced-filters label{display:flex;flex-direction:column;align-items:stretch;gap:5px;font-size:12px;color:var(--muted);width:auto;min-width:0}
 #advanced-filters label select{width:100%;min-width:0;max-width:none;min-height:36px;font-size:12px}
 #advanced-filters #idol-filters{grid-template-columns:1fr;margin:0}
-#advanced-filters #support-filters{grid-template-columns:minmax(210px,380px)}
+#advanced-filters #support-filters{grid-template-columns:minmax(210px,380px);border-top:1px solid var(--line);padding-top:14px;margin-top:14px}
 #advanced-filters #skin-filters{display:block;max-width:560px;margin:0;padding:0}
 #advanced-filters .filter-panel{display:block}
 .filter-section{border:0;border-top:1px solid var(--line);padding:12px 0 0;margin:14px 0 0;min-width:0}
@@ -910,7 +904,7 @@ html:has(dialog[open]){overflow:hidden}
 @media(max-width:599px){
   .selection-detail-nav button{font-size:11px;padding:4px 7px}
 }
-/* 支援卡以完整插图承载稀有度、实际等级和事件图标；长效果仍在卡面下阅读。 */
+/* 卡面保留身份与实际等级；事件与能力在图下分区阅读。 */
 .support-face{position:relative;isolation:isolate;aspect-ratio:16/9;background:var(--canvas);min-width:0}
 .support-face::after{content:'';position:absolute;inset:0;pointer-events:none;background:linear-gradient(180deg,#0c172b99,transparent 35%,transparent 55%,#0c172bcc);z-index:1}
 .support-face>.support-art-open{display:block;position:absolute;inset:0;width:100%;padding:0;border:0;border-radius:0;background:transparent}
@@ -1348,7 +1342,9 @@ html:has(dialog[open]){overflow:hidden}
 .idol-stat-track>button{padding:0;border:0;min-height:0;cursor:help}
 .idol-stat-track>.idol-stat-fill{background:var(--stat-color)}
 .idol-stat-track>.idol-stat-reachable{background:#a9b3c3}
-.idol-growth-gauge .gauge-fill,.idol-growth-gauge .gauge-reachable{pointer-events:stroke;cursor:help}
+.idol-growth-gauge .gauge-fill,.idol-growth-gauge .gauge-reachable{pointer-events:none}
+.idol-growth-gauge .gauge-hit-area{fill:transparent;pointer-events:all;cursor:help}
+.idol-growth-gauge .gauge-label-blocker{fill:transparent;pointer-events:all;cursor:default}
 .idol-growth-gauge .gauge-track,.idol-growth-gauge .gauge-tick,.idol-growth-gauge .gauge-label{pointer-events:none}
 .idol-growth-gauge [role=button]:focus-visible{outline:2px solid var(--stat-color);outline-offset:3px}
 
@@ -1466,7 +1462,10 @@ html:has(dialog[open]){overflow:hidden}
 .selection-match-summary{grid-column:1/-1;font-size:11px;color:var(--muted);margin:0 0 3px}
 #selection-picker{width:min(780px,calc(100% - 24px));padding:0;overflow:hidden;max-height:88dvh}
 #selection-picker[open]{display:flex;flex-direction:column}
-#selection-picker .dialog-head{padding:14px 18px;margin:0;flex:none}
+#selection-picker .dialog-head{padding:14px 18px 0;margin:0;border:0;flex:none}
+.selection-picker-header{flex:none;padding-bottom:12px;border-bottom:1px solid var(--line);background:var(--paper)}
+#selection-picker-title{font-size:18px;font-weight:400;line-height:1.5}
+#selection-picker-hint{margin:5px 18px 0;font-size:12px;line-height:1.6;color:var(--muted)}
 #selection-picker-list{min-height:0;max-height:none;overflow-y:auto;padding:4px 18px 16px;grid-template-columns:1fr;gap:16px}
 #selection-picker-list .selection-filter-choice{cursor:pointer;width:var(--selection-choice-size);height:var(--selection-choice-size);padding:0;border:0;border-radius:0;background:transparent;display:block}
 #selection-picker-list .selection-filter-choice .support-skill-thumbnail,#selection-picker-list .selection-filter-choice .support-item-thumbnail{width:100%;height:100%}
@@ -1697,7 +1696,7 @@ details[open]>summary.customization-heading>.customization-title::before{content
 .selection-star-track>.selection-star-current:hover:enabled{background:#9466d9;filter:brightness(.9)}
 .idol-stat-track>.idol-stat-fill:hover:enabled{background:var(--stat-color);filter:brightness(.9)}
 .selection-star-track>.selection-star-remaining:hover:enabled,.idol-stat-track>.idol-stat-reachable:hover:enabled{background:#a9b3c3;filter:brightness(.88)}
-.idol-growth-gauge .gauge-fill:hover,.idol-growth-gauge .gauge-reachable:hover{filter:brightness(.9)}
+
 
 .star-estimate-head.remaining-only{grid-template-columns:1fr}
 .star-estimate-head.remaining-only>div:last-child{text-align:left}
@@ -2065,6 +2064,7 @@ button.danger-confirm:hover:enabled{color:white;background:#952a23}
 .account-manager .account-directory-section,.account-manager .account-cleanup-section{display:flex;align-items:center;justify-content:space-between;gap:20px;margin-top:20px;padding:18px 0 0;border-top:1px solid var(--line)}
 .account-manager .account-directory-section p,.account-manager .account-cleanup-section p{margin:5px 0 0;font-size:12px;line-height:1.7;max-width:390px}
 .account-directory-section>button,.account-cleanup-section>button{flex:none;font-size:12px;min-height:38px}
+.account-manager .account-package-section{margin-top:20px;padding-top:18px;border-top:1px solid var(--line)}
 .account-cleanup-section h3{color:#984d45}
 .account-manager .data-status{border:0;margin-top:20px;padding:0;font-size:11px;color:var(--muted)}
 .account-flow-dialog{width:min(640px,calc(100vw - 32px));padding:24px;border-radius:16px}
@@ -2221,7 +2221,7 @@ button.danger-confirm:hover:enabled{color:white;background:#952a23}
 .ending-attribute-card .idol-stat-track{order:1;width:100%;height:10px}
 .ending-attribute-card .idol-growth-gauge{position:relative}
 .ending-attribute-card .idol-growth-gauge svg{width:100%;max-width:116px}
-.ending-attribute-card .idol-growth-gauge>strong{position:absolute;top:27px;left:0;width:100%;font-size:19px;line-height:1.5}
+.ending-attribute-card .idol-growth-gauge>strong{position:absolute;top:27px;left:50%;width:max-content;transform:translateX(-50%);font-size:19px;line-height:1.5}
 .ending-growth-label{display:block;font-size:10px;letter-spacing:.12em;color:#77859e;margin-top:3px}
 .ending-reward-card .idol-stat-summary.ending-stamina-summary{display:flex;flex-direction:row;align-items:center;gap:8px;margin-left:auto;padding:5px 10px;border:1px solid #e5ebf4;border-radius:999px;background:#ffffffc9;white-space:nowrap}
 .ending-stamina-summary small{font-size:12px}
@@ -2309,15 +2309,15 @@ button.danger-confirm:hover:enabled{color:white;background:#952a23}
 /* 完成项降低强调，仍可升阶的项目保留阶段进度及差值。 */
 .achievement-icon-progress{display:flex;flex-direction:column;justify-content:center;gap:7px;min-height:47px;width:100%;text-align:center}
 .achievement-icon-complete{color:#68796e;font-size:12px;font-weight:500}
-.character-achievement-heading{display:grid;grid-template-columns:auto auto minmax(0,1fr) auto;align-items:center;gap:10px 16px;margin-bottom:16px}
+.character-achievement-heading{display:grid;grid-template-columns:auto auto minmax(0,1fr);align-items:center;gap:10px 16px;margin-bottom:16px}
 .character-achievement-heading h2{margin:0;font-size:20px}
 .character-achievement-heading .achievement-scope-switch{margin:0}
 .character-achievement-filters{gap:12px}
 .character-achievement-result{margin:12px 0}
 
-.achievement-incomplete-first{margin-left:auto}
+.achievement-incomplete-first{margin-left:0;white-space:nowrap;flex:none}
 
-@media(max-width:760px){.character-achievement-heading{grid-template-columns:1fr auto}.character-achievement-heading h2{grid-column:1;grid-row:1}.achievement-incomplete-first{grid-column:2;grid-row:1}.character-achievement-heading .achievement-scope-switch{grid-column:1/-1;grid-row:2}}
+@media(max-width:760px){.character-achievement-heading{grid-template-columns:1fr auto}.character-achievement-heading h2{grid-column:1;grid-row:1}.character-achievement-heading .achievement-scope-switch{grid-column:1/-1;grid-row:2}}
 
 /* 奖励、状态和排序并入成就标题栏，窄屏在同一栏内换行。 */
 .character-achievement-heading .character-achievement-filters{justify-content:flex-end;align-items:center;gap:10px}
@@ -2326,7 +2326,6 @@ button.danger-confirm:hover:enabled{color:white;background:#952a23}
 @media(max-width:1100px){
   .character-achievement-heading{grid-template-columns:1fr auto}
   .character-achievement-heading h2{grid-column:1;grid-row:1}
-  .achievement-incomplete-first{grid-column:2;grid-row:1}
   .character-achievement-heading .achievement-scope-switch{grid-column:1/-1;grid-row:2}
   .character-achievement-heading .character-achievement-filters{grid-column:1/-1;grid-row:3;justify-content:flex-start}
 }
@@ -2334,7 +2333,8 @@ button.danger-confirm:hover:enabled{color:white;background:#952a23}
   .character-achievement-heading .character-achievement-filters{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
   .character-achievement-heading .character-achievement-filters label{flex-direction:column;align-items:stretch;gap:4px}
   .character-achievement-heading .character-achievement-filters select{width:100%;min-width:0}
-  .character-achievement-heading [data-achievement-control=achievementReward]{grid-column:1/-1}
+  .character-achievement-filters .achievement-incomplete-first{grid-column:1;grid-row:1;align-self:end;justify-self:start}
+  .character-achievement-heading [data-achievement-control=achievementReward]{grid-column:2;grid-row:1}
 }
 
 /* 带入回忆仅保留继承技能、能力与必要的租借标记。 */
@@ -2397,3 +2397,73 @@ button.danger-confirm:hover:enabled{color:white;background:#952a23}
 .resource-feedback{position:fixed;right:20px;bottom:20px;z-index:100;padding:12px 16px;max-width:calc(100vw - 40px);border:1px solid var(--line);border-radius:9px;background:var(--paper);color:var(--ink);box-shadow:0 4px 18px #13213b20}
 @keyframes resource-spin{to{transform:rotate(360deg)}}
 @media(prefers-reduced-motion:reduce){#resources-open[data-status=busy] #resource-indicator{animation:none}}
+
+/* 支援卡在统一内容区内自适应列数，事件不覆盖卡面。 */
+.support-card{container-type:inline-size}
+.support-card .support-type-icon{left:10px;top:10px;width:28px;height:28px}
+.support-card .support-face-title{left:46px;right:10px;top:8px}
+.support-card .support-face .support-name{font-size:14px;line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.support-card .support-face-status{left:10px;bottom:10px;gap:2px 7px}
+.support-card .support-rarity-icon{width:auto;height:34px;justify-self:start;object-position:left center}
+.support-card .support-face-status:has(>.rank-flowers){grid-template-rows:20px 12px}
+.support-card .support-face-status:has(>.rank-flowers) .support-face-level strong{font-size:19px;line-height:20px}
+.support-card .support-face-status>.rank-flowers{--flower-size:12px}
+.support-card .support-face-level strong{font-size:20px}
+.support-card-events{padding:12px;border-bottom:1px solid var(--line)}
+.support-card-events>h4,.support-card .support-effects>h4{font-size:12px;font-weight:650;color:var(--muted);margin:0 0 9px;letter-spacing:.04em}
+.support-event-list{display:flex;align-items:end;gap:14px;overflow-x:auto;padding:2px 1px 5px}
+.support-card-events .support-event-row{display:grid;justify-items:center;gap:5px;flex:none;min-width:48px}
+.support-event-content{display:flex;align-items:end;gap:6px}
+.support-card-events .support-reward-trigger[data-reward-kind]{width:56px;height:56px;box-shadow:none}
+.support-card-events .support-event-symbol{width:48px;height:48px;padding:4px;background:#f8fbfd;border:1px solid #d3e1ec;box-shadow:none}
+.support-card-events .support-event-symbol .effect-inline-icon{width:36px;height:36px}
+.support-card-events .support-event-amount{font-size:12px;right:1px;bottom:0;color:#b43c67}
+.support-card-events .support-event-level{display:block;color:var(--muted);font-size:10px;line-height:1.4;text-shadow:none;white-space:nowrap}
+.support-card-events .preview-unlocked .support-reward-trigger{border-color:#429478;background:#f0f8f4}
+.support-card .support-effects{padding:12px}
+.support-card .support-effect-list{grid-template-columns:1fr;gap:6px}
+.support-card .support-effect-list>.support-skill{display:block;grid-row:auto;padding:9px 10px;border:1px solid #e4e8ed;border-radius:6px;background:#fafbfc}
+.support-card .support-effect-list>.support-skill-locked{background:#f4f5f8;border-style:dashed}
+.support-card .support-effect-list>.support-skill-gained{background:#f0f8f4;border-left:3px solid #429478}
+.support-card .support-skill-status{font-size:10px}
+.support-card .effect-reading .effect-reading-line{font-size:13px;line-height:1.65}
+.support-card .effect-reading .effect-reading-hanging{column-gap:8px}
+.support-card .effect-leading-icons{height:auto;min-height:24px;padding-top:1px}
+.support-card .effect-leading-icons>.effect-inline-icon{width:24px;height:24px}
+.support-card .effect-reading .effect-number{color:#b43c67;font-weight:650}
+.support-card .support-skill-locked .effect-number{color:inherit}
+@container(min-width:440px){
+  .support-card .support-effect-list{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+
+/* 满级支援效果沿用选择弹窗，完整条件与数值并列展示。 */
+.support-effect-scope-hint{grid-column:1/-1;margin:0}
+.support-effect-picker #selection-picker-list{display:block}
+.support-effect-picker-groups{display:grid;gap:18px}
+.support-effect-options{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,260px),1fr));gap:8px}
+.support-effect-choice{display:flex;align-items:flex-start;gap:9px;padding:10px;border:1px solid var(--line);border-radius:7px;cursor:pointer;min-width:0}
+.support-effect-choice input{flex:none;margin-top:5px}
+.support-effect-choice .effect-reading{min-width:0;margin:0;font-size:12px}
+.support-effect-choice:has(input:checked){border-color:var(--accent);background:var(--selected)}
+.support-effect-choice:focus-within{outline:2px solid var(--accent);outline-offset:2px}
+#support-skills-list{align-items:center;gap:8px}
+.support-effect-selected-group{display:flex;align-items:center;flex-wrap:wrap;gap:8px}
+.support-effect-selected{display:flex;align-items:center;gap:8px;max-width:360px;text-align:left;font-weight:400}
+.support-effect-selected .effect-reading{margin:0;min-width:0;font-size:12px}
+.support-effect-selected>span:last-child{flex:none}
+.support-effect-picker #selection-picker-list input{position:static;inset:auto;z-index:auto;box-shadow:none;width:17px;height:17px;margin:4px 0 0}
+
+.support-effect-attribute-buttons{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:16px}
+.support-effect-attribute-buttons button[aria-pressed=true]{background:var(--selected);border-color:var(--accent);color:var(--accent-deep)}
+
+#support-skills-open,.support-effect-picker #selection-picker-title{font-weight:400}
+
+.support-effect-attribute-buttons{align-items:center}
+.support-effect-attribute-label{font-size:12px;color:var(--muted);white-space:nowrap}
+
+#support-effect-picker-filters{flex:none;padding:12px 18px 0}
+#support-effect-picker-filters .support-effect-attribute-buttons{margin:0}
+
+.support-effect-choice:has(input:disabled){opacity:.4;cursor:not-allowed;background:#f4f5f8}
+
+#selection-picker-list .selection-filter-choice:has(input:disabled),#selection-picker-list .ability-picker-choice:has(input:disabled){opacity:.4;cursor:not-allowed}

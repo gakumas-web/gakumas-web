@@ -1,3 +1,7 @@
+import {createChoiceAvailability} from './domain/choice-availability.mjs';
+import {abilityChoiceKey,abilityFilterClauses} from './domain/catalog.mjs';
+import {createSupportEffectAvailability} from './domain/support-effect-choices.mjs';
+import {syncSupportEffectChoices,renderSupportEffectChoices} from './ui/support-effect-picker.mjs';
 import {WEB_VERSION} from './application/version.mjs';
 import {markLoading,createViewTiming} from './application/loading-metrics.mjs';
 import {contentManager} from './application/content-manager.mjs';
@@ -15,7 +19,7 @@ import {AccountDirectoryError,combineAccountDirectory} from './domain/account-im
 import {resetDeferredContent} from './ui/deferred-content.mjs';
 import {accountProfile,profileAccountId,validPublicUserId,validProfile,snapshotFitsProfile,maskedAccountId} from './domain/account.mjs';
 import {accountIdentity} from './ui/shared.mjs';
-import {restoreSelectionSnapshot,selectionEntries,withoutSecondExclusiveSkills,withoutCommonSelectionItems} from './domain/selection-memories.mjs';
+import {restoreSelectionSnapshot,selectionEntries,selectionSkillKey,withoutSecondExclusiveSkills,withoutCommonSelectionItems} from './domain/selection-memories.mjs';
 import {setupSelectionOptions,renderSelectionChoices,renderLoadoutChoices,renderInheritanceChoices,selectionCapacity,selectionMemoryEntry} from './ui/selection-memories.mjs';
 import {loadMaster,masterReadyFor,masterLoadingFor} from './application/master-loader.mjs';
 import {setupContentControls} from './ui/content-controls.mjs';
@@ -151,7 +155,7 @@ function savedViews(){
 }
 function refreshSavedViews(selected=''){$('saved-view').replaceChildren(new Option(t('常用筛选'),''),...savedViews().map((v,i)=>new Option(v.name,String(i))));$('saved-view').value=selected;$('delete-view').disabled=$('saved-view').value==='';}
 function renderPendingCatalogCounts(){
-  for(const tab of ['idolCards','supportCards','idolCardSkins','achievements'])if(!masterReadyFor(tab))renderTabCount(tab,null,undefined,t(masterLoadingFor(tab)?'加载中…':'待加载'));
+  for(const tab of ['idolCards','supportCards','idolCardSkins','achievements'])if(!masterReadyFor(tab))updateTabCount(tab,null);
 }
 
 function setup(){
@@ -159,10 +163,11 @@ function setup(){
   setupFilterOptions(state.snapshot,groups,{controls});
   if(controls){setupSelectionOptions(state.selectionSnapshot);refreshSavedViews();}
   if(masterReadyFor('selectionMemories')){state.views.selectionMemories.selectionSkill=withoutSecondExclusiveSkills(state.views.selectionMemories.selectionSkill);state.views.selectionMemories.selectionItem=withoutCommonSelectionItems(state.views.selectionMemories.selectionItem);}
+  if(masterReadyFor('supportCards'))syncSupportEffectChoices(state.snapshot,state.views.supportCards);
   for(const [tab,filters] of Object.entries(state.views)){
     if(tab==='achievements'){updateTabCount(tab);continue;}
     if(tab==='selectionMemories'){updateTabCount(tab,state.selectionSnapshot?selectionValues(filters).length:undefined);continue;}
-    if(!state.snapshot||!masterReadyFor(tab)){renderTabCount(tab,null);continue;}
+    if(!state.snapshot||!masterReadyFor(tab)){updateTabCount(tab,null);continue;}
     const query=filters.query.trim().toLowerCase();
     const count=tab==='memories'?memoryValues(filters).length:
       tab==='idolCards'?idolEntries(state.snapshot,query,filters.catalogSort,catalogFilters(tab,filters)).length:
@@ -173,10 +178,18 @@ function setup(){
   renderPendingCatalogCounts();
 }
 function updateTabCount(tab,count){
+  const hasAccount=Boolean(state.snapshot||state.selectionSnapshot);
+  if(!hasAccount){renderTabCount(tab,null,undefined,t('未导入'));return;}
+  if(tab!=='achievements'){
+    const present=tab==='selectionMemories'?Boolean(state.selectionSnapshot):state.snapshot?.[tab]!==undefined;
+    if(!present){renderTabCount(tab,undefined);return;}
+  }
+  if(!masterReadyFor(tab)){
+    renderTabCount(tab,null,undefined,t(masterFailures.has(tab)?'资料失败':masterLoadingFor(tab)?'资料加载中':'资料待加载'));return;
+  }
   if(tab==='achievements'){
-    if(!masterReadyFor(tab)){renderTabCount(tab,null,undefined,t(masterLoadingFor(tab)?'加载中…':'待加载'));return;}
     const counts=achievementViewCounts(state.snapshot,state.views.achievements);
-    renderTabCount(tab,counts.count,counts.total);return;
+    renderTabCount(tab,counts.count,counts.total);const output=$('count-'+tab);output.textContent=t('资料 {0}',[output.textContent]);output.title=t('公共成就资料：{0} / {1} 条',[counts.count,counts.total]);return;
   }
   const s=state.snapshot,filters=state.views[tab];
   if(tab==='selectionMemories'){renderTabCount(tab,count,state.selectionSnapshot?.count);return;}
@@ -190,9 +203,28 @@ function syncControls(){
     tagOptions();
   }
   if(state.tab==='memories')syncMemoryFilterOptions(state.snapshot,view());
+  if(state.tab==='supportCards')syncSupportEffectChoices(state.snapshot,view());
   syncFilterControls(view(),state.tab);
 }
 function filteredMemories(){return memoryValues(view());}
+function supportPickerAvailability(){
+  const filters={...view(),supportSkills:[]};
+  const entries=supportEntries(state.snapshot,filters.query.trim().toLowerCase(),filters.catalogSort,catalogFilters('supportCards',filters));
+  return createSupportEffectAvailability(entries.map(entry=>entry.searchEffects));
+}
+function pickerAvailability(key){
+  const filters={...view(),[key]:[]},memories=state.tab==='memories'?memoryValues(filters):selectionValues(filters).map(entry=>entry.memory);
+  const keys=memory=>{
+    if(key==='skill')return memory.produceCard?[memory.produceCard.id]:[];
+    if(key==='ability')return (memory.abilities??[]).map(ability=>abilityChoiceKey(ability.id));
+    if(key==='memoryExamSkill')return (memory.examBattleProduceCards??[]).map(selectionSkillKey);
+    if(key==='memoryExamItem')return memory.examBattleProduceItemIds??[];
+    if(key==='selectionSkill')return memory.produceCards.map(selectionSkillKey);
+    return memory.produceItems.map(item=>item.id);
+  };
+  const mode=key==='ability'?'grouped':key==='skill'||filters[key+'All']===false?'any':'all';
+  return createChoiceAvailability(memories.map(keys),{mode,clauses:abilityFilterClauses});
+}
 function onFilterChoice(key,value,extra={}){Object.assign(view(),extra,{[key]:value});view().page=0;syncControls();render();persist();}
 const compactFilters=matchMedia('(max-width: 640px)');
 const secondaryControls=['memory-modes','selection-lock-controls','ownership-controls'].map(id=>{
@@ -252,23 +284,27 @@ function renderMasterReadiness(){
 }
 function render(){
   renderMasterReadiness();
+  for(const tab of Object.keys(state.views))if((!state.snapshot&&!state.selectionSnapshot)||!masterReadyFor(tab))updateTabCount(tab,null);
+  const achievementContext=$('achievement-account-context');achievementContext.hidden=state.tab!=='achievements'||(!state.snapshot&&!state.selectionSnapshot);
+  achievementContext.textContent=t(!state.snapshot&&!state.selectionSnapshot?'公共成就资料可直接浏览；个人达成状态：未导入账号。':state.snapshot?.achievements===undefined?'公共成就资料可直接浏览；当前账号尚未采集成就记录。':'公共成就资料与个人进度分开显示；达成状态以当前账号采集记录为准。');
   beginImageView(state.tab);
   refreshFilterUndo();
   clearTimeout(searchTimer);resetDeferredContent();
   if($('data-dialog').open)renderAccountOverview();
-  const s=state.snapshot??{memories:[]},v=view(),memory=state.tab==='memories',selection=state.tab==='selectionMemories',achievement=state.tab==='achievements',hasData=Boolean(state.snapshot||state.selectionSnapshot||achievement);
+  const s=state.snapshot??{memories:[]},v=view(),memory=state.tab==='memories',selection=state.tab==='selectionMemories',achievement=state.tab==='achievements',hasData=Boolean(state.snapshot||state.selectionSnapshot);
+  for(const button of document.querySelectorAll('[data-tab]'))button.disabled=loading||!hasData;
   const memoryChoices=memory?syncMemoryFilterOptions(state.snapshot,v):null;
   $('empty').hidden=hasData;$('inventory').hidden=!hasData;$('shared-search').hidden=!hasData;
   $('selection-capacity').hidden=!selection;
-  $('achievement-browser').hidden=!achievement;
+  $('achievement-browser').hidden=!achievement||!hasData;
   $('filter-toggle').closest('.filters').hidden=achievement;
   $('export-account-package').disabled=loading||!profileAccountId(state.profile)||!(state.snapshot||state.selectionSnapshot)||!state.library;
   $('import-account-package').disabled=loading;
   $('clear-account').disabled=loading||(!state.snapshot&&!state.selectionSnapshot);
   $('manage-tags').disabled=loading||!state.library||(!state.snapshot&&!state.selectionSnapshot);
   for(const id of ['empty-import-account','import-account-directory'])$(id).disabled=loading;
-  if(achievement){$('inventory').hidden=true;$('shared-search').hidden=true;updateTabCount('achievements');renderAchievementBrowser($('achievement-browser'),{snapshot:state.snapshot,view:v,ready:masterReadyFor('achievements'),change:()=>{render();persist();}});return;}
   if(!hasData){selectionControls();syncMemoryDetailFocus();return;}
+  if(achievement){$('inventory').hidden=true;$('shared-search').hidden=true;updateTabCount('achievements');renderAchievementBrowser($('achievement-browser'),{snapshot:state.snapshot,view:v,ready:masterReadyFor('achievements'),change:()=>{render();persist();}});return;}
   if(!masterReadyFor(state.tab)&&!memory&&!selection){$('shared-search').hidden=true;$('filter-toggle').closest('.filters').hidden=true;$('list').replaceChildren();$('previous').disabled=true;$('next').disabled=true;selectionControls();return;}
   $('section-title').textContent={memories:t('回忆'),selectionMemories:t('选拔回忆'),idolCards:t('偶像卡'),supportCards:t('支援卡'),idolCardSkins:t('主题装扮'),achievements:t('成就')}[state.tab];
   $('search-scope').textContent=t('搜索范围：{0}',[$('section-title').textContent]);
@@ -282,7 +318,7 @@ function render(){
   }
   if(selection){selectionCapacity(state.selectionSnapshot);$('snapshot-meta').textContent=state.selectionSnapshot?t('快照 {0}',[new Date(state.selectionSnapshot.captured_at).toLocaleString(locale(),{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hour12:false})]):t('尚未采集');}
   else $('snapshot-meta').textContent=state.snapshot?t('快照 {0}',[new Date(state.snapshot.captured_at).toLocaleString(locale(),{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hour12:false})]):t('尚未载入');
-  $('support-effect-pair-hint').hidden=state.tab!=='supportCards'||!v.supportEffect.length||!v.supportEffectAttribute.length;
+  if(state.tab==='supportCards')renderSupportEffectChoices(v,syncSupportEffectChoices(state.snapshot,v),onFilterChoice,supportPickerAvailability);
   $('support-filters').hidden=state.tab!=='supportCards';
   $('ownership-controls').hidden=memory||selection||achievement;
   $('tag-controls').hidden=!memory&&!selection;tagOptions();
@@ -301,8 +337,8 @@ function render(){
   for(const control of document.querySelectorAll('[data-rarity-tab]'))control.hidden=control.dataset.rarityTab!==state.tab;
   $('memory-modes').hidden=!memory;
   for(const id of ['memory-skill-all','memory-item-all','selection-skill-all','selection-item-all','support-character-all'])$(id).closest('label').title=t('勾选时需满足全部已选项，未勾选时满足任一项即可。');
-  if(selection)renderSelectionChoices(v,onFilterChoice);
-  if(memory){renderInheritanceChoices(v,memoryChoices,onFilterChoice);renderLoadoutChoices(v,onFilterChoice,{prefix:'memory',skillKey:'memoryExamSkill',itemKey:'memoryExamItem',choices:memoryChoices,characters:[]});}
+  if(selection)renderSelectionChoices(v,onFilterChoice,pickerAvailability);
+  if(memory){renderInheritanceChoices(v,memoryChoices,onFilterChoice,pickerAvailability);renderLoadoutChoices(v,onFilterChoice,{prefix:'memory',skillKey:'memoryExamSkill',itemKey:'memoryExamItem',choices:memoryChoices,characters:[],createAvailability:pickerAvailability});}
   renderFilterDisclosure();if(achievement)$('advanced-filters').hidden=true;
   $('sort').closest('label').hidden=!memory;$('idol-sort').closest('label').hidden=memory||selection||achievement;
   $('selection-sort-control').hidden=!selection;
@@ -419,7 +455,12 @@ async function restoreProfile(){
   finally{loading=false;$('profile').disabled=false;render();openMemoryLink();}
 }
 $('profile').onchange=async()=>{persist();state.profile=normalizeProfile($('profile').value);try{localStorage.setItem(PROFILE_PREFERENCE_KEY,state.profile);}catch{message(t('视图偏好保存失败，刷新后可能需要重新筛选。'),true);}state.snapshot=null;state.selectionSnapshot=null;state.library=null;state.selected.clear();resetDetail();await restoreProfile();};
-for(const button of document.querySelectorAll('[data-tab]'))button.onclick=()=>{state.tab=button.dataset.tab;viewRun++;resetDetail();syncControls();render();persist();if(state.snapshot||state.selectionSnapshot||state.tab==='achievements')void ensureMaster();};
+for(const button of document.querySelectorAll('[data-tab]'))button.onclick=()=>{
+  if(loading||(!state.snapshot&&!state.selectionSnapshot))return;
+  // 手动导航结束链接定位，避免资料就绪后再次打开旧链接并切回原页签。
+  if(location.hash)history.replaceState(null,'',location.pathname+location.search);
+  state.tab=button.dataset.tab;viewRun++;resetDetail();syncControls();render();persist();if(state.snapshot||state.selectionSnapshot||state.tab==='achievements')void ensureMaster();
+};
 for(const [id,key] of FILTER_BINDINGS)$(id).addEventListener($(id).matches('button[role=switch]')?'click':id==='search'?'input':'change',()=>{view()[key]=$(id).matches('button[role=switch]')?!view()[key]:$(id).type==='checkbox'?$(id).checked:$(id).value;view().page=0;
   if(id==='purpose')resetDetail();
   if(id==='search'){

@@ -1,3 +1,4 @@
+import {createPickerAvailabilityUpdater} from './selection-picker-status.mjs';
 import {uiIconURL} from '../resources.mjs';
 import {abilityIconPreview} from './ability-view.mjs';
 import {groupedAbilityChoices} from '../domain/ability-summary.mjs';
@@ -62,12 +63,15 @@ export function appendChoiceVisual(node,value,isCard){
   if(isCard){node.dataset.rarity=value.info.rarity;node.dataset.upgrade=String(value.reference.upgradeCount);}
 }
 
-export function openSelectionPicker(view,key,values,isCard,onChange){
+export function openSelectionPicker(view,key,values,isCard,onChange,createAvailability){
   const dialog=$('selection-picker'),list=$('selection-picker-list');
-  dialog.classList.remove('ability-picker');dialog.querySelector('.selection-picker-filters').hidden=false;
+  $('support-effect-picker-filters').hidden=true;dialog.classList.remove('ability-picker','support-effect-picker');dialog.querySelector('.selection-picker-filters').hidden=false;
   for(const id of ['selection-picker-plan','selection-picker-flow'])$(id).closest('label').hidden=key==='skill';
-  let draft=[...view[key]];
+  let draft=[...view[key]];const inputs=new Map(),updateAvailability=createPickerAvailabilityUpdater(createAvailability(key),()=>draft,inputs);
   $('selection-picker-title').textContent=t(key==='skill'?'选择继承技能卡':key==='memoryExamSkill'?'选择考试技能卡':key==='memoryExamItem'?'选择考试 P 道具':isCard?'筛选回忆包含的技能卡':'筛选回忆包含的 P 道具');
+  $('selection-picker-hint').textContent=t(key!=='skill'&&view[key+'All']?'可多选，需同时满足所选项。确认后应用。':'可多选，满足所选任一项。确认后应用。');
+  if(isCard)$('selection-picker-hint').prepend(t('不限附魔状态。')+' ');
+  $('selection-picker-hint').append(' '+t('灰色选项与其他分组或当前筛选条件不匹配；已选项仍可取消。'));
   const plans=['Plan1','Plan2','Plan3','Common'].filter(plan=>values.some(value=>value.metadata.plan===plan));
   $('selection-picker-plan').replaceChildren(new Option(t('全部'),''),...plans.map(plan=>new Option(plan==='Common'?t('通用'):planLabel(plan),plan)));
   const flows=selectionFlowDefinitions.filter(flow=>values.some(value=>value.metadata.flows.includes(flow.id)));
@@ -75,12 +79,17 @@ export function openSelectionPicker(view,key,values,isCard,onChange){
   if(values.some(value=>!value.metadata.flows.length))$('selection-picker-flow').append(new Option(t('未分类'),'unclassified'));
   $('selection-picker-rarity').replaceChildren(new Option(t('全部'),''),...['LEGEND','SSR','SR','R','N'].filter(rarity=>values.some(value=>value.metadata.rarity===rarity)).map(rarity=>new Option(rarity,rarity)));
   function draw(){
-    list.replaceChildren();
+    inputs.clear();list.replaceChildren();
     const filtered=filterSelectionChoices(values,{plan:$('selection-picker-plan').value,flow:$('selection-picker-flow').value,rarity:$('selection-picker-rarity').value});
     const groups=isCard?{idol:'角色专属',support:'支援卡',common:'通用',unknown:'未分类'}:{idol:'角色专属','support-battle':'支援卡 · 比赛继承','support-training':'支援卡 · 仅培养','support-unknown':'支援卡 · 用途待确认',common:'通用',unknown:'未分类'};
     if(key==='memoryExamItem'){delete groups['support-training'];delete groups.common;}
-    const sections=key==='skill'?groupedInheritanceCardChoices(filtered).map(group=>({source:group.id,title:group.flows.length?group.id==='concentration+fullPower'?t('全力／温存'):group.flows.map(id=>t(selectionFlowDefinitions.find(flow=>flow.id===id).label)).join('／'):group.plan==='Common'?t('通用'):['Plan1','Plan2','Plan3'].includes(group.plan)?t('{0} 通用',[planLabel(group.plan)]):t('未分类'),matches:group.values})):
-      Object.entries(groups).map(([source,title])=>({source,title:t(title),matches:filtered.filter(value=>(!isCard&&value.metadata.source==='support'?`support-${value.metadata.use}`:value.metadata.source)===source)}));
+    const groupedCards=values=>groupedInheritanceCardChoices(values).map(group=>({source:group.id,title:group.flows.length?group.id==='concentration+fullPower'?t('全力／温存'):group.flows.map(id=>t(selectionFlowDefinitions.find(flow=>flow.id===id).label)).join('／'):group.plan==='Common'?t('通用'):['Plan1','Plan2','Plan3'].includes(group.plan)?t('{0} 通用',[planLabel(group.plan)]):t('未分类'),matches:group.values}));
+    // 通用技能卡复用继承卡的流派分组和排序，专属卡与支援卡保留来源分组。
+    const sections=key==='skill'?groupedCards(filtered):Object.entries(groups).flatMap(([source,title])=>{
+      const matches=filtered.filter(value=>(!isCard&&value.metadata.source==='support'?`support-${value.metadata.use}`:value.metadata.source)===source);
+      if(isCard&&source==='common')return groupedCards(matches).map(group=>({...group,source:`common-${group.source}`,title:group.title===t('通用')?group.title:`${t('通用')} · ${group.title}`}));
+      return [{source,title:t(title),matches}];
+    });
     for(const {source,title,matches} of sections){
       if(source.includes('unknown')&&!matches.length)continue;
       const column=el('section','','selection-source-column'),heading=el('h3',title),options=el('div','','selection-source-options');column.dataset.source=source;
@@ -88,17 +97,18 @@ export function openSelectionPicker(view,key,values,isCard,onChange){
       for(const value of matches){
         const label=el('label','','selection-filter-choice'),input=el('input');input.type='checkbox';input.checked=draft.includes(value.key);input.value=value.key;
         label.dataset.value=value.key;appendChoiceVisual(label,value,isCard);input.setAttribute('aria-label',label.title);label.append(input);
-        input.onchange=()=>{draft=nextChoice(draft,value.key);};options.append(label);
+        inputs.set(value.key,input);input.onchange=()=>{draft=nextChoice(draft,value.key);updateAvailability();};options.append(label);
       }
       if(!matches.length)options.append(el('p',t('没有匹配选项'),'selection-picker-empty'));
       list.append(column);
     }
+    updateAvailability();
     if(!sections.length)list.append(el('p',t('没有匹配选项'),'selection-picker-empty'));
     list.scrollTop=0;
   }
   for(const id of ['selection-picker-plan','selection-picker-flow','selection-picker-rarity'])$(id).onchange=draw;
   draw();
-  $('selection-picker-clear').onclick=()=>{draft=[];for(const input of list.querySelectorAll('input'))input.checked=false;};
+  $('selection-picker-clear').onclick=()=>{draft=[];updateAvailability();};
   $('selection-picker-cancel').onclick=()=>dialog.close();
   $('selection-picker-confirm').onclick=()=>{
     // 确认应用项目多选；继承技能卡固定匹配任一项，其它分组由外部开关控制。
@@ -106,13 +116,13 @@ export function openSelectionPicker(view,key,values,isCard,onChange){
   };
   openDialog(dialog);list.scrollTop=0;
 }
-export function renderSelectionChoices(view,onChange){renderLoadoutChoices(view,onChange);}
-export function renderLoadoutChoices(view,onChange,{prefix='selection',skillKey='selectionSkill',itemKey='selectionItem',choices=selectionChoices,characters=view.selectionCharacter}={}){
+export function renderSelectionChoices(view,onChange,createAvailability){renderLoadoutChoices(view,onChange,{createAvailability});}
+export function renderLoadoutChoices(view,onChange,{prefix='selection',skillKey='selectionSkill',itemKey='selectionItem',choices=selectionChoices,characters=view.selectionCharacter,createAvailability}={}){
   const both=view[skillKey].length>0&&view[itemKey].length>0;
   $(prefix+'-loadout-and').hidden=!both;$(prefix+'-loadout-expression').classList.toggle('has-both-groups',both);
   for(const [containerId,key,values,isCard,openId] of [[prefix+'-skill-list',skillKey,choices.cards,true,prefix+'-skill-open'],[prefix+'-item-list',itemKey,choices.items,false,prefix+'-item-open']]){
     const container=$(containerId),focused=document.activeElement?.closest(`#${containerId} button`)?.dataset.value;
-    $(openId).onclick=()=>openSelectionPicker(view,key,selectionChoicesForCharacters(values,characters),isCard,onChange);
+    $(openId).onclick=()=>openSelectionPicker(view,key,selectionChoicesForCharacters(values,characters),isCard,onChange,createAvailability);
     container.replaceChildren();container.hidden=!view[key].length;
     const selected=values.filter(value=>view[key].includes(value.key));
     if(selected.length>1)container.append(el('span','(','filter-logic-bracket'));
@@ -186,7 +196,7 @@ function selectionAttributes(entry){
 function selectionHero(entry,collapsed,{detail,favorite=false,onFavorite=()=>{},favoriteDisabled=false,tags=[],editTags,removeTag,tagsDisabled=false}={}){
   const {memory:m,info,expired}=entry,hero=el('div','','selection-hero');
   const artwork=el('div','','selection-artwork'),art=el('div','','selection-memory-portrait');
-  art.append(illustration(info.image,info.name,'selection-memory-art',{characterId:m.characterId}));artwork.append(art);copySelectionKey(artwork,m,info.name);
+  art.append(illustration(info.image,info.name,'selection-memory-art',{characterId:m.characterId,fullResolution:true}));artwork.append(art);copySelectionKey(artwork,m,info.name);
   const overlay=el('div','','selection-art-overlay'),plan=el('span','','selection-art-plan'),symbol=filterSymbol(({2:'Plan1',3:'Plan2',4:'Plan3'})[m.planType]);
   const planKind=el('span','','idol-plan-kind');if(symbol)planKind.append(symbol);planKind.append(el('span',planLabel(m.planType)));plan.append(planKind);
   for(const [type,label] of [['ExamParameterBuff','好调'],['ExamLessonBuff','集中'],['ExamReview','好印象'],['ExamCardPlayAggressive','干劲'],['ExamConcentration','强气'],['ExamFullPower','全力']]){
@@ -307,30 +317,31 @@ export function selectionMemoryEntry(entry,{collapsed=true,detail,tags=[],editTa
 function abilityVisual(target,value){
   const image=el('span','','ability-choice-preview');image.append(abilityIconPreview(value.summary));target.append(image);target.title=value.text;
 }
-function openAbilityPicker(view,values,onChange){
-  const dialog=$('selection-picker'),list=$('selection-picker-list');let draft=[...view.ability];
-  dialog.classList.add('ability-picker');dialog.querySelector('.selection-picker-filters').hidden=true;
-  $('selection-picker-title').textContent=t('选择培养能力');$('selection-picker-title').append(el('small',t('同组任一满足，不同组同时满足'),'ability-matching-rule'));list.replaceChildren();
+function openAbilityPicker(view,values,onChange,createAvailability){
+  const dialog=$('selection-picker'),list=$('selection-picker-list');let draft=[...view.ability];const inputs=new Map(),updateAvailability=createPickerAvailabilityUpdater(createAvailability('ability'),()=>draft,inputs);
+  $('support-effect-picker-filters').hidden=true;dialog.classList.remove('support-effect-picker');dialog.classList.add('ability-picker');dialog.querySelector('.selection-picker-filters').hidden=true;
+  $('selection-picker-title').textContent=t('选择培养能力');$('selection-picker-hint').textContent=t('同组任一满足，不同组同时满足')+'。'+t('灰色选项与其他分组或当前筛选条件不匹配；已选项仍可取消。');list.replaceChildren();
   for(const group of groupedAbilityChoices(values,locale())){
     const section=el('section','','selection-source-column ability-picker-group'),heading=el('h3',t(group.label)),options=el('div','','ability-picker-options');section.dataset.abilityGroup=group.id;
     heading.append(el('span',String(group.values.length),'selection-source-count'));section.append(heading,options);
     for(const value of group.values){
       const label=el('label','','ability-picker-choice'),input=el('input');input.type='checkbox';input.value=value.key;input.checked=draft.includes(value.key);input.setAttribute('aria-label',value.text);
-      abilityVisual(label,value);label.append(input);input.onchange=()=>{draft=nextChoice(draft,value.key);};options.append(label);
+      abilityVisual(label,value);label.append(input);inputs.set(value.key,input);input.onchange=()=>{draft=nextChoice(draft,value.key);updateAvailability();};options.append(label);
     }
     list.append(section);
   }
+  updateAvailability();
   if(!values.length)list.append(el('p',t('没有匹配选项'),'selection-picker-empty'));
-  $('selection-picker-clear').onclick=()=>{draft=[];for(const input of list.querySelectorAll('input'))input.checked=false;};
+  $('selection-picker-clear').onclick=()=>{draft=[];updateAvailability();};
   $('selection-picker-cancel').onclick=()=>dialog.close();
   $('selection-picker-confirm').onclick=()=>{dialog.close();onChange('ability',draft);};
   openDialog(dialog);list.scrollTop=0;
 }
-export function renderInheritanceChoices(view,choices,onChange){
+export function renderInheritanceChoices(view,choices,onChange,createAvailability){
   const both=view.skill.length>0&&view.ability.length>0;$('inheritance-and').hidden=!both;$('inheritance-expression').classList.toggle('has-both-groups',both);
   for(const [key,values] of [['skill',choices.inheritanceCards],['ability',choices.abilities]]){
     const opener=$('inheritance-'+key+'-open'),list=$('inheritance-'+key+'-list');
-    opener.onclick=()=>key==='skill'?openSelectionPicker(view,key,values,true,onChange):openAbilityPicker(view,values,onChange);
+    opener.onclick=()=>key==='skill'?openSelectionPicker(view,key,values,true,onChange,createAvailability):openAbilityPicker(view,values,onChange,createAvailability);
     list.replaceChildren();list.hidden=!view[key].length;
     const selected=values.filter(value=>view[key].includes(value.key));
     const clauses=key==='ability'?groupedAbilityChoices(selected,locale()).map(group=>group.values):[selected];

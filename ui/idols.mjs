@@ -69,7 +69,7 @@ export function idolEntry({held,info},{favorite=false,onFavorite=()=>{},favorite
   artToggle.onchange=()=>{selectedArt=artToggle.checked?'upgraded':'base';drawArt();persist();onArt(selectedArt);};
   function drawArt(){
     const art=variants.find(art=>art.id===selectedArt)??{image:info.image,label:info.label};
-    artButton.replaceChildren(illustration(art.image,`${info.character} · ${info.name} · ${art.label}`,'idol-art',{characterId:info.characterId}));
+    artButton.replaceChildren(illustration(art.image,`${info.character} · ${info.name} · ${art.label}`,'idol-art',{characterId:info.characterId,fullResolution:true}));
     artButton.setAttribute('aria-label',t('查看卡面：{0}',[info.name]));
     artToggle.checked=selectedArt==='upgraded';
     const locked=art.unlockRank!==undefined&&(isReference(held)||held.levelLimitRank<art.unlockRank);

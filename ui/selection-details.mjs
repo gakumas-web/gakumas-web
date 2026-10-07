@@ -38,7 +38,7 @@ export function showSelectionDetails(detail,memory){
   for(const slot of [...detail.supportCards].sort((a,b)=>a.number-b.number)){
     const info=supportInfo(slot),card=el('button','','selection-detail-support-card');card.type='button';card.dataset.slotNumber=String(slot.number);card.dataset.supportId=slot.supportCardId;card.dataset.level=String(slot.level);card.dataset.rank=String(slot.levelLimitRank);card.dataset.rental=String(slot.isRental);card.dataset.rarity=info.rarity??'';
     const label=`${info.name} · ${t('记录等级 {0} · 突破 {1}',[slot.level,slot.levelLimitRank])}${slot.isRental?' · '+t('租借'):''}`;card.title=label;card.setAttribute('aria-label',label);
-    card.append(illustration(info.image,info.name,'selection-detail-support-art',{characterId:info.characterIds?.length===1?info.characterIds[0]:undefined}));
+    card.append(illustration(info.image,info.name,'selection-detail-support-art',{characterId:info.characterIds?.length===1?info.characterIds[0]:undefined,fullResolution:true}));
     const status=el('span','','selection-detail-support-status'),level=el('span','','selection-detail-support-level');level.append(el('small','Lv'),el('strong',String(slot.level)));status.append(level,rankFlowers(slot.levelLimitRank));card.append(status);
     const typeName=({Vocal:'vocal',Dance:'dance',Visual:'visual',[t('辅助')]:'assist'})[info.type];
     if(typeName){const type=el('img','','selection-detail-support-type');type.src=uiIconURL(`${typeName}.webp`);type.alt=info.type;card.append(type);} 

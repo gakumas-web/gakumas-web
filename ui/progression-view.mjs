@@ -21,13 +21,23 @@ function growthGauge(label,row,maximum,calculation,explain,remainingLabel){
   };
   const current=arc(0,calculation.value/maximum,'gauge-fill');
   const remaining=arc(calculation.value/maximum,calculation.reachable/maximum,'gauge-reachable');
-  if(calculation.remaining>0){svg.append(remaining);remaining.setAttribute('aria-label',`${label} · ${remainingLabel}`);supportHint(remaining,()=>explain(calculation,true,true),{container:gauge,followPointer:true});}
-  if(calculation.value>0){svg.append(current);current.setAttribute('aria-label',`${label} · ${row.after}`);supportHint(current,()=>explain(calculation,true),{container:gauge,followPointer:true});}
+  if(calculation.remaining>0)svg.append(remaining);
+  if(calculation.value>0)svg.append(current);
   const point=(ratio,radius)=>({x:60-radius*Math.cos(Math.PI*ratio),y:58-radius*Math.sin(Math.PI*ratio)});
   for(const ratio of [0,.25,.5,.75,1]){
     const a=point(ratio,43),b=point(ratio,ratio===.5?37:39);svg.append(make('line',{x1:a.x,y1:a.y,x2:b.x,y2:b.y,class:'gauge-tick','aria-hidden':'true'}));
   }
-  const name=make('text',{x:60,y:47,'text-anchor':'middle','dominant-baseline':'middle',class:'gauge-label','aria-hidden':'true'});name.textContent=label;svg.append(name);
+  const hit=make('rect',{x:0,y:0,width:120,height:66,class:'gauge-hit-area','aria-label':`${label} · ${t('成长率')} ${row.after}`});
+  svg.append(hit);
+  supportHint(hit,()=>{
+    const body=el('div');body.append(explain(calculation,true));
+    if(calculation.remaining>0)body.append(el('strong',`${remainingLabel} +${calculation.remaining}%`),explain(calculation,true,true));
+    return body;
+  },{container:gauge,followPointer:true});
+  // 文字区域覆盖命中层，不触发仪表盘说明；数值与外部标题也不参与命中。
+  const labelZone=make('g',{class:'gauge-label-zone'});
+  labelZone.append(make('rect',{x:37,y:33,width:46,height:28,class:'gauge-label-blocker','aria-hidden':'true'}));
+  const name=make('text',{x:60,y:47,'text-anchor':'middle','dominant-baseline':'middle',class:'gauge-label','aria-hidden':'true'});name.textContent=label;labelZone.append(name);svg.append(labelZone);
   const value=el('strong',row.after),delta=difference(row);if(delta)value.append(delta);
   gauge.setAttribute('aria-label',`${label} · ${t('成长率')} ${row.after} · 0–${maximum}%`);
   gauge.append(svg,value);return gauge;

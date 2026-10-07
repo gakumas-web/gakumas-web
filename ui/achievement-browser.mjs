@@ -22,8 +22,8 @@ function entryFace(id){
 function portrait(id,eager=false){
   let frame;
   if(id==='nasr'){
-    frame=characterArt(id,true,{fullResolution:true});const img=el('img');img.hidden=true;img.src=uiIconURL('neo-asari-full.png');img.alt=entryName(id);
-    watchImage(img,()=>{frame.querySelector('.art-fallback').hidden=true;},()=>{frame.querySelector('.art-fallback').hidden=false;});frame.prepend(img);
+    frame=characterArt(id,true,{fullResolution:true});const fallback=frame.querySelector('.art-fallback');fallback.textContent=t('插图载入中');const img=el('img');img.hidden=true;img.src=uiIconURL('neo-asari-full.png');img.alt=entryName(id);
+    watchImage(img,()=>{fallback.hidden=true;},willRetry=>{fallback.hidden=false;fallback.textContent=t(willRetry?'插图暂不可用，稍后自动重试':'插图暂不可用');});frame.prepend(img);
   }else frame=characterArt(id,true,{fullResolution:true});
   if(eager){const image=frame.querySelector('img');if(image){image.loading='eager';image.fetchPriority='high';}}
   const layout=portraitLayout(id);
@@ -112,9 +112,9 @@ export function renderAchievementBrowser(root,{snapshot,view,ready,change}){
     }
     headingRow.append(modes);
   }
-  const priority=el('button','','ownership-toggle achievement-incomplete-first'),check=el('span','','owned-only-check');priority.type='button';priority.id='achievement-incomplete-first';priority.setAttribute('role','switch');priority.setAttribute('aria-checked',String(view.achievementIncompleteFirst!==false));check.setAttribute('aria-hidden','true');priority.append(check,el('span',t('未达成优先')));headingRow.append(priority);
+  const priority=el('button','','ownership-toggle achievement-incomplete-first'),check=el('span','','owned-only-check');priority.type='button';priority.id='achievement-incomplete-first';priority.setAttribute('role','switch');priority.setAttribute('aria-checked',String(view.achievementIncompleteFirst!==false));check.setAttribute('aria-hidden','true');priority.append(check,el('span',t('未达成优先')));filters.append(priority);
   priority.onclick=()=>{view.achievementIncompleteFirst=priority.getAttribute('aria-checked')!=='true';view.page=0;change();root.querySelector('#achievement-incomplete-first')?.focus({preventScroll:true});};
-  headingRow.insertBefore(filters,priority);
+  headingRow.append(filters);
   for(const [key,label,choices] of [['achievementReward','奖励',[['','全部'],['experience','制作人经验'],['support','支援卡强化点'],['jewel','宝石'],['other','其他']]],['achievementState','状态',[['','全部'],['achieved','已达成'],['unachieved','未达成']]],['achievementSort','排序',[['original','原始顺序'],['near','接近下一门槛']]]]){const wrapper=el('label',t(label)),select=el('select');wrapper.dataset.achievementControl=key;select.dataset.achievementFilter=key;for(const [value,name] of choices)select.append(new Option(t(name),value));select.value=view[key];select.onchange=()=>{view[key]=select.value;view.page=0;change();root.querySelector(`[data-achievement-filter="${key}"]`)?.focus({preventScroll:true});};wrapper.append(select);filters.append(wrapper);}
   const entries=achievementDetailScope(filtered,view),count=countEntries(cardMode?cardEntries:commonCategory?common.filter(row=>row.category===commonCategory):common),result=el('p',t('成就 {0} / {1} 项',[countEntries(entries),count]),'character-achievement-result');result.setAttribute('role','status');section.append(result);
   const groups=new Map();
@@ -129,7 +129,7 @@ export function renderAchievementBrowser(root,{snapshot,view,ready,change}){
     if(!cardMode){list.append(achievementEntry(unit));continue;}
     const [id,values]=unit,held=heldCards.get(id)??{idolCardId:id,ownership:'unknown'},info=idolInfo({...held,idolCardSkinId:''}),group=el('article','','achievement-idol-group');group.dataset.achievementIdol=id;group.dataset.ownership=held.ownership;
     group.append(collectionState(held));
-    group.append(illustration(info.image,info.name,'achievement-card-art',{characterId:info.characterId}));
+    group.append(illustration(info.image,info.name,'achievement-card-art',{characterId:info.characterId,fullResolution:true}));
     const icons=el('div','','card-achievement-icons'),matching=new Set(values.map(entry=>entry.id));
     const order={MissionType_IncrementProduceIdolCardClearCount:1,MissionType_AbsoluteIdolCardLevelLimitRank:3,MissionType_IncrementProduceIdolCardPlayCount:2};
     for(const entry of mergeCardAchievements(cardEntries.filter(row=>row.idolCardId===id)).sort((a,b)=>(order[a.missionType]??99)-(order[b.missionType]??99))){

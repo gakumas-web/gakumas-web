@@ -82,20 +82,27 @@ def check(browser_path=None):
                 expect(page.locator('#content-readiness')).to_be_hidden()
                 expect(page.locator('#resources-open')).to_have_attribute('data-status','idle')
                 expect(page.locator('#resource-feedback')).to_be_hidden()
+                for tab in ['memories','selectionMemories','idolCards','supportCards','idolCardSkins','achievements']:
+                    expect(page.locator('#count-'+tab)).to_have_text('未导入')
+                for tab in ['memories','selectionMemories','idolCards','supportCards','idolCardSkins','achievements']:
+                    expect(page.locator('[data-tab="'+tab+'"]')).to_be_disabled()
+                expect(page.locator('#image-total-size')).to_contain_text('不代表本次剩余下载量')
                 account=root/'account'
                 for name,document in fixtures().items():
                     if name=='capture':document['memories'][0]['examBattleProduceCards']=[document['memories'][0]['produceCard']]
                     target=account/name/'snapshot.json';target.parent.mkdir(parents=True);target.write_text(json.dumps(document))
                 page.locator('#account-directory-files').set_input_files(str(account))
                 expect(page.locator('#profile')).to_have_value('account-'+ACCOUNT)
-                # 新入口分别承载账号和公共资源，标签窗口关闭后归还数据窗口焦点。
+                for tab in ['memories','selectionMemories','idolCards','supportCards','idolCardSkins','achievements']:
+                    expect(page.locator('[data-tab="'+tab+'"]')).to_be_enabled()
+                # 新入口分别承载账号和公共资源，标签窗口关闭后归还账号窗口焦点。
                 page.locator('#data-open').click()
                 expect(page.locator('#data-dialog #export-account-package')).to_be_enabled()
                 expect(page.locator('#data-dialog #content-check')).to_have_count(0)
-                page.locator('#close-data').click();page.locator('#resources-open').click()
+                expect(page.locator('#resources-dialog #manage-tags')).to_have_count(0)
                 page.locator('#manage-tags').click();expect(page.locator('#tags-dialog')).to_be_visible()
                 page.locator('#close-tags').click();expect(page.locator('#manage-tags')).to_be_focused()
-                page.locator('#close-resources').click();expect(page.locator('#resources-open')).to_be_focused()
+                page.locator('#close-data').click();expect(page.locator('#data-open')).to_be_focused()
                 check_workflow_polish(page,ACCOUNT)
                 # 对本地偏好边界逐项恢复，账号和导出入口始终可用。
                 cases=['{','null','[]',json.dumps({'views':None}),json.dumps({'tab':'retired','views':{'achievements':{'query':[],'page':'bad'}}})]
@@ -241,7 +248,7 @@ def check(browser_path=None):
                 expect(manual.locator('#resources-open')).to_have_attribute('data-status','idle')
                 expect(manual.locator('#resource-feedback')).to_be_hidden(timeout=5000)
                 manual.locator('#language').select_option('ja')
-                expect(manual.locator('#resources-open')).to_have_attribute('aria-label','データ')
+                expect(manual.locator('#resources-open')).to_have_attribute('aria-label','資料と画像')
                 manual_context.close()
                 upgrade_context=browser.new_context();upgrade_a=upgrade_context.new_page();upgrade_b=upgrade_context.new_page()
                 for tab in [upgrade_a,upgrade_b]:

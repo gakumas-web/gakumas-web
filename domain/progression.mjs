@@ -95,7 +95,13 @@ export function createProgression(data = {}, base = {}, semantics) {
     const card=supportCards.get(held.supportCardId);
     if(!card)return null;
     const limit=[...byId(data.SupportCardLevelLimit,card.supportCardLevelLimitId)].sort((a,b)=>b.levelLimit-a.levelLimit)[0];
-    return support({...held,level:limit.levelLimit,levelLimitRank:rankNumber(limit.rank)});
+    const result=support({...held,level:limit.levelLimit,levelLimitRank:rankNumber(limit.rank)});
+    const maximumSkills=new Map(activeSkills(supportRows(held.supportCardId),limit.levelLimit,row=>row.supportCardLevel).map(row=>[row.produceSkillId,row]));
+    for(const effect of result.changes){
+      const row=maximumSkills.get(effect.skillId);
+      effect.descriptionParts=skills.get(JSON.stringify([row.produceSkillId,row.produceSkillLevel]))?.descriptions??[];
+    }
+    return result;
   }
   function supportPreview(held,target=held.level) {
     const baseline=support(held,target);if(!baseline)return null;

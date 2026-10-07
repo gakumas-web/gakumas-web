@@ -1,3 +1,4 @@
+import {matchesSupportChoices} from './support-effect-choices.mjs';
 import {favoriteRecords} from './personal-library.mjs';
 import {t,localizeSource} from '../i18n.mjs';
 import {matchesAny,selectedValues,matchesSupportEffect} from './model.mjs';
@@ -25,8 +26,9 @@ export function supportEntries(snapshot, query, sort,filters={}) {
     });
   const filtered=entries.filter(entry=>{
     const {info}=entry;
-    if(!matchEffects&&!filters.supportTrigger&&!query)return true;
+    if(!matchEffects&&!filters.supportTrigger&&!selectedValues(filters.supportSkills).length&&!query)return true;
     const searchEffects=entry.searchEffects;
+    if(!matchesSupportChoices(searchEffects,filters.supportSkills))return false;
     if(matchEffects&&!searchEffects.some(effect=>supportEffectKinds(effect).some(kind=>matchesSupportEffect(kind,filters.supportEffect,filters.supportEffectAttribute))))return false;
     if(filters.supportTrigger&&!searchEffects.some(effect=>supportEffectPhases(effect).includes(filters.supportTrigger)))return false;
     return !query||[entry.held.supportCardId,info.name,info.rarity,info.type,info.characters,...(info.events??[]).flatMap(event=>[event.text,...event.rewards.map(reward=>reward.name)]),...searchEffects.flatMap(effect=>[effect.before,effectSearchText(effect.before)])].join(' ').toLowerCase().includes(query);

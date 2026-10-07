@@ -32,7 +32,7 @@ with sync_playwright() as driver:
  image_requests=lambda:[address for address,_,_ in requests if '/image-files/' in address]
  first=list(image_requests());assert len(first)==initial['core']['packages'] and all(initial['groups'][address.rsplit('/',1)[-1]]=='core' for address in first)
  expect(page.locator('#startup-status')).to_be_hidden();expect(page.locator('#resource-toggle')).to_have_attribute('aria-expanded','false')
- expect(page.locator('#resource-complete')).to_contain_text('MiB')
+ expect(page.locator('#image-total-size')).to_contain_text('MiB')
  page.reload(wait_until='networkidle',timeout=60000)
  page.evaluate("""async()=>{window.onlineImages=(await import('./resources.mjs')).imageManager;window.onlineConfig=(await import('./image-config.mjs')).imageConfig;}""")
  page.wait_for_function("()=>onlineImages.status().phase==='ready'&&onlineImages.status().total>0&&onlineImages.status().completed===onlineImages.status().total",timeout=60000)

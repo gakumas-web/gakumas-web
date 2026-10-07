@@ -1,9 +1,9 @@
 import {validProfile} from '../domain/account.mjs';
 import {selectedValues} from '../domain/model.mjs';
 
-export const defaults=()=>({customTag:'',achievementSection:'ending',achievementScope:'common',achievementCharacter:'',achievementFocus:'hski',achievementCategory:'',achievementState:'',achievementReward:'',achievementSort:'original',achievementIncompleteFirst:true,selectionCharacter:[],selectionPlan:'',selectionGrade:'',selectionProtection:'all',selectionLoadoutCollapsed:true,selectionSkill:[],selectionItem:[],selectionSkillAll:true,selectionItemAll:true,selectionSort:'original',skinCharacter:[],skinTheme:'',memoryGrade:'',memoryExamSkill:[],memoryExamItem:[],memoryExamSkillAll:true,memoryExamItemAll:true,ownership:'owned',idolCharacter:[],idolRarity:'',idolImmersive:false,idolPlan:'',idolEffect:[],supportRarity:'',supportImmersive:false,supportType:'',supportPlan:'',supportPlanCommon:true,supportReward:'',supportEffect:[],supportEffectAttribute:[],supportCharacter:[],supportCharacterAll:true,supportTrigger:'',query:'',plan:'',skill:[],ability:[],character:[],protection:'all',sort:'ordinal',catalogSort:'original',ownedFirst:false,purpose:'all',page:0});
+export const defaults=()=>({customTag:'',achievementSection:'ending',achievementScope:'common',achievementCharacter:'',achievementFocus:'hski',achievementCategory:'',achievementState:'',achievementReward:'',achievementSort:'original',achievementIncompleteFirst:true,selectionCharacter:[],selectionPlan:'',selectionGrade:'',selectionProtection:'all',selectionLoadoutCollapsed:true,selectionSkill:[],selectionItem:[],selectionSkillAll:true,selectionItemAll:true,selectionSort:'original',skinCharacter:[],skinTheme:'',memoryGrade:'',memoryExamSkill:[],memoryExamItem:[],memoryExamSkillAll:true,memoryExamItemAll:true,ownership:'owned',idolCharacter:[],idolRarity:'',idolImmersive:false,idolPlan:'',idolEffect:[],supportRarity:'',supportImmersive:false,supportType:'',supportPlan:'',supportPlanCommon:true,supportReward:'',supportSkills:[],supportCharacter:[],supportCharacterAll:true,query:'',plan:'',skill:[],ability:[],character:[],protection:'all',sort:'ordinal',catalogSort:'original',ownedFirst:false,purpose:'all',page:0});
 
-export const FILTER_BINDINGS=[['custom-tag-filter','customTag'],['selection-character','selectionCharacter'],['selection-plan','selectionPlan'],['selection-grade','selectionGrade'],['selection-loadout-collapsed','selectionLoadoutCollapsed'],['selection-skill','selectionSkill'],['selection-item','selectionItem'],['selection-skill-all','selectionSkillAll'],['selection-item-all','selectionItemAll'],['selection-sort','selectionSort'],['skin-character','skinCharacter'],['skin-theme','skinTheme'],['memory-grade','memoryGrade'],['memory-skill','memoryExamSkill'],['memory-item','memoryExamItem'],['memory-skill-all','memoryExamSkillAll'],['memory-item-all','memoryExamItemAll'],['ownership','ownership'],['search','query'],['character','character'],['sort','sort'],['idol-sort','catalogSort'],['catalog-owned-first','ownedFirst'],['purpose','purpose'],['plan','plan'],['skill','skill'],['ability','ability'],['idol-character','idolCharacter'],['idol-rarity','idolRarity'],['idol-immersive','idolImmersive'],['idol-plan','idolPlan'],['idol-effect','idolEffect'],["support-character", "supportCharacter"],["support-character-all", "supportCharacterAll"],["support-rarity", "supportRarity"],["support-immersive", "supportImmersive"],["support-type", "supportType"],["support-plan", "supportPlan"],["support-plan-common", "supportPlanCommon"],["support-reward", "supportReward"],["support-effect", "supportEffect"],["support-effect-attribute", "supportEffectAttribute"],["support-trigger", "supportTrigger"]];
+export const FILTER_BINDINGS=[['custom-tag-filter','customTag'],['selection-character','selectionCharacter'],['selection-plan','selectionPlan'],['selection-grade','selectionGrade'],['selection-loadout-collapsed','selectionLoadoutCollapsed'],['selection-skill','selectionSkill'],['selection-item','selectionItem'],['selection-skill-all','selectionSkillAll'],['selection-item-all','selectionItemAll'],['selection-sort','selectionSort'],['skin-character','skinCharacter'],['skin-theme','skinTheme'],['memory-grade','memoryGrade'],['memory-skill','memoryExamSkill'],['memory-item','memoryExamItem'],['memory-skill-all','memoryExamSkillAll'],['memory-item-all','memoryExamItemAll'],['ownership','ownership'],['search','query'],['character','character'],['sort','sort'],['idol-sort','catalogSort'],['catalog-owned-first','ownedFirst'],['purpose','purpose'],['plan','plan'],['skill','skill'],['ability','ability'],['idol-character','idolCharacter'],['idol-rarity','idolRarity'],['idol-immersive','idolImmersive'],['idol-plan','idolPlan'],['idol-effect','idolEffect'],["support-character", "supportCharacter"],["support-character-all", "supportCharacterAll"],["support-rarity", "supportRarity"],["support-immersive", "supportImmersive"],["support-type", "supportType"],["support-plan", "supportPlan"],["support-plan-common", "supportPlanCommon"],["support-reward", "supportReward"],['support-skills','supportSkills']];
 export const CHOICE_GROUPS=[
     ['selection-character-chips','selection-character','selectionCharacter',true,'selectionMemories'],
     ['selection-plan-chips','selection-plan','selectionPlan',false,'selectionMemories'],
@@ -17,9 +17,7 @@ export const CHOICE_GROUPS=[
     ['skin-character-chips','skin-character','skinCharacter',true,'idolCardSkins'],
     ['idol-character-chips','idol-character','idolCharacter',true,'idolCards'],
     ['idol-effect-chips','idol-effect','idolEffect',false,'idolCards'],
-    ['support-character-chips','support-character','supportCharacter',true,'supportCards'],
-    ['support-effect-chips','support-effect','supportEffect',false,'supportCards'],
-    ['support-effect-attribute-chips','support-effect-attribute','supportEffectAttribute',false,'supportCards']];
+    ['support-character-chips','support-character','supportCharacter',true,'supportCards']];
 
 const object=value=>value!==null&&typeof value==='object'&&!Array.isArray(value);
 export function normalizeView(v){
@@ -55,7 +53,7 @@ export function normalizeView(v){
   v.supportCharacterAll=v.supportCharacterAll!==false;
   v.supportPlanCommon=v.supportPlanCommon!==false;
   v.purpose=['inheritance','with-deck'].includes(v.purpose)?v.purpose:'all';
-  for(const key of ['character','selectionCharacter','skinCharacter','idolCharacter','idolEffect','supportCharacter','supportEffect','supportEffectAttribute'])v[key]=selectedValues(v[key]);
+  for(const key of ['character','selectionCharacter','skinCharacter','idolCharacter','idolEffect','supportCharacter','supportSkills'])v[key]=selectedValues(v[key]);
   return v;
 }
 
@@ -68,7 +66,6 @@ export function createViews(saved={}){
   if(!object(saved))saved={};
   return Object.fromEntries(['memories','selectionMemories','idolCards','supportCards','idolCardSkins','achievements'].map(tab=>{
     const view=createView(saved[tab]);
-    if(tab==='supportCards'){if(view.ownership!=='favorites')view.ownership='all';view.page=0;}
     return [tab,view];
   }));
 }
@@ -79,7 +76,7 @@ const FILTER_FIELDS={
   memories:['character','memoryGrade','customTag','plan','skill','ability','memoryExamSkill','memoryExamItem','memoryExamSkillAll','memoryExamItemAll'],
   selectionMemories:['customTag','selectionCharacter','selectionPlan','selectionGrade','selectionSkill','selectionItem','selectionSkillAll','selectionItemAll'],
   idolCards:['idolCharacter','idolPlan','idolEffect'],
-  supportCards:['supportCharacter','supportCharacterAll','supportType','supportPlan','supportPlanCommon','supportReward','supportEffect','supportEffectAttribute','supportTrigger'],
+  supportCards:['supportCharacter','supportCharacterAll','supportType','supportPlan','supportPlanCommon','supportReward','supportSkills'],
   idolCardSkins:['skinCharacter','skinTheme'],
 };
 export function activeFilterKeys(tab,view){

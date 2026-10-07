@@ -16,12 +16,14 @@ test('当前主题直接恢复，单选多选维持原合同',()=>{
   assert.deepEqual(nextChoice(selected,'a'),[]);assert.deepEqual(nextChoice(selected,''),[]);
   assert.equal(nextChoice('Plan1','Plan2'),'Plan2');
 });
-test('支援卡每次载入默认全目录，不受保存的持有范围和页码限制',()=>{
-  for(const ownership of ['owned','unowned','all']){
-    const views=createViews({supportCards:{ownership,page:4,supportTrigger:'StartRefresh',supportEffect:['SpChangeRate']}});
-    assert.equal(views.supportCards.ownership,'all');assert.equal(views.supportCards.page,0);
-    assert.equal(views.supportCards.supportTrigger,'StartRefresh');assert.deepEqual(views.supportCards.supportEffect,['SpChangeRate']);
-    views.supportCards.ownership='owned';assert.equal(views.supportCards.ownership,'owned');
+test('三类图鉴默认仅显示已持有，并一致恢复持有范围与页码',()=>{
+  for(const tab of ['idolCards','supportCards','idolCardSkins']){
+    assert.equal(createViews()[tab].ownership,'owned');
+    for(const ownership of ['owned','unowned','all','favorites']){
+      const views=createViews({[tab]:{ownership,page:4,supportSkills:['exact-effect']}});
+      assert.equal(views[tab].ownership,ownership);assert.equal(views[tab].page,4);
+      assert.deepEqual(views[tab].supportSkills,['exact-effect']);
+    }
   }
 });
 test('控件同步和事件绑定共用无重复映射，每个图形筛选都有对应字段',()=>{
@@ -43,11 +45,11 @@ test('保存视图只恢复当前字段，退役阅读模式不进入运行状�
   assert.deepEqual(restored.idolCharacter,['hski']);
 });
 test('筛选标签与清空共用字段，保留范围、稀有度、排序和其它页条件',()=>{
-  const view=createView({ownership:'unowned',idolRarity:'SSR',catalogSort:'character',idolCharacter:['hski','ttmr'],idolPlan:'Plan1',supportTrigger:'StartPresent',query:'名称',page:3});
+  const view=createView({ownership:'unowned',idolRarity:'SSR',catalogSort:'character',idolCharacter:['hski','ttmr'],idolPlan:'Plan1',supportSkills:['exact-effect'],query:'名称',page:3});
   assert.deepEqual(activeFilterKeys('idolCards',view),['idolCharacter','idolPlan']);
   resetFilters(view,'idolCards');
   assert.deepEqual(activeFilterKeys('idolCards',view),[]);assert.equal(view.page,0);
-  assert.deepEqual([view.ownership,view.idolRarity,view.catalogSort,view.supportTrigger,view.query],['unowned','SSR','character','StartPresent','名称']);
+  assert.deepEqual([view.ownership,view.idolRarity,view.catalogSort,view.supportSkills,view.query],['unowned','SSR','character',['exact-effect'],'名称']);
   resetFilters(view,'idolCards',{keys:['query']});assert.equal(view.query,'');
   assert.deepEqual(activeFilterKeys('memories',createView()),[]);
   assert.deepEqual(activeFilterKeys('selectionMemories',createView({selectionProtection:'protected'})),[]);
@@ -111,4 +113,9 @@ test('常用筛选读取隔离损坏结构与存储异常，保留有效条件',
   const result=parseSavedViews(JSON.stringify([{name:'收藏',view:{query:'关键词',page:-1}}]));
   assert.equal(result.recovered,false);assert.equal(result.values[0].view.query,'关键词');assert.equal(result.values[0].view.page,0);
   assert.deepEqual(parseSavedViews(null),{values:[],recovered:false});
+});
+
+test('旧支援效果分类不作为隐藏条件恢复',()=>{
+  const view=createView({supportEffect:['GrowthRate'],supportEffectAttribute:['Vocal'],supportTrigger:'StartRefresh'});
+  assert.deepEqual(view.supportSkills,[]);assert.equal(view.supportEffect,undefined);assert.equal(view.supportEffectAttribute,undefined);assert.equal(view.supportTrigger,undefined);
 });

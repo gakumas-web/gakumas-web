@@ -16,6 +16,27 @@ export const beginImageView=view=>imageManager.prioritizeView(view);
 export const completeImageBytes=()=>totalImageBytes;
 // 只合并本批就绪的资源名，避免每次通知重建整套图片目录。
 const imageNames=new Set(imageConfig.images??[]),iconNames=new Set(imageConfig.icons??[]);
+const pendingImageSelector='img[src*="#resource="],image[href*="#resource="]';
+function refreshCachedImage(node){
+  const attribute=node.tagName.toLowerCase()==='image'?'href':'src';
+  const name=decodeURIComponent(new URL(node.getAttribute(attribute),root).hash.slice('#resource='.length));
+  const [folder,file]=name.split('/');
+  const url=(folder==='images'?imageConfig.imageURLs:imageConfig.iconURLs)?.[file];
+  if(!url)return;
+  // 克隆节点不会继承原图的加载回调，命中缓存后也要恢复图片可见性。
+  if(attribute==='src'&&node.hidden)node.addEventListener('load',()=>{node.hidden=false;},{once:true});
+  node.setAttribute(attribute,url);
+}
+// 资源就绪时尚未挂载的节点会错过通知；只检查新增子树，不重新扫描整页。
+if(typeof document!=='undefined'&&typeof MutationObserver!=='undefined'){
+  new MutationObserver(records=>{
+    for(const record of records)for(const node of record.addedNodes){
+      if(node.nodeType!==1)continue;
+      if(node.matches(pendingImageSelector))refreshCachedImage(node);
+      for(const image of node.querySelectorAll(pendingImageSelector))refreshCachedImage(image);
+    }
+  }).observe(document.documentElement,{childList:true,subtree:true});
+}
 function applyCachedImages(changes){
   const imageURLs=imageConfig.imageURLs??={},iconURLs=imageConfig.iconURLs??={};
   for(const [path,url] of Object.entries(changes)){
@@ -23,11 +44,7 @@ function applyCachedImages(changes){
     if(url){names.add(name);urls[name]=url;}else{names.delete(name);delete urls[name];}
   }
   imageConfig.images=[...imageNames];imageConfig.icons=[...iconNames];
-  if(typeof document!=='undefined')for(const node of document.querySelectorAll('img[src*="#resource="],image[href*="#resource="]')){
-    const attribute=node.tagName.toLowerCase()==='image'?'href':'src';
-    const name=decodeURIComponent(new URL(node.getAttribute(attribute),root).hash.slice('#resource='.length));
-    if(changes[name])node.setAttribute(attribute,changes[name]);
-  }
+  if(typeof document!=='undefined')for(const node of document.querySelectorAll(pendingImageSelector))refreshCachedImage(node);
   if(typeof document!=='undefined'&&changes['images/img_general_icon_produce-effect_bg-positive.webp'])document.documentElement.style.setProperty('--effect-positive-bg',`url("${assetURL('img_general_icon_produce-effect_bg-positive.webp')}")`);
 }
 imageManager.onAvailable(changes=>{if(lastDelivery)applyCachedImages(changes);},{incremental:true});

@@ -1,3 +1,5 @@
+import {supportEffectClauses} from '../domain/support-effect-choices.mjs';
+import {resetSupportEffectChoices} from './support-effect-picker.mjs';
 import {$,el} from './dom.mjs';
 import {memoryExamChoices} from '../domain/memories.mjs';
 import {selectionGrades} from '../domain/selection-memories.mjs';
@@ -15,7 +17,7 @@ function summaryAbility(a){
 
 let memoryOptionCache;
 export function setupFilterOptions(snapshot,groups,{controls=true}={}){
-  memoryOptionCache=null;
+  memoryOptionCache=null;resetSupportEffectChoices();
   groups.clear();
   for(const m of snapshot?.memories??[])if(m.config!==null)groups.set(m.config,(groups.get(m.config)??0)+1);
   $('snapshot-meta').textContent=snapshot?t("快照 {0}",[new Date(snapshot.captured_at).toLocaleString(locale(),{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hour12:false})]):t('尚未载入');
@@ -108,7 +110,7 @@ export function renderFilterChoices(containerId,inputId,key,faces,v,onChange){
 export function renderTabCount(tab,count,total,pending='—'){
   const output=$('count-'+tab);
   output.textContent=count===null?pending:count===undefined?t('未采集'):count===total?String(count):`${count} / ${total}`;
-  output.title=count==null?'':t('{0} / {1} 条',[count,total]);
+  output.title=count===null?(pending===t('未导入')?t('未导入账号'):pending):count===undefined?t('当前账号尚未采集此项'):t('当前筛选结果：{0} / {1} 条',[count,total]);
 }
 
 
@@ -118,25 +120,25 @@ export function renderActiveFilters(keys,filters,onRemove,{logic=true}={}){
   const labels={achievementCategory:'类别',achievementState:'状态',selectionCharacter:'角色',selectionPlan:'计划',selectionGrade:'评级',selectionProtection:'游戏保护',selectionSkill:'技能卡',selectionItem:'P 道具',memoryExamSkill:'考试技能卡',memoryExamItem:'考试 P 道具',character:'角色',idolCharacter:'角色',supportCharacter:'角色',skinCharacter:'角色',
     idolPlan:'计划',supportPlan:'可编入计划',plan:'计划',idolRarity:'稀有度',supportRarity:'稀有度',
     idolEffect:'效果涉及',supportType:'支援卡属性',supportEffect:'效果增益类型',supportEffectAttribute:'效果作用属性',
-    supportTrigger:'效果触发时机',supportReward:'事件奖励',skinTheme:'装扮主题',memoryGrade:'评级',
+    supportSkills:'满级支援效果',supportReward:'事件奖励',skinTheme:'装扮主题',memoryGrade:'评级',
     customTag:'自定义标签',skill:'继承技能卡',ability:'培养能力',query:'搜索'};
   let count=0;
   for(const key of [...(filters.query?['query']:[]),...keys]){
     const id=FILTER_BINDINGS.find(([,field])=>field===key)?.[0],input=id?$(id):null;
     const values=selectedValues(filters[key]);if(!values.length)continue;
     const includeCommon=key==='supportPlan'&&filters.supportPlanCommon!==false;
-    const grouped=key!=='ability'&&(values.length>1||includeCommon);
+    const grouped=!['ability','supportSkills'].includes(key)&&(values.length>1||includeCommon);
     const group=logic?el('span','','filter-logic-group'):container;
     if(logic){
       group.dataset.logicKey=key;
       if(container.childElementCount)container.append(el('span','AND','filter-logic-operator'));
       container.append(group);if(grouped)group.append(el('span','(','filter-logic-bracket'));
     }
-    const operator=key==='skill'||key==='ability'?'OR':['selectionSkill','selectionItem','memoryExamSkill','memoryExamItem'].includes(key)?(filters[key+'All']?'AND':'OR'):key==='supportCharacter'?(filters.supportCharacterAll!==false?'AND':'OR'):'OR';
-    const clauses=key==='ability'?abilityFilterClauses(values):[values];
+    const operator=key==='skill'||key==='ability'||key==='supportSkills'?'OR':['selectionSkill','selectionItem','memoryExamSkill','memoryExamItem'].includes(key)?(filters[key+'All']?'AND':'OR'):key==='supportCharacter'?(filters.supportCharacterAll!==false?'AND':'OR'):'OR';
+    const clauses=key==='ability'?abilityFilterClauses(values):key==='supportSkills'?supportEffectClauses(values):[values];
     for(const [clauseIndex,clause] of clauses.entries()){
       if(logic&&clauseIndex)group.append(el('span','AND','filter-logic-operator'));
-      if(logic&&key==='ability'&&clause.length>1)group.append(el('span','(','filter-logic-bracket'));
+      if(logic&&['ability','supportSkills'].includes(key)&&clause.length>1)group.append(el('span','(','filter-logic-bracket'));
       for(const [index,value] of clause.entries()){
         if(logic&&index)group.append(el('span',operator,'filter-logic-operator'));
         let text=[...(input?.options??[])].find(option=>option.value===value)?.text??value;
@@ -151,7 +153,7 @@ export function renderActiveFilters(keys,filters,onRemove,{logic=true}={}){
         button.append(el('span',full,'filter-tag-label'),el('span','×','filter-tag-remove'));
         button.onclick=()=>onRemove(key,value);group.append(button);count++;
       }
-      if(logic&&key==='ability'&&clause.length>1)group.append(el('span',')','filter-logic-bracket'));
+      if(logic&&['ability','supportSkills'].includes(key)&&clause.length>1)group.append(el('span',')','filter-logic-bracket'));
     }
     if(logic&&includeCommon)group.append(el('span','OR','filter-logic-operator'),el('span',t('通用'),'filter-chip filter-implicit-condition'));
     if(logic&&grouped)group.append(el('span',')','filter-logic-bracket'));

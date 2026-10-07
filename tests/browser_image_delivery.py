@@ -76,10 +76,25 @@ def check(browser_path=None):
                 expect(page.locator('#empty-import-account')).to_be_enabled()
                 expect(page.locator('#startup-status')).to_be_hidden()
                 expect(page.locator('#image-notice')).to_contain_text('正在下载',timeout=20000)
+                # 模拟冷缓存时保存地址与构造离屏节点，缓存就绪后才挂载。
+                page.evaluate("""async()=>{
+                    const {uiIconURL}=await import('./resources.mjs');
+                    window.delayedIconURL=uiIconURL('first.png');
+                    window.detachedIcon=new Image();detachedIcon.src=delayedIconURL;
+                    window.clonedIcon=detachedIcon.cloneNode(true);clonedIcon.hidden=true;
+                    window.detachedSvg=document.createElementNS('http://www.w3.org/2000/svg','svg');
+                    const icon=document.createElementNS(detachedSvg.namespaceURI,'image');icon.setAttribute('href',delayedIconURL);detachedSvg.append(icon);
+                }""")
                 for route in held:route.continue_()
                 context.unroute(image_origin+'/**')
                 page.locator('#resources-open').click();ready(page)
                 first=show_image(page,'first.png');assert first['width']==1 and first['url'].startswith('blob:')
+                page.evaluate("""()=>{
+                    window.lateIcon=new Image();lateIcon.src=delayedIconURL;
+                    document.body.append(detachedIcon,clonedIcon,lateIcon,detachedSvg);
+                }""")
+                page.wait_for_function("()=>[detachedIcon,clonedIcon,lateIcon].every(i=>i.src.startsWith('blob:')&&i.complete&&i.naturalWidth===1&&!i.hidden)&&detachedSvg.firstChild.getAttribute('href').startsWith('blob:')")
+                page.evaluate('()=>{for(const node of [detachedIcon,clonedIcon,lateIcon,detachedSvg])node.remove()}')
                 assert len(requested)==1 and requested[0].startswith('/release/one/')
                 page.reload(wait_until='networkidle');page.locator('#resources-open').click();ready(page);assert len(requested)==1
                 update(page,'two');assert len(requested)==2 and requested[-1].startswith('/cdn/objects/')

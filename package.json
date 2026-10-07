@@ -1,6 +1,6 @@
 {
   "name": "gakumas-web",
-  "version": "0.6.3-preview",
+  "version": "0.6.4-preview",
   "private": true,
   "type": "module",
   "license": "AGPL-3.0-only",
