@@ -130,6 +130,8 @@ jobs:
   portable:
     needs: build
     runs-on: windows-latest
+    env:
+      PYTHONUTF8: '1'
     permissions:
       contents: read
       actions: read
