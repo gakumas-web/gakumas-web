@@ -4,6 +4,12 @@
 !/.dockerignore
 !/LICENSE
 !/README.md
+!/PRODUCT.md
+!/DESIGN.md
+!/.impeccable/
+/.impeccable/*
+!/.impeccable/config.json
+!/.impeccable/design.json
 !/THIRD_PARTY.md
 !/SECURITY.md
 !/Dockerfile
@@ -27,6 +33,7 @@
 !/resources/content-source.json
 !/resources/pages-source.json
 !/resources/asset-lock.json
+!/resources/preview-account.json
 !/resources/*.example.json
 __pycache__/
 *.pyc

@@ -3,6 +3,7 @@ import hashlib
 import json
 import re
 from image_delivery import read_resource_set
+from reference_contract import validate_catalog_metadata, validate_community_rules, validate_memory_power_tables
 
 SCOPES = ('catalog', 'effects', 'abilities', 'progression', 'achievements')
 FORMAT = 'gakumas-content'
@@ -76,6 +77,9 @@ def validate_part(name, raw, manifest):
         tables = value.get('tables') if scope in ('effects', 'abilities') else value['progression'].get('tables') if scope == 'progression' else value['achievements']
         if not isinstance(tables, dict) or any(not isinstance(tables.get(table), list) for table in table_names):
             raise ValueError('内容数据表不完整: '+name)
+    if scope == 'catalog' and 'catalogMetadata' in value:validate_catalog_metadata(value['catalogMetadata'])
+    if scope == 'progression':validate_memory_power_tables(tables)
+    if scope == 'progression' and 'communityRules' in value:validate_community_rules(value['communityRules'])
     return value
 
 

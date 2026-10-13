@@ -42,11 +42,14 @@ def validate_plan(plan,index,image_groups=None):
     files=plan.get('files',{})
     if set(files)!=set(index['files'])|set(expected_thumbnails.values()) or any(files.get(name)!=row for name,row in index['files'].items()):
         raise ValueError('缓存改变了来源图片身份')
+    expected_sources=[{'sha256':pack['sha256'],'bytes':pack['bytes'],'url':'./image-files/'+pack['sha256']+'.tar.gz'} for pack in index['baseline']['packages']]
+    if plan.get('sourcePackages')!=expected_sources:raise ValueError('缓存基础分段身份不匹配')
     packages=plan.get('packages',[])
     for pack in packages:
         if pack.get('url')!='./image-files/'+str(pack.get('sha256'))+'.tar.gz':raise ValueError('缓存用途包路径无效')
-    validate_delivery({**index,'files':files,'cdn_objects':[],
-        'baseline':{'version':index['baseline']['version'],'packages':[{**pack,'url':'https://cache.example.invalid/'+pack['sha256']+'.tar.gz'} for pack in packages]}})
+    if files or packages:
+        validate_delivery({**index,'files':files,'cdn_objects':[],
+            'baseline':{'version':index['baseline']['version'],'packages':[{**pack,'url':'https://cache.example.invalid/'+pack['sha256']+'.tar.gz'} for pack in packages]}})
     expected_groups={}
     for name,row in index['files'].items():
         key=row['sha256']+Path(name).suffix;group=category(name,image_groups)

@@ -220,7 +220,7 @@ export function createProgression(data = {}, base = {}, semantics) {
         changed:JSON.stringify(row.beforeCard??row.beforeItem)!==JSON.stringify(old?.beforeCard??old?.beforeItem)};
     });
     for(const linked of byId(primaStellaCards,held.idolCardId,'idolCardId')){
-      rewards.push({label:'HIF 专属技能卡',scope:'hif-final',unlockState:'unknown',primaStellaUpgradedTime:held.primaStellaUpgradedTime,changed:false,
+      rewards.push({label:'HIF 专属技能卡',scope:'hif-final',unlockState:held.ownership==='unowned'?'locked':held.primaStellaUpgradedTime===undefined?'unknown':held.primaStellaUpgradedTime>0?'unlocked':'locked',changed:false,
         card:{id:linked.id,upgradeCount:0,customizes:[]}});
     }
     const calculations={};

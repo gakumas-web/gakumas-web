@@ -2,12 +2,25 @@ name: 发布 GitHub Pages
 on:
   workflow_dispatch:
     inputs:
-      publish:
-        description: '构建后发布到 Pages；关闭时只验证构建与缓存'
+      reuse_run_id:
+        description: '可选：复用同一提交、同一预览开关的既有运行制品编号；留空重新构建'
+        type: string
+        default: ''
+      preview_account:
+        description: '启用预览账号（当前测试站默认开启）'
         type: boolean
         default: true
+      publish:
+        description: '发布 Pages；关闭时仅生成可复用制品'
+        type: boolean
+        default: true
+      publish_portable:
+        description: '同时公开发布已验证的 Windows 便携版 Release'
+        type: boolean
+        default: false
 permissions:
   contents: read
+  actions: read
   pages: write
   id-token: write
 concurrency:
@@ -16,6 +29,8 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    outputs:
+      site_sha256: ${{ steps.site-identity.outputs.site_sha256 }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -35,12 +50,22 @@ jobs:
       - run: python -B tests/browser_content_updates.py
       - run: python -B tests/browser_image_delivery.py
       - run: python -B tests/browser_review_regressions.py
+      - name: 读取已有站点制品
+        if: inputs.reuse_run_id != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REUSE_RUN_ID: ${{ inputs.reuse_run_id }}
+        run: |
+          [[ "$REUSE_RUN_ID" =~ ^[0-9]+$ ]] || exit 1
+          gh run download "$REUSE_RUN_ID" --repo "$GITHUB_REPOSITORY" --name portable-site --dir dist
       - name: 计算图片缓存身份
+        if: inputs.reuse_run_id == ''
         id: image-key
         run: |
           pages_image_key="$(python -B tools/build_pages.py --cache-key)"
           echo "key=$pages_image_key" >> "$GITHUB_OUTPUT"
       - name: 恢复图片构建缓存
+        if: inputs.reuse_run_id == ''
         uses: actions/cache/restore@v6
         continue-on-error: true
         with:
@@ -49,8 +74,16 @@ jobs:
           restore-keys: |
             ${{ steps.image-key.outputs.key }}-
       - name: 构建当前程序并复用图片
+        if: inputs.reuse_run_id == ''
         id: site
-        run: python -B tools/build_pages.py --image-cache local/pages-image-cache
+        env:
+          ENABLE_PREVIEW_ACCOUNT: ${{ inputs.preview_account }}
+        run: |
+          if [ "$ENABLE_PREVIEW_ACCOUNT" = "true" ]; then
+            python -B tools/build_pages.py --image-cache local/pages-image-cache --preview-account
+          else
+            python -B tools/build_pages.py --image-cache local/pages-image-cache --no-preview-account
+          fi
       - name: 保存新生成的图片缓存
         if: steps.site.outputs.cache_saved == 'true'
         uses: actions/cache/save@v6
@@ -58,6 +91,29 @@ jobs:
         with:
           path: local/pages-image-cache/${{ steps.image-key.outputs.key }}
           key: ${{ steps.image-key.outputs.key }}-${{ github.run_id }}-${{ github.run_attempt }}
+      - name: 核对站点制品身份
+        id: site-identity
+        env:
+          ENABLE_PREVIEW_ACCOUNT: ${{ inputs.preview_account }}
+        run: python -B tools/verify_portable_artifacts.py --site dist --expected-commit "$GITHUB_SHA" --expected-preview "$ENABLE_PREVIEW_ACCOUNT"
+      - name: 审计模拟引擎完整公开候选池
+        run: node tools/audit_contest_engine.mjs --site dist --baseline tools/contest-engine-compatibility-baseline.json --report local/contest-engine-audit.json
+      - name: 保存模拟引擎审计报告
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: contest-engine-audit
+          path: local/contest-engine-audit.json
+          if-no-files-found: ignore
+      - name: 保存可复用站点制品
+        uses: actions/upload-artifact@v4
+        with:
+          name: portable-site
+          path: dist/
+          include-hidden-files: true
+          compression-level: 0
+          retention-days: 7
+          overwrite: true
       - name: 保存构建报告
         uses: actions/upload-artifact@v4
         with:
@@ -71,9 +127,73 @@ jobs:
         if: inputs.publish
         with:
           path: dist/
+  portable:
+    needs: build
+    runs-on: windows-latest
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: 读取已有便携制品
+        if: inputs.reuse_run_id != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REUSE_RUN_ID: ${{ inputs.reuse_run_id }}
+        run: |
+          if ($env:REUSE_RUN_ID -notmatch '^[0-9]+$') { throw '运行编号无效' }
+          gh run download "$env:REUSE_RUN_ID" --repo "$env:GITHUB_REPOSITORY" --name windows-portable --dir portable-output
+      - uses: actions/download-artifact@v4
+        if: inputs.reuse_run_id == ''
+        with:
+          name: portable-site
+          path: site/dist
+      - uses: actions/setup-go@v6
+        if: inputs.reuse_run_id == ''
+        with:
+          go-version: '1.26.8'
+          cache: false
+      - name: 测试并编译 Windows 启动器
+        if: inputs.reuse_run_id == ''
+        working-directory: tools/portable-server
+        env:
+          CGO_ENABLED: '0'
+          GOOS: windows
+          GOARCH: amd64
+        run: |
+          go test ./...
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          go build -trimpath -buildvcs=false -ldflags="-s -w" -o ../../local/portable-build/gakumas-web.exe .
+      - name: 封装同一站点构建
+        if: inputs.reuse_run_id == ''
+        run: |
+          $goRoot = go env GOROOT
+          python -B tools/package_portable.py --site site/dist --launcher local/portable-build/gakumas-web.exe --go-license "$goRoot/LICENSE" --output portable-output
+      - name: 核对便携制品身份
+        env:
+          EXPECTED_SITE: ${{ needs.build.outputs.site_sha256 }}
+          ENABLE_PREVIEW_ACCOUNT: ${{ inputs.preview_account }}
+        run: python -B tools/verify_portable_artifacts.py --portable portable-output --expected-commit "$env:GITHUB_SHA" --expected-site "$env:EXPECTED_SITE" --expected-preview "$env:ENABLE_PREVIEW_ACCOUNT"
+      - name: 解压并实际启动 Windows exe
+        run: |
+          $package = (Get-ChildItem portable-output/*.zip).FullName
+          python -B tools/test_portable.py --package "$package"
+      - name: 保存可复用便携制品
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-portable
+          path: portable-output/
+          compression-level: 0
+          retention-days: 7
+          overwrite: true
   deploy:
     if: inputs.publish
-    needs: build
+    needs: [build, portable]
     runs-on: ubuntu-latest
     environment:
       name: github-pages
@@ -82,3 +202,26 @@ jobs:
       - name: 发布
         id: deployment
         uses: actions/deploy-pages@v4
+
+  release:
+    if: inputs.publish && inputs.publish_portable
+    needs: [deploy, portable]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: windows-portable
+          path: portable-output
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: 从已验证制品发布 Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python -B tools/publish_portable.py --directory portable-output

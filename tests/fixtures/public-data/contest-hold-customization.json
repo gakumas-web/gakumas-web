@@ -1,0 +1,348 @@
+{
+  "card": {
+    "reference": {
+      "id": "p_card-03-men-2_075",
+      "upgradeCount": 1,
+      "customizes": [
+        {
+          "id": "p_card_custom-070-g_effect-effect_add-e_effect-exam_card_move-p_card_search-deck-hold-select-1_1",
+          "customizeCount": 1
+        }
+      ]
+    },
+    "record": {
+      "assetId": "img_general_skillcard_men-2_075",
+      "category": "ProduceCardCategory_MentalSkill",
+      "definition": {
+        "assetId": "img_general_skillcard_men-2_075",
+        "category": "ProduceCardCategory_MentalSkill",
+        "costType": "ExamCostType_Unknown",
+        "costValue": 0,
+        "effectGroupIds": [
+          "effect_group-visible-exam_status_enchant-000",
+          "effect_group-visible-exam_full_power-000"
+        ],
+        "evaluation": 47,
+        "forceStamina": 0,
+        "id": "p_card-03-men-2_075",
+        "isCharacterAsset": true,
+        "isConversion": false,
+        "isEndTurnLost": false,
+        "isInitial": false,
+        "isInitialDeckProduceCard": false,
+        "isLimited": false,
+        "isRestrict": false,
+        "isReward": false,
+        "libraryHidden": false,
+        "maxCustomizeCount": 2,
+        "moveEffectTriggerType": "ProduceCardMoveEffectTriggerType_Unknown",
+        "moveProduceExamEffectIds": [],
+        "moveProduceExamTriggerIds": [],
+        "name": "モチベ+",
+        "noDeckDuplication": true,
+        "order": "32030170425075",
+        "originCharacterId": "",
+        "originIdolCardId": "",
+        "originPrimaStellaIdolCardId": "",
+        "originSupportCardId": "",
+        "planType": "ProducePlanType_Plan3",
+        "playEffects": [
+          {
+            "hideIcon": false,
+            "isOncePlayEffect": false,
+            "produceExamEffectId": "e_effect-exam_full_power_point-0002",
+            "produceExamTriggerId": ""
+          },
+          {
+            "hideIcon": false,
+            "isOncePlayEffect": false,
+            "produceExamEffectId": "e_effect-exam_status_enchant-inf-enchant-p_card-03-men-2_075-enc01",
+            "produceExamTriggerId": ""
+          }
+        ],
+        "playMovePositionType": "ProduceCardMovePositionType_Lost",
+        "playProduceExamTriggerId": "",
+        "produceCardCustomizeIds": [
+          "p_card_custom-040_070-g_effect-full_power_point_add-1-g_effect-full_power_point_add-3",
+          "p_card_custom-070-g_effect-effect_add-e_effect-exam_card_move-p_card_search-deck-hold-select-1_1",
+          "p_card_custom-070-g_effect-initial_add"
+        ],
+        "produceCardStatusEnchantId": "",
+        "rarity": "ProduceCardRarity_Sr",
+        "rentalUnlockProducerLevel": 1,
+        "searchTag": "",
+        "stamina": 2,
+        "unlockProducerLevel": 17,
+        "upgradeCount": 1,
+        "viewStartTime": "0",
+        "voiceAssetId": ""
+      },
+      "descriptions": [
+        {
+          "examDescriptionType": "ExamDescriptionType_CustomizeInitialAdd",
+          "produceDescriptionType": "ProduceDescriptionType_Exam",
+          "targetId": "Description_ProduceCardIsInitial",
+          "text": ""
+        },
+        {
+          "originProduceExamEffectId": "e_effect-exam_full_power_point-0002",
+          "produceDescriptionType": "ProduceDescriptionType_ProduceDescriptionName",
+          "targetId": "Label_StyleDot",
+          "text": ""
+        },
+        {
+          "examEffectType": "ProduceExamEffectType_ExamFullPowerPoint",
+          "originProduceExamEffectId": "e_effect-exam_full_power_point-0002",
+          "produceDescriptionType": "ProduceDescriptionType_ProduceExamEffectType",
+          "targetId": "Label_ExamFullPowerPoint",
+          "text": "全力値"
+        },
+        {
+          "originProduceExamEffectId": "e_effect-exam_full_power_point-0002",
+          "produceDescriptionType": "ProduceDescriptionType_PlainText",
+          "text": "<nobr>+"
+        },
+        {
+          "effectValue1": 2,
+          "examDescriptionType": "ExamDescriptionType_CustomizeEffectValue1",
+          "originProduceExamEffectId": "e_effect-exam_full_power_point-0002",
+          "produceDescriptionType": "ProduceDescriptionType_Exam",
+          "text": "2"
+        },
+        {
+          "originProduceExamEffectId": "e_effect-exam_full_power_point-0002",
+          "produceDescriptionType": "ProduceDescriptionType_PlainText",
+          "text": "</nobr>"
+        },
+        {
+          "originProduceExamEffectId": "e_effect-exam_full_power_point-0002",
+          "produceDescriptionType": "ProduceDescriptionType_PlainText",
+          "text": ""
+        },
+        {
+          "originProduceExamEffectId": "e_effect-exam_status_enchant-inf-enchant-p_card-03-men-2_075-enc01",
+          "produceDescriptionType": "ProduceDescriptionType_ProduceDescriptionName",
+          "targetId": "Label_StyleDot",
+          "text": ""
+        },
+        {
+          "originProduceExamEffectId": "e_effect-exam_status_enchant-inf-enchant-p_card-03-men-2_075-enc01",
+          "produceDescriptionType": "ProduceDescriptionType_PlainText",
+          "text": "以降、"
+        },
+        {
+          "examEffectType": "ProduceExamEffectType_ExamFullPower",
+          "originProduceExamEffectId": "e_effect-exam_status_enchant-inf-enchant-p_card-03-men-2_075-enc01",
+          "produceDescriptionType": "ProduceDescriptionType_ProduceExamEffectType",
+          "targetId": "Label_ExamFullPower",
+          "text": "全力"
+        },
+        {
+          "originProduceExamEffectId": "e_effect-exam_status_enchant-inf-enchant-p_card-03-men-2_075-enc01",
+          "produceDescriptionType": "ProduceDescriptionType_PlainText",
+          "text": "効果のスキルカード使用時、"
+        },
+        {
+          "examEffectType": "ProduceExamEffectType_ExamFullPowerPoint",
+          "originProduceExamEffectId": "e_effect-exam_status_enchant-inf-enchant-p_card-03-men-2_075-enc01",
+          "produceDescriptionType": "ProduceDescriptionType_ProduceExamEffectType",
+          "targetId": "Label_ExamFullPowerPoint",
+          "text": "全力値"
+        },
+        {
+          "originProduceExamEffectId": "e_effect-exam_status_enchant-inf-enchant-p_card-03-men-2_075-enc01",
+          "produceDescriptionType": "ProduceDescriptionType_PlainText",
+          "text": "<nobr>+"
+        },
+        {
+          "effectValue1": 1,
+          "examDescriptionType": "ExamDescriptionType_CustomizeEffectValue1",
+          "originProduceExamEffectId": "e_effect-exam_status_enchant-inf-enchant-p_card-03-men-2_075-enc01",
+          "produceDescriptionType": "ProduceDescriptionType_Exam",
+          "text": "1"
+        },
+        {
+          "originProduceExamEffectId": "e_effect-exam_status_enchant-inf-enchant-p_card-03-men-2_075-enc01",
+          "produceDescriptionType": "ProduceDescriptionType_PlainText",
+          "text": "</nobr>"
+        },
+        {
+          "originProduceExamEffectId": "e_effect-exam_status_enchant-inf-enchant-p_card-03-men-2_075-enc01",
+          "produceDescriptionType": "ProduceDescriptionType_PlainText",
+          "text": ""
+        },
+        {
+          "examDescriptionType": "ExamDescriptionType_CustomizeEffectAdd",
+          "produceDescriptionType": "ProduceDescriptionType_Exam",
+          "text": ""
+        },
+        {
+          "isOnlyOutGame": true,
+          "produceDescriptionType": "ProduceDescriptionType_PlainText",
+          "text": "<nobr>"
+        },
+        {
+          "isOnlyOutGame": true,
+          "produceDescriptionType": "ProduceDescriptionType_ProduceDescription",
+          "targetId": "Label_NoDeckDuplication",
+          "text": "重複不可"
+        },
+        {
+          "isOnlyOutGame": true,
+          "produceDescriptionType": "ProduceDescriptionType_PlainText",
+          "text": " </nobr>"
+        },
+        {
+          "produceCardMovePositionType": "ProduceCardMovePositionType_Lost",
+          "produceDescriptionType": "ProduceDescriptionType_ProduceDescription",
+          "targetId": "Label_ProduceCardMovePositionType_Lost",
+          "text": "レッスン中1回"
+        },
+        {
+          "examDescriptionType": "ExamDescriptionType_CustomizePlayMovePositionLost",
+          "produceDescriptionType": "ProduceDescriptionType_Exam",
+          "text": ""
+        }
+      ],
+      "id": "p_card-03-men-2_075",
+      "images": {
+        "amao": "img_general_skillcard_men-2_075-amao.webp",
+        "atbm": "img_general_skillcard_men-2_075-atbm.webp",
+        "fktn": "img_general_skillcard_men-2_075-fktn.webp",
+        "hmsz": "img_general_skillcard_men-2_075-hmsz.webp",
+        "hrnm": "img_general_skillcard_men-2_075-hrnm.webp",
+        "hski": "img_general_skillcard_men-2_075-hski.webp",
+        "hume": "img_general_skillcard_men-2_075-hume.webp",
+        "jsna": "img_general_skillcard_men-2_075-jsna.webp",
+        "kcna": "img_general_skillcard_men-2_075-kcna.webp",
+        "kllj": "img_general_skillcard_men-2_075-kllj.webp",
+        "shro": "img_general_skillcard_men-2_075-shro.webp",
+        "ssmk": "img_general_skillcard_men-2_075-ssmk.webp",
+        "ttmr": "img_general_skillcard_men-2_075-ttmr.webp"
+      },
+      "isCharacterAsset": true,
+      "name": "モチベ+",
+      "originCharacterId": "",
+      "playEffects": [
+        {
+          "hideIcon": false,
+          "isOncePlayEffect": false,
+          "produceExamEffectId": "e_effect-exam_full_power_point-0002",
+          "produceExamTriggerId": ""
+        },
+        {
+          "hideIcon": false,
+          "isOncePlayEffect": false,
+          "produceExamEffectId": "e_effect-exam_status_enchant-inf-enchant-p_card-03-men-2_075-enc01",
+          "produceExamTriggerId": ""
+        }
+      ],
+      "rarity": "ProduceCardRarity_Sr",
+      "text": "全力値 / <nobr>+ / 2 / </nobr> / 以降、 / 全力 / 効果のスキルカード使用時、 / 全力値 / <nobr>+ / 1 / </nobr> / <nobr> / 重複不可 /  </nobr> / レッスン中1回",
+      "upgradeCount": 1
+    },
+    "customizations": [
+      {
+        "record": {
+          "customizeCount": 1,
+          "description": "保留追加",
+          "id": "p_card_custom-070-g_effect-effect_add-e_effect-exam_card_move-p_card_search-deck-hold-select-1_1",
+          "overwriteProduceCardGrowEffectType": "ProduceCardGrowEffectType_Unknown",
+          "produceCardGrowEffectIds": [
+            "g_effect-effect_add-e_effect-exam_card_move-p_card_search-deck-hold-select-1_1"
+          ],
+          "producePoint": 70
+        },
+        "grows": [
+          {
+            "costType": "ExamCostType_Unknown",
+            "effectGroupIds": [],
+            "effectType": "ProduceCardGrowEffectType_EffectAdd",
+            "id": "g_effect-effect_add-e_effect-exam_card_move-p_card_search-deck-hold-select-1_1",
+            "playEffectProduceExamTriggerId": "",
+            "playMovePositionType": "ProduceCardMovePositionType_Unknown",
+            "playProduceExamEffectId": "e_effect-exam_card_move-p_card_search-deck-hold-select-1_1",
+            "playProduceExamTriggerId": "",
+            "produceCardStatusEnchantId": "",
+            "targetPlayEffectProduceExamTriggerIds": [],
+            "targetPlayProduceExamEffectIds": [],
+            "value": 0
+          }
+        ],
+        "effects": [
+          {
+            "definition": {
+              "chainProduceExamEffectId": "",
+              "chainProduceExamEffectIds": [],
+              "effectCount": 0,
+              "effectGroupIds": [],
+              "effectTurn": 0,
+              "effectType": "ProduceExamEffectType_ExamCardMove",
+              "effectValue1": 0,
+              "effectValue2": 0,
+              "id": "e_effect-exam_card_move-p_card_search-deck-hold-select-1_1",
+              "movePositionType": "ProduceCardMovePositionType_Hold",
+              "pickCountMax": 1,
+              "pickCountMax2": 0,
+              "pickCountMin": 1,
+              "pickCountMin2": 0,
+              "pickCountReferenceProduceCardSearchId": "",
+              "pickCountReferenceProduceCardSearchId2": "",
+              "pickCountType": "ProducePickCountType_Unknown",
+              "pickCountType2": "ProducePickCountType_Unknown",
+              "pickRangeType": "ProducePickRangeType_Select",
+              "pickRangeType2": "ProducePickRangeType_Unknown",
+              "produceCardGrowEffectIds": [],
+              "produceCardSearchId": "p_card_search-deck",
+              "produceCardSearchId2": "",
+              "produceCardStatusEnchantId": "",
+              "produceExamStatusEnchantId": "",
+              "targetExamEffectType": "ProduceExamEffectType_Unknown",
+              "targetProduceCardId": "",
+              "targetUpgradeCount": 0
+            },
+            "descriptions": [
+              {
+                "originProduceExamEffectId": "e_effect-exam_card_move-p_card_search-deck-hold-select-1_1",
+                "produceDescriptionType": "ProduceDescriptionType_PlainText",
+                "text": "山札にあるスキルカードを選択し、"
+              },
+              {
+                "originProduceExamEffectId": "e_effect-exam_card_move-p_card_search-deck-hold-select-1_1",
+                "produceDescriptionType": "ProduceDescriptionType_ProduceDescription",
+                "targetId": "Label_ProduceCardPositionType_Hold",
+                "text": "保留"
+              },
+              {
+                "originProduceExamEffectId": "e_effect-exam_card_move-p_card_search-deck-hold-select-1_1",
+                "produceDescriptionType": "ProduceDescriptionType_PlainText",
+                "text": "に移動"
+              }
+            ],
+            "effectCount": 0,
+            "effectTurn": 0,
+            "effectType": "ProduceExamEffectType_ExamCardMove",
+            "effectValue1": 0,
+            "effectValue2": 0,
+            "id": "e_effect-exam_card_move-p_card_search-deck-hold-select-1_1",
+            "text": "山札にあるスキルカードを選択し、 / 保留 / に移動"
+          }
+        ]
+      }
+    ]
+  },
+  "engineCustomization": {
+    "id": 43,
+    "alias": "holdSelectedFromDeckAdd1",
+    "name": "保留追加",
+    "type": "effect",
+    "price": 70,
+    "max": 1,
+    "forceInitialHand": "",
+    "conditions": "",
+    "cost": "",
+    "actions": "holdSelected[deck]",
+    "limit": "",
+    "effects": ""
+  }
+}

@@ -1,7 +1,7 @@
 import {imageConfig} from './image-config.mjs';
 import {createImageManager} from './application/image-manager.mjs';
-import {validateContentAssets} from './domain/content-contract.mjs';
-import {validateImageDelivery} from './domain/image-delivery.mjs';
+import {validateContentAssets,contentHash} from './domain/content-contract.mjs';
+import {combineImagePlan} from './domain/image-plan.mjs';
 
 // 以模块位置定位应用根目录，同时支持域名根目录与 GitHub Pages 子目录。
 const root=new URL('./',import.meta.url);
@@ -9,9 +9,9 @@ const root=new URL('./',import.meta.url);
 export function imageLoading(){return 'eager';}
 const downloadURLs=Object.fromEntries(Object.entries(imageConfig.downloadURLs??{}).map(([source,path])=>[source,new URL(path,root).href]));
 export const imageManager=createImageManager({
-  allowedOrigins:[...(imageConfig.allowedOrigins??[]),...(Object.keys(downloadURLs).length||imageConfig.loadingPlan?[root.origin]:[])],downloadURLs,
+  allowedOrigins:[...(imageConfig.allowedOrigins??[]),...(Object.keys(downloadURLs).length||(imageConfig.loadingPlan||imageConfig.loadingPlanSource)?[root.origin]:[])],downloadURLs,
 });
-let lastDelivery,totalImageBytes=0;
+let lastDelivery,totalImageBytes=0,activeThumbnails={};
 export const beginImageView=view=>imageManager.prioritizeView(view);
 export const completeImageBytes=()=>totalImageBytes;
 // 只合并本批就绪的资源名，避免每次通知重建整套图片目录。
@@ -55,15 +55,41 @@ imageManager.subscribe(state=>{
 export async function retryContentImages(){
   if(lastDelivery)await imageManager.retry();
 }
-export function installContentResources(index){
-  validateContentAssets(index);
-  if(imageConfig.mode==='none')return;
-  if(imageConfig.mode!=='managed')throw new Error('image_program_update_required');
-  const plan=imageConfig.loadingPlan;
-  if(plan){
-    if(plan.version!==index.version||Object.entries(index.files).some(([name,row])=>plan.files[name]?.sha256!==row.sha256||plan.files[name]?.bytes!==row.bytes))throw new Error('image_program_update_required');
-    index=validateImageDelivery({...index,files:plan.files,baseline:{version:index.baseline.version,packages:plan.packages.map(pack=>({...pack,url:new URL(pack.url,root).href}))},cdn_objects:[]});
+let loadingPlanTask;
+function loadImagePlan(){
+  if(imageConfig.loadingPlan||!imageConfig.loadingPlanSource)return Promise.resolve();
+  if(!loadingPlanTask){
+    const source=imageConfig.loadingPlanSource;
+    // 完整计划只在资料安装时读取；先核对字节身份，再交给既有版本与资源合同校验。
+    loadingPlanTask=(async()=>{
+      const response=await fetch(new URL(source.url,root),{credentials:'omit',referrerPolicy:'no-referrer',signal:AbortSignal.timeout(45000)});
+      if(!response.ok)throw new Error('image_program_update_required');
+      const bytes=await response.arrayBuffer();
+      if(bytes.byteLength!==source.bytes||await contentHash(bytes)!==source.sha256)throw new Error('image_program_update_required');
+      imageConfig.loadingPlan=JSON.parse(new TextDecoder().decode(bytes));
+    })().catch(error=>{loadingPlanTask=null;throw error;});
   }
+  return loadingPlanTask;
+}
+export function validateContentResources(index){
+  validateContentAssets(index);
+  if(imageConfig.mode==='none')return null;
+  if(imageConfig.mode!=='managed')throw new Error('image_program_update_required');
+  if(!imageConfig.loadingPlan&&imageConfig.loadingPlanSource)return loadImagePlan().then(()=>prepareImageIndex(index));
+  return prepareImageIndex(index);
+}
+function prepareImageIndex(index){
+  const prepared=imageConfig.loadingPlan?combineImagePlan(index,imageConfig.loadingPlan,root):{index,thumbnails:{}};
+  if(prepared.index.cdn_objects.length&&!imageConfig.allowedOrigins.includes(new URL(index.cdn_base_url).origin))throw new Error('image_program_update_required');
+  return prepared;
+}
+export function installContentResources(index){
+  const prepared=validateContentResources(index);
+  return prepared?.then?prepared.then(installImageIndex):installImageIndex(prepared);
+}
+function installImageIndex(prepared){
+  if(!prepared)return;
+  const {index,thumbnails}=prepared,plan=imageConfig.loadingPlan;activeThumbnails=thumbnails;
   if(lastDelivery!==index){imageNames.clear();iconNames.clear();Object.assign(imageConfig,{images:[],icons:[],imageURLs:{},iconURLs:{}});}
   lastDelivery=index;
   const objects=new Map(Object.entries(index.files).map(([name,row])=>[row.sha256+'.'+name.split('.').at(-1),row.bytes]));
@@ -79,7 +105,7 @@ export function appURL(path){
   return new URL(path,root).href;
 }
 function resourceURL(name, folder, thumbnail=false){
-  const logical=folder+'/'+name,target=thumbnail?(imageConfig.loadingPlan?.thumbnails[logical]??logical):logical;
+  const logical=folder+'/'+name,target=thumbnail?(activeThumbnails[logical]??logical):logical;
   const [kind,file]=target.split('/'),cached=(kind==='images'?imageConfig.imageURLs:imageConfig.iconURLs)?.[file];
   if(cached)return cached;
   if(imageConfig.mode!=='managed')return appURL('ui-icons/unavailable.svg');

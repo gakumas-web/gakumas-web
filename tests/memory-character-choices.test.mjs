@@ -94,3 +94,13 @@ test('回忆文本检索只纳入继承技能卡名称，考试卡组继续通�
   assert.equal(run({query:'继承专用词'}).length,1);assert.equal(run({query:'考试专用词'}).length,0);assert.equal(run({query:'花海咲季'}).length,1);assert.equal(run({query:'自定义标记'}).length,1);
   assert.equal(run({memoryExamSkill:[JSON.stringify(['exam',0])]}).length,1);
 });
+
+test('继承选项区分开局状态与附魔总次数，不区分附魔类型',async()=>{
+  const {inheritanceCardChoices,inheritanceSkillKey}=await import('../domain/memories.mjs');
+  const row=(key,phase,customizes,upgradeCount=0)=>({key,ordinal:0,characterId:'hski',produceCardPhaseType:phase,produceCard:{id:'one',upgradeCount,customizes}});
+  const memories=[row('a',1,[{id:'x',customizeCount:2}]),row('b',1,[{id:'y',customizeCount:1},{id:'z',customizeCount:1}]),row('c',2,[{id:'x',customizeCount:2}]),row('d',1,[]),row('e',1,[],1)];
+  const choices=inheritanceCardChoices(memories);assert.equal(choices.length,4);assert.equal(choices[0].customizeCount,2);assert.equal(choices[0].phase,1);assert.deepEqual(choices[0].reference.customizes,[]);
+  assert.equal(inheritanceSkillKey(memories[0]),inheritanceSkillKey(memories[1]));
+  const selected=filterMemories({memories},createView({skill:[choices[0].key]}),new Map());assert.deepEqual(selected.map(m=>m.key),['a','b']);
+  assert.equal(filterMemories({memories},createView({skill:['one']}),new Map()).length,5);
+});

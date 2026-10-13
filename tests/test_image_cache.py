@@ -57,6 +57,11 @@ class ImageCacheTest(unittest.TestCase):
 
     def test_hit_is_byte_identical_and_still_builds_current_program(self):
         cold,first=self.build('cold');self.assertEqual(first['status'],'miss');self.assertTrue(first['saved'])
+        config=json.loads((cold/'image-config.mjs').read_text().split('export const imageConfig=',1)[1].strip().removesuffix(';'))
+        self.assertNotIn('loadingPlan',config)
+        source=config['loadingPlanSource'];raw=(cold/source['url']).read_bytes()
+        self.assertEqual(len(raw),source['bytes']);self.assertEqual(hashlib.sha256(raw).hexdigest(),source['sha256'])
+        self.assertEqual(json.loads(raw)['version'],self.index['version'])
         requests=len(self.requests);self.blocked=True
         warm,second=self.build('warm');self.assertEqual(second['status'],'hit');self.assertEqual(len(self.requests),requests)
         self.assertEqual(inventory(cold),inventory(warm))
@@ -71,10 +76,10 @@ class ImageCacheTest(unittest.TestCase):
         self.assertNotEqual((cold/'app.mjs').read_bytes(),(updated/'app.mjs').read_bytes())
         self.assertEqual(inventory(cold/'image-files'),inventory(updated/'image-files'))
 
-    def test_index_and_generator_changes_invalidate_the_key(self):
+    def test_incremental_version_reuses_baseline_and_generator_changes_invalidate_the_key(self):
         _,first=self.build('cold');requests=len(self.requests)
         self.index['version']='next-assets';fixture(self.root,'two',self.index);locks=self.root/'locks-two';prepare(self.root/'two',locks)
-        _,second=self.build('changed',locks);self.assertEqual(second['status'],'miss');self.assertNotEqual(first['key'],second['key']);self.assertGreater(len(self.requests),requests)
+        _,second=self.build('changed',locks);self.assertEqual(second['status'],'hit');self.assertEqual(first['key'],second['key']);self.assertEqual(len(self.requests),requests)
         identity=cache_identity('0'*64);changed=json.loads(json.dumps(identity));changed['generator']['tools/image_plan.py']='1'*64
         self.assertNotEqual(cache_key(identity),cache_key(changed))
 

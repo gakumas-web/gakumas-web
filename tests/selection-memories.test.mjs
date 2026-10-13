@@ -1,3 +1,7 @@
+import fs from 'node:fs';
+import {installCommunityRules} from '../domain/community-rules.mjs';
+const referenceRules=JSON.parse(fs.readFileSync(new URL('./fixtures/public-data/reference-data.json',import.meta.url))).communityRules;
+installCommunityRules(referenceRules);
 import {inventory,captureHeader} from './fixtures.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';

@@ -1,16 +1,18 @@
 import {uiIconURL} from '../resources.mjs';
-import {profileAccountId,maskedAccountId} from '../domain/account.mjs';
+import {profileAccountId,maskedAccountId,isPreviewAccount} from '../domain/account.mjs';
 import {el} from './dom.mjs';
 import {t} from '../i18n.mjs';
 import {shown} from '../domain/model.mjs';
 import {ownershipLabel,memoryTagName} from '../domain/catalog.mjs';
 const statFields = [['vocal', 'Vo'], ['dance', 'Da'], ['visual', 'Vi'], ['stamina', '体力']];
-export function accountIdentity(id){
-  const row=el('div','','account-identity'),value=el('code',maskedAccountId(id)),toggle=el('button',t('显示账号'),'account-visibility');
+export function accountIdentity(id,suffix=''){
+  const label=value=>suffix?`${value} ${suffix}`:value;
+  if(isPreviewAccount(id)){const row=el('div','','account-identity');row.append(el('strong',label(t('预览账号'))),el('span',t('演示数据'),'small muted'));return row;}
+  const row=el('div','','account-identity'),value=el('code',label(maskedAccountId(id))),toggle=el('button',t('显示账号'),'account-visibility');
   let revealed=false;
   toggle.setAttribute('aria-pressed','false');
   toggle.onclick=()=>{
-    revealed=!revealed;value.textContent=revealed?id:maskedAccountId(id);
+    revealed=!revealed;value.textContent=label(revealed?id:maskedAccountId(id));
     toggle.textContent=t(revealed?'隐藏账号':'显示账号');toggle.setAttribute('aria-pressed',String(revealed));
   };
   row.append(value,toggle);return row;

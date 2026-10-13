@@ -12,7 +12,7 @@ const FORMAT='gakumas-web-account-package',VERSION=1,PACKED_LIMIT=PAYLOAD_LIMIT+
 const encoder=new TextEncoder(),decoder=new TextDecoder('utf-8',{fatal:true});
 const aad=()=>encoder.encode(`${FORMAT}:${VERSION}:AES-256-GCM:PBKDF2-SHA-256:${ITERATIONS}:gzip`);
 const record=value=>value!==null&&typeof value==='object'&&!Array.isArray(value);
-const tabs=['memories','selectionMemories','idolCards','supportCards','idolCardSkins','achievements'];
+const tabs=['memories','selectionMemories','seasonSimulation','idolCards','supportCards','idolCardSkins','achievements'];
 function view(input={}){
   if(!record(input))throw new InputError();
   for(const [key,initial] of Object.entries(defaults())){

@@ -1,3 +1,5 @@
+import {appendMemorySkillBadges} from './memory-skill-badges.mjs';
+import {choiceFilterIcons} from './choice-filter-icons.mjs';
 import {createPickerAvailabilityUpdater} from './selection-picker-status.mjs';
 import {uiIconURL} from '../resources.mjs';
 import {abilityIconPreview} from './ability-view.mjs';
@@ -7,14 +9,14 @@ import {tagControls,favoriteButton} from './personal-library.mjs';
 import {showSelectionDetails} from './selection-details.mjs';
 import {deferVisibleContent} from './deferred-content.mjs';
 import {nextChoice} from '../application/view-state.mjs';
-import {hifStarRules} from '../domain/hif-star-rules.mjs';
+import {hifStarRules} from '../domain/community-rules.mjs';
 import {$,el,openDialog} from './dom.mjs';
 import {t,locale} from '../i18n.mjs';
 import {characterInfo,compareCharacterFilters,planLabel,cardInfo,itemArt,cardRewardInfo,itemRewardInfo,semanticGroup,selectionChoiceMetadata,selectionFlowDefinitions,customizeItemInfo} from '../domain/catalog.mjs';
 import {missingSelectionRewards,selectionGrades,selectionItemTriggerStatus,sortedSelectionCards,sortedSelectionItems,selectionStarPotential,selectionChoiceOptions,filterSelectionChoices,selectionChoicesForCharacters} from '../domain/selection-memories.mjs';
 import {illustration,characterAccent,skillThumbnailFor,itemThumbnail,filterSymbol,idolStyleSymbol} from './illustrations.mjs';
 import {protectionBadge,memoryTagBadge,shareLinkButton} from './shared.mjs';
-import {supportHint,rewardHint,itemRewardDetails} from './card-rewards.mjs';
+import {supportHint,rewardHint,itemRewardDetails,itemRewardSummary,closeRewardPopover} from './card-rewards.mjs';
 import {effectReading} from './effect-view.mjs';
 import {semanticContent} from './semantic-view.mjs';
 const dateFormats=new Map();
@@ -61,14 +63,23 @@ export function appendChoiceVisual(node,value,isCard){
   node.dataset.choiceKind=isCard?'cards':'items';node.classList.toggle('support-skill-trigger',isCard);
   node.append(isCard?skillThumbnailFor(value.reference,value.characterId):itemThumbnail(value.info));
   if(isCard){node.dataset.rarity=value.info.rarity;node.dataset.upgrade=String(value.reference.upgradeCount);}
+  if(isCard&&value.customizeCount!==undefined){const labels=appendMemorySkillBadges(node,value.customizeCount,value.phase);if(labels.length)node.title+=' · '+labels.join(' · ');}
+}
+
+function choiceCardHint(node,value,container){
+  node.removeAttribute('title');
+  supportHint(node,()=>el('p',value.info.name.replace(/[+＋]+$/u,'')+(value.reference.upgradeCount>0?'+':''),'selection-card-preview'),{container,hoverOnly:true}).lastElementChild.classList.add('selection-card-preview-popover');
 }
 
 export function openSelectionPicker(view,key,values,isCard,onChange,createAvailability){
   const dialog=$('selection-picker'),list=$('selection-picker-list');
   $('support-effect-picker-filters').hidden=true;dialog.classList.remove('ability-picker','support-effect-picker');dialog.querySelector('.selection-picker-filters').hidden=false;
-  for(const id of ['selection-picker-plan','selection-picker-flow'])$(id).closest('label').hidden=key==='skill';
+  const hasNControl=isCard&&key!=='skill',filterPanel=dialog.querySelector('.selection-picker-filters');
+  filterPanel.querySelector('.selection-choice-icon-filters')?.remove();
+  for(const id of ['selection-picker-plan','selection-picker-flow','selection-picker-rarity'])$(id).closest('label').hidden=true;
+
   let draft=[...view[key]];const inputs=new Map(),updateAvailability=createPickerAvailabilityUpdater(createAvailability(key),()=>draft,inputs);
-  $('selection-picker-title').textContent=t(key==='skill'?'选择继承技能卡':key==='memoryExamSkill'?'选择考试技能卡':key==='memoryExamItem'?'选择考试 P 道具':isCard?'筛选回忆包含的技能卡':'筛选回忆包含的 P 道具');
+  $('selection-picker-title').textContent=t(key==='skill'?'选择继承技能卡':key==='memoryExamSkill'?'选择考试技能卡':key==='memoryExamItem'?'选择考试 P 道具':isCard?'选择技能卡':'选择 P 道具');
   $('selection-picker-hint').textContent=t(key!=='skill'&&view[key+'All']?'可多选，需同时满足所选项。确认后应用。':'可多选，满足所选任一项。确认后应用。');
   if(isCard)$('selection-picker-hint').prepend(t('不限附魔状态。')+' ');
   $('selection-picker-hint').append(' '+t('灰色选项与其他分组或当前筛选条件不匹配；已选项仍可取消。'));
@@ -78,9 +89,24 @@ export function openSelectionPicker(view,key,values,isCard,onChange,createAvaila
   $('selection-picker-flow').replaceChildren(new Option(t('全部'),''),...flows.map(flow=>new Option(t(flow.label),flow.id)));
   if(values.some(value=>!value.metadata.flows.length))$('selection-picker-flow').append(new Option(t('未分类'),'unclassified'));
   $('selection-picker-rarity').replaceChildren(new Option(t('全部'),''),...['LEGEND','SSR','SR','R','N'].filter(rarity=>values.some(value=>value.metadata.rarity===rarity)).map(rarity=>new Option(rarity,rarity)));
+  const showN=el('input'),iconGroups=[];showN.type='checkbox';showN.id='selection-picker-show-n';showN.checked=false;
+  {
+    const icons=el('div','','selection-choice-icon-filters contest-memory-plan-flows contest-item-filters');
+    for(const [kind,label] of key==='skill'?[['rarity','稀有度']]:[['plan','计划'],['flow','流派'],['rarity','稀有度']]){
+      const input=$('selection-picker-'+kind),group=choiceFilterIcons(input,kind,label,()=>{syncIcons();draw();},{id:input.id+'-icons'});iconGroups.push(group);icons.append(group.group);
+    }
+    if(hasNControl){const label=el('label','','selection-show-n');label.append(showN,el('span',t('显示 N 稀有度')));icons.append(label);showN.onchange=()=>{if(!showN.checked&&$('selection-picker-rarity').value==='N')$('selection-picker-rarity').value='';syncIcons();draw();};}
+    filterPanel.append(icons);syncIcons();
+  }
+  function syncIcons(){
+    const plan=$('selection-picker-plan').value,flow=$('selection-picker-flow'),eligible=values.filter(value=>(!plan||value.metadata.plan===plan)&&(!hasNControl||showN.checked||value.metadata.rarity!=='N'||draft.includes(value.key)));
+    const hasFlow=id=>!id||eligible.some(value=>id==='unclassified'?!value.metadata.flows.length:value.metadata.flows.includes(id));
+    if(!hasFlow(flow.value))flow.value='';
+    for(const {input,buttons} of iconGroups)for(const button of buttons){const id=button.dataset.value,selected=id===input.value;button.hidden=input===flow&&!hasFlow(id)||hasNControl&&input.id==='selection-picker-rarity'&&id==='N'&&!showN.checked;button.setAttribute('aria-checked',String(selected));button.tabIndex=selected?0:-1;}
+  }
   function draw(){
-    inputs.clear();list.replaceChildren();
-    const filtered=filterSelectionChoices(values,{plan:$('selection-picker-plan').value,flow:$('selection-picker-flow').value,rarity:$('selection-picker-rarity').value});
+    closeRewardPopover();inputs.clear();list.replaceChildren();
+    const filtered=filterSelectionChoices(values,{plan:$('selection-picker-plan').value,flow:$('selection-picker-flow').value,rarity:$('selection-picker-rarity').value}).filter(value=>!hasNControl||showN.checked||value.metadata.rarity!=='N'||draft.includes(value.key));
     const groups=isCard?{idol:'角色专属',support:'支援卡',common:'通用',unknown:'未分类'}:{idol:'角色专属','support-battle':'支援卡 · 比赛继承','support-training':'支援卡 · 仅培养','support-unknown':'支援卡 · 用途待确认',common:'通用',unknown:'未分类'};
     if(key==='memoryExamItem'){delete groups['support-training'];delete groups.common;}
     const groupedCards=values=>groupedInheritanceCardChoices(values).map(group=>({source:group.id,title:group.flows.length?group.id==='concentration+fullPower'?t('全力／温存'):group.flows.map(id=>t(selectionFlowDefinitions.find(flow=>flow.id===id).label)).join('／'):group.plan==='Common'?t('通用'):['Plan1','Plan2','Plan3'].includes(group.plan)?t('{0} 通用',[planLabel(group.plan)]):t('未分类'),matches:group.values}));
@@ -98,6 +124,11 @@ export function openSelectionPicker(view,key,values,isCard,onChange,createAvaila
         const label=el('label','','selection-filter-choice'),input=el('input');input.type='checkbox';input.checked=draft.includes(value.key);input.value=value.key;
         label.dataset.value=value.key;appendChoiceVisual(label,value,isCard);input.setAttribute('aria-label',label.title);label.append(input);
         inputs.set(value.key,input);input.onchange=()=>{draft=nextChoice(draft,value.key);updateAvailability();};options.append(label);
+        if(isCard)choiceCardHint(label,value,options);
+        else{
+          // 浮层放在标签外，查看说明不会误触勾选；图片仍保留原有多选行为。
+          label.removeAttribute('title');supportHint(label,()=>itemRewardDetails(itemRewardInfo(value.key)),{container:options,hoverOnly:true});
+        }
       }
       if(!matches.length)options.append(el('p',t('没有匹配选项'),'selection-picker-empty'));
       list.append(column);
@@ -106,7 +137,7 @@ export function openSelectionPicker(view,key,values,isCard,onChange,createAvaila
     if(!sections.length)list.append(el('p',t('没有匹配选项'),'selection-picker-empty'));
     list.scrollTop=0;
   }
-  for(const id of ['selection-picker-plan','selection-picker-flow','selection-picker-rarity'])$(id).onchange=draw;
+  for(const id of ['selection-picker-plan','selection-picker-flow','selection-picker-rarity'])$(id).onchange=()=>{syncIcons();draw();};
   draw();
   $('selection-picker-clear').onclick=()=>{draft=[];updateAvailability();};
   $('selection-picker-cancel').onclick=()=>dialog.close();
@@ -114,6 +145,7 @@ export function openSelectionPicker(view,key,values,isCard,onChange,createAvaila
     // 确认应用项目多选；继承技能卡固定匹配任一项，其它分组由外部开关控制。
     dialog.close();onChange(key,draft);
   };
+  dialog.addEventListener('close',closeRewardPopover,{once:true});
   openDialog(dialog);list.scrollTop=0;
 }
 export function renderSelectionChoices(view,onChange,createAvailability){renderLoadoutChoices(view,onChange,{createAvailability});}
@@ -133,6 +165,8 @@ export function renderLoadoutChoices(view,onChange,{prefix='selection',skillKey=
       const name=isCard?`${value.info.name} · ${t('强化')} +${value.reference.upgradeCount}`:value.info.name;
       button.setAttribute('aria-label',t('移除筛选：{0}',[name]));
       button.onclick=()=>{onChange(key,nextChoice(view[key],value.key));$(openId).focus({preventScroll:true});};container.append(button);
+      if(isCard)choiceCardHint(button,value,container);
+      else{button.removeAttribute('title');supportHint(button,()=>itemRewardSummary(itemRewardInfo(value.key)),{container,hoverOnly:true}).lastElementChild.classList.add('support-item-summary-popover');}
       if(focused===value.key)button.focus({preventScroll:true});
     }
     if(selected.length>1)container.append(el('span',')','filter-logic-bracket'));
@@ -146,7 +180,7 @@ export function selectionCapacity(snapshot){
 function starPotential(memory){
   const block=el('section','','selection-star'),estimate=selectionStarPotential(memory);
   const track=el('div','','selection-star-track'),current=el('button','','selection-star-current');
-  const maximum=Number.isFinite(hifStarRules.finalCap)&&hifStarRules.finalCap>0?hifStarRules.finalCap:Math.max(1,memory.star);
+  const maximum=Number.isFinite(hifStarRules?.finalCap)&&hifStarRules.finalCap>0?hifStarRules.finalCap:Math.max(1,memory.star);
   const currentWidth=Math.min(100,memory.star/maximum*100);
   current.type='button';current.style.width=`${currentWidth}%`;current.setAttribute('aria-label',`${t('スター性')} ${memory.star}`);
   supportHint(current,()=>el('p',`${t('スター性')} ${memory.star}`),{container:block,followPointer:true});
@@ -287,7 +321,7 @@ function selectionPreview(entry){
       if(isCustom){button.classList.add('support-reward-trigger');button.dataset.rewardKind='item';const art=el('span','','support-reward-art');art.append(itemThumbnail(info));button.append(art);}
       const metadata=isCard?selectionChoiceMetadata('card',value):isCustom?null:selectionChoiceMetadata('item',value);
       if(metadata?.ownerCharacterId){characterAccent(hint,metadata.ownerCharacterId);hint.style.setProperty('--reward-border-color','var(--character-color)');}
-      if(isCard){const count=value.customizes.reduce((sum,c)=>sum+c.customizeCount,0);if(count){const badge=el('span',String(count),'selection-custom-count');badge.title=t('附魔次数：{0}',[count]);button.append(badge);button.setAttribute('aria-label',`${button.getAttribute('aria-label')} · ${badge.title}`);}if(value.fromMemory){const badge=el('span','M','selection-from-memory');badge.title=t('来自回忆');button.append(badge);}}
+      if(isCard){const count=value.customizes.reduce((sum,c)=>sum+c.customizeCount,0),labels=appendMemorySkillBadges(button,count);if(value.fromMemory){const badge=el('span','M','selection-from-memory');badge.setAttribute('aria-label',t('来自回忆'));button.append(badge);labels.push(t('来自回忆'));}if(labels.length)button.setAttribute('aria-label',`${button.getAttribute('aria-label')} · ${labels.join(' · ')}`);}
       if(!isCard&&(isCustom?info.use:selectionChoiceMetadata('item',value).use)==='training'){
         const triggered=el('span',String(value.triggerCount),'selection-item-triggered');triggered.title=t('已触发 {0} 次',[value.triggerCount]);button.append(triggered);
         button.setAttribute('aria-label',`${button.getAttribute('aria-label')} · ${triggered.title}`);
@@ -352,8 +386,9 @@ export function renderInheritanceChoices(view,choices,onChange,createAvailabilit
         if(index)list.append(el('span','OR','filter-logic-operator'));
         const button=el('button','','selection-filter-choice');button.type='button';button.dataset.value=value.key;
         if(key==='skill')appendChoiceVisual(button,value,true);else abilityVisual(button,value);
-        button.append(el('span','×','choice-check'));button.setAttribute('aria-label',t('移除筛选：{0}',[key==='skill'?value.info.name:value.text]));
+        button.append(el('span','×','choice-check'));button.setAttribute('aria-label',t('移除筛选：{0}',[key==='skill'?button.title:value.text]));
         button.onclick=()=>{onChange(key,nextChoice(view[key],value.key));opener.focus({preventScroll:true});};list.append(button);
+        if(key==='skill')choiceCardHint(button,value,list);
       }
       if(clause.length>1)list.append(el('span',')','filter-logic-bracket'));
     }

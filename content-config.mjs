@@ -1,2 +1,2 @@
-// 内容地址独立于程序；部署者可在构建时指定受信任的 HTTPS 内容频道。
-export const contentConfig={channelURL:'./content/channel.json'};
+// 默认频道随静态站点提供；部署独立资料源时由构建入口生成配置。
+export const contentConfig={"channelURL":"./content/channel.json"};

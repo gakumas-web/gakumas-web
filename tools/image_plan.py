@@ -46,6 +46,17 @@ def category(name, image_groups=None):
     return 'catalog'
 
 
+def baseline_index(index):
+    """构建只处理基础包已覆盖的对象；发布索引仍保留完整 CDN 增量。"""
+    keys={key for pack in index['baseline']['packages'] for key in pack['objects']}
+    return {**index,'version':index['baseline']['version'],
+            'files':{name:row for name,row in index['files'].items() if row['sha256']+Path(name).suffix in keys},'cdn_objects':[]}
+
+
+def baseline_cache_hash(index):
+    return digest(json.dumps(baseline_index(index),sort_keys=True,separators=(',',':')).encode())
+
+
 def build_plan(index,folder,image_groups=None):
     from PIL import Image
     folder=Path(folder)
@@ -113,4 +124,5 @@ def build_plan(index,folder,image_groups=None):
                 packages.append({'url':'./image-files/'+name,'sha256':sha,'bytes':len(raw),'objects':chunk,'group':group})
                 group_bytes+=len(raw)
             report.append({'group':group,'objects':len(keys),'packages':len(chunks),'bytes':group_bytes})
-    return {'version':index['version'],'files':files,'thumbnails':thumbnails,'packages':packages,'groups':report}
+    return {'version':index['version'],'files':files,'thumbnails':thumbnails,'packages':packages,'groups':report,
+            'sourcePackages':[{'sha256':pack['sha256'],'bytes':pack['bytes'],'url':'./image-files/'+pack['sha256']+'.tar.gz'} for pack in index['baseline']['packages']]}

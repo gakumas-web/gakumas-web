@@ -1,0 +1,126 @@
+{
+  "format": 1,
+  "description": "人工核对的公开身份与固定上游定义对应关系；模拟沿用上游实现，包括已知差异，不在本项目重写效果。来源或目标指纹变化时必须重新核对。",
+  "engineCommit": "58c7148cb1d097b78f66faa4a9ab6d5212f083b7",
+  "effectsRevision": "2b7d52fd7d517da9c0d4945d81850ee19693ba11f7da4d4693ec491cc268b0d1",
+  "cards": {
+    "[\"p_card-02-ido-3_086\",0]": {
+      "engineId": 464,
+      "sourceSha256": "aef56dcdfb0377ac36cf5f26ed76b2953dd7aa2dd466990d82e2fb71ee5b37e7",
+      "engineSha256": "5a51343213a62469f22d303ba99572981f741c2430fff469e7b3698129af4d76",
+      "note": "「込めて」与「こめて」为同一卡片的汉字／假名写法，属性、来源、消耗和效果对应。"
+    },
+    "[\"p_card-02-ido-3_086\",1]": {
+      "engineId": 465,
+      "sourceSha256": "12ee87d56d35bf6eb4b2552af06474eb8e2ddef823fccacaae6f055ab107b22d",
+      "engineSha256": "409d84569caf93cc835c1142825ae023406924c667e4567eb3b815a1482c639b",
+      "note": "「込めて」与「こめて」为同一卡片的汉字／假名写法，属性、来源、消耗和效果对应。"
+    },
+    "[\"p_card-02-ido-3_165\",0]": {
+      "engineId": 729,
+      "sourceSha256": "d80f11d5ef9cf20c563613dd351ed30f3ba91e396dc7c09dda6f8ca5b42f275e",
+      "engineSha256": "621369f85cf20fe7c13d70af11fabdccdb5d92dfec5e87ec1862168c488b2f91",
+      "note": "上游名称漏写「の」；属于同一卡片。公开资料与上游的好印象倍率不同，按用户指定策略保留上游数值。"
+    },
+    "[\"p_card-02-ido-3_165\",1]": {
+      "engineId": 730,
+      "sourceSha256": "8cc70bf251df5b5c5b0af830f9caa56ea742f01ec70a0bcb85114b79ac9b5f37",
+      "engineSha256": "6ef9e33b93d9bb4a0d99215172ae3f4326574a9b8a0e4d527ce7414b43b8c513",
+      "note": "上游名称漏写「の」；属于同一卡片。公开资料与上游的好印象倍率不同，按用户指定策略保留上游数值。"
+    }
+  },
+  "items": {
+    "pitem_01-3-305-0": {
+      "engineId": 380,
+      "sourceSha256": "fd31812e44099eea493c3da4203aab44309bf038e7dcb1d95a1959785e9acb09",
+      "engineSha256": "f434a0f7c63cb8df9ae2219e02017d463d86214fa13a00a4171aeea270815d4b",
+      "note": "「ぴったし」与上游「ぴったり」对应同一支援道具；视觉回合主动卡触发、好调条件、集中和分数效果对应。"
+    },
+    "pitem_03-3-068-0": {
+      "engineId": 174,
+      "sourceSha256": "cc27811ee991d4082fec79a0261d7147c16bbcb18733dc375918cb2169986441",
+      "engineSha256": "86d59eb9d9f0cbfe25b95fe1dc84558adde1d4a5732fd1be5f087727052c2ae2",
+      "note": "「測定機」与上游「測定器」对应同一道具；舞蹈回合温存条件、体力回复和次数对应。"
+    },
+    "pitem_03-3-303-0": {
+      "engineId": 419,
+      "sourceSha256": "53299c2831464428bfc9ecff8638d1a43124ce42dc5faa951e7fc26300b1911f",
+      "engineSha256": "5b2b1918f1440fb469a2396dc49a295ab61688d2ac998d7ba8b4b50da8fad5cb",
+      "note": "「夜空を従える花」与上游「夜空に従える花」对应同一角色道具；沿用上游每三次强气卡后的触发实现。"
+    },
+    "pitem_03-3-303-1": {
+      "engineId": 420,
+      "sourceSha256": "e460974b1b13cc5000d9900a7a2f9df994d99949db77ebc0e0d73569b882cd6c",
+      "engineSha256": "99499840b39841b0a28598299a1347b55cf11bb5e245d85f5084864abbd25534",
+      "note": "同一道具的强化版本，独立保留上游强化后的次数设置。"
+    }
+  },
+  "customizations": {
+    "p_card_custom-p_card-01-ido-3_014-1": {
+      "engineId": 95,
+      "sourceSha256": "76ecc87b29ec6991a308a4f9689f31f4337a0749fab9b3fae097bf122383ed5d",
+      "engineSha256": "e5d35253b968c38851e117dd161f4f88eff56e6204f8e09e1535a13f4734f261",
+      "note": "同一专属附魔，沿用上游回合末加分、固定体力消耗及持续次数。"
+    },
+    "p_card_custom-p_card-01-ido-3_016-1-1": {
+      "engineId": 91,
+      "sourceSha256": "8215f5b1e18c7dca2dde970caed128990627ac7599c0e4af6e1e49b53a6a4560",
+      "engineSha256": "6752424e9d7c68be76f243d9699c44ed1534f65925a704991a56ff16db505111",
+      "note": "同一专属附魔，使用上游标签替换好调与集中倍率。"
+    },
+    "p_card_custom-p_card-01-ido-3_017-1": {
+      "engineId": 92,
+      "sourceSha256": "a7e6925ce194f87913bf31317300e2ba9dbb85bdc3ccd0d634b7779b45d3b591",
+      "engineSha256": "f307cbeef6e5b12a7fccb5a8358d187443785f988aca9f2f92c81f3c2a5d112b",
+      "note": "同一专属附魔，使用上游按回合开始及体力比例触发的持续集中效果。"
+    },
+    "p_card_custom-p_card-01-ido-3_020-1": {
+      "engineId": 99,
+      "sourceSha256": "693011c3ba8da9d6682618ffd001651cd3c928fd906453ed9100c9e242921a37",
+      "engineSha256": "a94469d658d51fc501a747f84c07a8fd659b8612aef12ef4449f6857194b26f4",
+      "note": "同一专属附魔，公开两个定时效果对应上游连续两回合加分。"
+    },
+    "p_card_custom-p_card-01-ido-3_070-1-1": {
+      "engineId": 109,
+      "sourceSha256": "f3f3eeced10f700e883c5963555047d1300fd9f764db064e17fa6727d4516f72",
+      "engineSha256": "d6d722d7f246f552a9538b8916891d406a0d34700727d08a907fd912fbc39130",
+      "note": "同一专属附魔，随机将山札或弃牌中的三张 SSR 移至牌堆顶。"
+    },
+    "p_card_custom-p_card-01-ido-3_074-1-1": {
+      "engineId": 110,
+      "sourceSha256": "14ab5f6b8c3c7726a82b4abf145e671db16524e5513738e96bdb52c38ce64b37",
+      "engineSha256": "bf14a35755d7a544de4665ded5832c5416a67817bd5e09267cf008999d64670d",
+      "note": "同一专属附魔。上游定义另有追加第二段分数，按用户指定策略原样保留，不在本项目修正。"
+    },
+    "p_card_custom-p_card-02-ido-3_069-1-1": {
+      "engineId": 108,
+      "sourceSha256": "33e8aec35b2c0cb4978630e331d79c3d2dd32d56ea56beb14f59f5aea31ec453",
+      "engineSha256": "52f903f88441f02db8705e2ab524c67f1235897a7b6eceeabd0d7510f41d39b1",
+      "note": "同一专属附魔，公开效果替换与触发条件移除对应上游单个标签补丁，原样沿用。"
+    },
+    "p_card_custom-p_card-02-ido-3_073-1-1": {
+      "engineId": 111,
+      "sourceSha256": "5f22566edddce9bf68d29731b6adfe9ed59119195c310e96490e58d5c11ef2e6",
+      "engineSha256": "224f70cb361f86a245528e0ebf9711218f412dc336e9a490d2cb4b6d532a3493",
+      "note": "同一专属附魔，将元气效果卡使用后的好印象持续效果由一改为二。"
+    },
+    "p_card_custom-040_070-g_effect-card_status_enchant_change-card_enchant-e_trigger-exam_stance_change_concentration-g_effect-lesson_add-2-g_effect-card_status_enchant_change-card_enchant-e_trigger-exam_stance_change_concentration-g_effect-lesson_add-5": {
+      "engineId": 63,
+      "sourceSha256": "301b76791f839713033f629f20cba98cc5f4668a526f8b57c3d1550503a47e01",
+      "engineSha256": "92c7c60c9e850dbaed81ef06c150502743d60386ce22364750447526ac4ed186",
+      "note": "同一成长附魔，等级一和二分别沿用上游进入强气时自身分数成长二与五。"
+    },
+    "p_card_custom-070-g_effect-card_status_enchant_change-card_enchant-e_trigger-exam_stance_change_full_power-g_effect-lesson_add-3": {
+      "engineId": 81,
+      "sourceSha256": "39a41c900e52e5c1ff9c996a68e68acb3e508bcf4598b72b369115aa3f6987a2",
+      "engineSha256": "c0f48ea58253843f48c30804f216fc47ace9a7efd0c137dd10b416596efdbe8a",
+      "note": "同一成长附魔，进入全力时自身分数成长三。"
+    },
+    "p_card_custom-p_card-03-ido-3_083-1": {
+      "engineId": 107,
+      "sourceSha256": "dc8237830dfd962d2d1bb9e55db2a1263ee684e516e77cc82a04170c19476b24",
+      "engineSha256": "8bce45e5a96959ea018a9337bf589c2151cc08dc1021577b9277fa911292fc1e",
+      "note": "同一成长附魔，沿用上游将费用增加改为攻击次数增加的标签补丁。"
+    }
+  }
+}

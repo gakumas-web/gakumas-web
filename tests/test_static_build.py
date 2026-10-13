@@ -27,6 +27,8 @@ class StaticBuildTest(unittest.TestCase):
             self.assertFalse(any('snapshot.json' in name for name in files))
             self.assertIn('LICENSE.txt',files)
             self.assertIn('ATTRIBUTION.txt',files)
+            self.assertNotIn('resources/preview-account.json',files)
+            self.assertIn('false',(output/'application/features.mjs').read_text())
             self.assertFalse((output/'data').exists())
             self.assertFalse((output/'content').exists())
             self.assertIn('content-config.mjs',files)
@@ -36,6 +38,20 @@ class StaticBuildTest(unittest.TestCase):
             self.assertNotIn('src="/',html)
             self.assertNotIn('href="/',html)
             self.assertNotIn('/api/',(output/'application/master-prefetch.mjs').read_text())
+
+    def test_preview_option_removes_old_payload_when_disabled(self):
+        with TemporaryDirectory(dir=ROOT/'local') as folder:
+            output=Path(folder)/'dist'
+            builder.build(output,preview_account=True)
+            self.assertTrue((output/'resources/preview-account.json').is_file())
+            self.assertTrue((output/'resources/preview-account.json.gz').is_file())
+            self.assertTrue(json.loads((output/'release.json').read_text())['features']['preview_account'])
+            builder.build(output,preview_account=False)
+            self.assertFalse((output/'resources/preview-account.json').exists())
+            self.assertFalse((output/'resources/preview-account.json.gz').exists())
+            release=json.loads((output/'release.json').read_text())
+            self.assertNotIn('resources/preview-account.json',release['files'])
+            self.assertFalse(release['features']['preview_account'])
 
     def test_build_identity_is_explicit_and_does_not_infer_local_git_head(self):
         with TemporaryDirectory() as folder:

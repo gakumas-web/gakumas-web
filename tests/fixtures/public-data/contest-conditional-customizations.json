@@ -1,0 +1,4153 @@
+{
+  "cards": [
+    {
+      "assetId": "img_general_skillcard_sup-2_028",
+      "category": "ProduceCardCategory_ActiveSkill",
+      "definition": {
+        "assetId": "img_general_skillcard_sup-2_028",
+        "category": "ProduceCardCategory_ActiveSkill",
+        "costType": "ExamCostType_Unknown",
+        "costValue": 0,
+        "effectGroupIds": [
+          "effect_group-visible-exam_lesson-000",
+          "effect_group-visible-exam_effect_timer-000",
+          "effect_group-visible-exam_stamina_consumption_down-000",
+          "effect_group-visible-exam_card_upgrade-000"
+        ],
+        "evaluation": 32,
+        "forceStamina": 0,
+        "id": "p_card-00-sup-2_028",
+        "isCharacterAsset": false,
+        "isConversion": false,
+        "isEndTurnLost": false,
+        "isInitial": false,
+        "isInitialDeckProduceCard": false,
+        "isLimited": false,
+        "isRestrict": false,
+        "isReward": false,
+        "libraryHidden": false,
+        "maxCustomizeCount": 0,
+        "moveEffectTriggerType": "ProduceCardMoveEffectTriggerType_Unknown",
+        "moveProduceExamEffectIds": [],
+        "moveProduceExamTriggerIds": [],
+        "name": "ストレッチ談議",
+        "noDeckDuplication": true,
+        "order": "39000010000028",
+        "originCharacterId": "",
+        "originIdolCardId": "",
+        "originPrimaStellaIdolCardId": "",
+        "originSupportCardId": "s_card-2-0006",
+        "planType": "ProducePlanType_Common",
+        "playEffects": [
+          {
+            "hideIcon": false,
+            "isOncePlayEffect": false,
+            "produceExamEffectId": "e_effect-exam_lesson-0003-01",
+            "produceExamTriggerId": ""
+          },
+          {
+            "hideIcon": false,
+            "isOncePlayEffect": false,
+            "produceExamEffectId": "e_effect-exam_stamina_consumption_down-02",
+            "produceExamTriggerId": ""
+          },
+          {
+            "hideIcon": false,
+            "isOncePlayEffect": false,
+            "produceExamEffectId": "e_effect-exam_effect_timer-0001-01-e_effect-exam_card_upgrade-p_card_search-hand-all-0_0",
+            "produceExamTriggerId": ""
+          }
+        ],
+        "playMovePositionType": "ProduceCardMovePositionType_Lost",
+        "playProduceExamTriggerId": "e_trigger-exam_start_turn-turn_progress_up-2",
+        "produceCardCustomizeIds": [],
+        "produceCardStatusEnchantId": "",
+        "rarity": "ProduceCardRarity_Sr",
+        "rentalUnlockProducerLevel": 0,
+        "searchTag": "",
+        "stamina": 3,
+        "unlockProducerLevel": 0,
+        "upgradeCount": 0,
+        "viewStartTime": "0",
+        "voiceAssetId": ""
+      },
+      "descriptions": [
+        {
+          "examDescriptionType": "ExamDescriptionType_CustomizeInitialAdd",
+          "produceDescriptionType": "ProduceDescriptionType_Exam",
+          "targetId": "Description_ProduceCardIsInitial",
+          "text": ""
+        },
+        {
+          "originProduceExamTriggerId": "e_trigger-exam_start_turn-turn_progress_up-2",
+          "produceDescriptionType": "ProduceDescriptionType_PlainText",
+          "text": "3ターン目以降の場合、使用可"
+        },
+        {
+          "originProduceExamTriggerId": "e_trigger-exam_start_turn-turn_progress_up-2",
+          "produceDescriptionType": "ProduceDescriptionType_PlainText",
+          "text": ""
+        },
+        {
+          "originProduceExamEffectId": "e_effect-exam_lesson-0003-01",
+          "produceDescriptionType": "ProduceDescriptionType_ProduceDescriptionName",
+          "targetId": "Label_StyleDot",
+          "text": ""
+        },
+        {
+          "examEffectType": "ProduceExamEffectType_ExamLesson",
+          "originProduceExamEffectId": "e_effect-exam_lesson-0003-01",
+          "produceDescriptionType": "ProduceDescriptionType_ProduceExamEffectType",
+          "targetId": "Label_ExamLesson",
+          "text": "パラメータ"
+        },
+        {
+          "originProduceExamEffectId": "e_effect-exam_lesson-0003-01",
+          "produceDescriptionType": "ProduceDescriptionType_PlainText",
+          "text": "+"
+        },
+        {
+          "effectValue1": 3,
+          "examDescriptionType": "ExamDescriptionType_CustomizeEffectValue1",
+          "originProduceExamEffectId": "e_effect-exam_lesson-0003-01",
+          "produceDescriptionType": "ProduceDescriptionType_Exam",
+          "text": "3"
+        },
+        {
+          "examDescriptionType": "ExamDescriptionType_CustomizeLessonCountAdd",
+          "originProduceExamEffectId": "e_effect-exam_lesson-0003-01",
+          "produceDescriptionType": "ProduceDescriptionType_Exam",
+          "targetId": "Description_LessonCountAdd_CountSection",
+          "text": ""
+        },
+        {
+          "originProduceExamEffectId": "e_effect-exam_lesson-0003-01",
+          "produceDescriptionType": "ProduceDescriptionType_PlainText",
+          "text": ""
+        },
+        {
+          "originProduceExamEffectId": "e_effect-exam_stamina_consumption_down-02",
+          "produceDescriptionType": "ProduceDescriptionType_ProduceDescriptionName",
+          "targetId": "Label_StyleDot",
+          "text": ""
+        },
+        {
+          "examEffectType": "ProduceExamEffectType_ExamStaminaConsumptionDown",
+          "originProduceExamEffectId": "e_effect-exam_stamina_consumption_down-02",
+          "produceDescriptionType": "ProduceDescriptionType_ProduceExamEffectType",
+          "targetId": "Label_ExamStaminaConsumptionDown",
+          "text": "消費体力減少"
+        },
+        {
+          "originProduceExamEffectId": "e_effect-exam_stamina_consumption_down-02",
+          "produceDescriptionType": "ProduceDescriptionType_PlainText",
+          "text": "<nobr>"
+        },
+        {
+          "examDescriptionType": "ExamDescriptionType_CustomizeTurn",
+          "originProduceExamEffectId": "e_effect-exam_stamina_consumption_down-02",
+          "produceDescriptionType": "ProduceDescriptionType_Exam",
+          "text": "2",
+          "turn": 2
+        },
+        {
+          "originProduceExamEffectId": "e_effect-exam_stamina_consumption_down-02",
+          "produceDescriptionType": "ProduceDescriptionType_PlainText",
+          "text": "ターン</nobr>"
+        },
+        {
+          "originProduceExamEffectId": "e_effect-exam_stamina_consumption_down-02",
+          "produceDescriptionType": "ProduceDescriptionType_PlainText",
+          "text": ""
+        },
+        {
+          "originProduceExamEffectId": "e_effect-exam_effect_timer-0001-01-e_effect-exam_card_upgrade-p_card_search-hand-all-0_0",
+          "produceDescriptionType": "ProduceDescriptionType_ProduceDescriptionName",
+          "targetId": "Label_StyleDot",
+          "text": ""
+        },
+        {
+          "originProduceExamEffectId": "e_effect-exam_effect_timer-0001-01-e_effect-exam_card_upgrade-p_card_search-hand-all-0_0",
+          "produceDescriptionType": "ProduceDescriptionType_PlainText",
+          "text": "次のターン、"
+        },
+        {
+          "originProduceExamEffectId": "e_effect-exam_effect_timer-0001-01-e_effect-exam_card_upgrade-p_card_search-hand-all-0_0",
+          "produceDescriptionType": "ProduceDescriptionType_PlainText",
+          "text": "手札をすべて"
+        },
+        {
+          "examEffectType": "ProduceExamEffectType_ExamCardUpgrade",
+          "originProduceExamEffectId": "e_effect-exam_effect_timer-0001-01-e_effect-exam_card_upgrade-p_card_search-hand-all-0_0",
+          "produceDescriptionType": "ProduceDescriptionType_ProduceExamEffectType",
+          "targetId": "Label_ExamCardUpgrade",
+          "text": "レッスン中強化"
+        },
+        {
+          "originProduceExamEffectId": "e_effect-exam_effect_timer-0001-01-e_effect-exam_card_upgrade-p_card_search-hand-all-0_0",
+          "produceDescriptionType": "ProduceDescriptionType_PlainText",
+          "text": " "
+        },
+        {
+          "originProduceExamEffectId": "e_effect-exam_effect_timer-0001-01-e_effect-exam_card_upgrade-p_card_search-hand-all-0_0",
+          "produceDescriptionType": "ProduceDescriptionType_PlainText",
+          "text": ""
+        },
+        {
+          "examDescriptionType": "ExamDescriptionType_CustomizeEffectAdd",
+          "produceDescriptionType": "ProduceDescriptionType_Exam",
+          "text": ""
+        },
+        {
+          "isOnlyOutGame": true,
+          "produceDescriptionType": "ProduceDescriptionType_PlainText",
+          "text": "<nobr>"
+        },
+        {
+          "isOnlyOutGame": true,
+          "produceDescriptionType": "ProduceDescriptionType_ProduceDescription",
+          "targetId": "Label_NoDeckDuplication",
+          "text": "重複不可"
+        },
+        {
+          "isOnlyOutGame": true,
+          "produceDescriptionType": "ProduceDescriptionType_PlainText",
+          "text": " </nobr>"
+        },
+        {
+          "produceCardMovePositionType": "ProduceCardMovePositionType_Lost",
+          "produceDescriptionType": "ProduceDescriptionType_ProduceDescription",
+          "targetId": "Label_ProduceCardMovePositionType_Lost",
+          "text": "レッスン中1回"
+        },
+        {
+          "examDescriptionType": "ExamDescriptionType_CustomizePlayMovePositionLost",
+          "produceDescriptionType": "ProduceDescriptionType_Exam",
+          "text": ""
+        }
+      ],
+      "id": "p_card-00-sup-2_028",
+      "images": {
+        "common": "img_general_skillcard_sup-2_028.webp"
+      },
+      "isCharacterAsset": false,
+      "name": "ストレッチ談議",
+      "originCharacterId": "",
+      "playEffects": [
+        {
+          "hideIcon": false,
+          "isOncePlayEffect": false,
+          "produceExamEffectId": "e_effect-exam_lesson-0003-01",
+          "produceExamTriggerId": ""
+        },
+        {
+          "hideIcon": false,
+          "isOncePlayEffect": false,
+          "produceExamEffectId": "e_effect-exam_stamina_consumption_down-02",
+          "produceExamTriggerId": ""
+        },
+        {
+          "hideIcon": false,
+          "isOncePlayEffect": false,
+          "produceExamEffectId": "e_effect-exam_effect_timer-0001-01-e_effect-exam_card_upgrade-p_card_search-hand-all-0_0",
+          "produceExamTriggerId": ""
+        }
+      ],
+      "rarity": "ProduceCardRarity_Sr",
+      "text": "3ターン目以降の場合、使用可 / パラメータ / + / 3 / 消費体力減少 / <nobr> / 2 / ターン</nobr> / 次のターン、 / 手札をすべて / レッスン中強化 /   / <nobr> / 重複不可 /  </nobr> / レッスン中1回",
+      "upgradeCount": 0
+    },
+    {
+      "assetId": "img_general_skillcard_sup-2_028",
+      "category": "ProduceCardCategory_ActiveSkill",
+      "definition": {
+        "assetId": "img_general_skillcard_sup-2_028",
+        "category": "ProduceCardCategory_ActiveSkill",
+        "costType": "ExamCostType_Unknown",
+        "costValue": 0,
+        "effectGroupIds": [
+          "effect_group-visible-exam_lesson-000",
+          "effect_group-visible-exam_effect_timer-000",
+          "effect_group-visible-exam_stamina_consumption_down-000",
+          "effect_group-visible-exam_card_upgrade-000"
+        ],
+        "evaluation": 42,
+        "forceStamina": 0,
+        "id": "p_card-00-sup-2_028",
+        "isCharacterAsset": false,
+        "isConversion": false,
+        "isEndTurnLost": false,
+        "isInitial": false,
+        "isInitialDeckProduceCard": false,
+        "isLimited": false,
+        "isRestrict": false,
+        "isReward": false,
+        "libraryHidden": false,
+        "maxCustomizeCount": 2,
+        "moveEffectTriggerType": "ProduceCardMoveEffectTriggerType_Unknown",
+        "moveProduceExamEffectIds": [],
+        "moveProduceExamTriggerIds": [],
+        "name": "ストレッチ談議+",
+        "noDeckDuplication": true,
+        "order": "39000010000028",
+        "originCharacterId": "",
+        "originIdolCardId": "",
+        "originPrimaStellaIdolCardId": "",
+        "originSupportCardId": "s_card-2-0006",
+        "planType": "ProducePlanType_Common",
+        "playEffects": [
+          {
+            "hideIcon": false,
+            "isOncePlayEffect": false,
+            "produceExamEffectId": "e_effect-exam_lesson-0003-01",
+            "produceExamTriggerId": ""
+          },
+          {
+            "hideIcon": false,
+            "isOncePlayEffect": false,
+            "produceExamEffectId": "e_effect-exam_stamina_consumption_down-02",
+            "produceExamTriggerId": ""
+          },
+          {
+            "hideIcon": false,
+            "isOncePlayEffect": false,
+            "produceExamEffectId": "e_effect-exam_effect_timer-0001-01-e_effect-exam_card_upgrade-p_card_search-hand-all-0_0",
+            "produceExamTriggerId": ""
+          }
+        ],
+        "playMovePositionType": "ProduceCardMovePositionType_Lost",
+        "playProduceExamTriggerId": "e_trigger-exam_start_turn-turn_progress_up-2",
+        "produceCardCustomizeIds": [
+          "p_card_custom-040_070-g_effect-lesson_add-6-g_effect-lesson_add-22",
+          "p_card_custom-040_070-g_effect-stamina_consumption_down_turn_add-1-g_effect-stamina_consumption_down_turn_add-3",
+          "p_card_custom-070-g_effect-effect_add-e_effect-exam_block-0004"
+        ],
+        "produceCardStatusEnchantId": "",
+        "rarity": "ProduceCardRarity_Sr",
+        "rentalUnlockProducerLevel": 0,
+        "searchTag": "",
+        "stamina": 0,
+        "unlockProducerLevel": 0,
+        "upgradeCount": 1,
+        "viewStartTime": "0",
+        "voiceAssetId": ""
+      },
+      "descriptions": [
+        {
+          "examDescriptionType": "ExamDescriptionType_CustomizeInitialAdd",
+          "produceDescriptionType": "ProduceDescriptionType_Exam",
+          "targetId": "Description_ProduceCardIsInitial",
+          "text": ""
+        },
+        {
+          "originProduceExamTriggerId": "e_trigger-exam_start_turn-turn_progress_up-2",
+          "produceDescriptionType": "ProduceDescriptionType_PlainText",
+          "text": "3ターン目以降の場合、使用可"
+        },
+        {
+          "originProduceExamTriggerId": "e_trigger-exam_start_turn-turn_progress_up-2",
+          "produceDescriptionType": "ProduceDescriptionType_PlainText",
+          "text": ""
+        },
+        {
+          "originProduceExamEffectId": "e_effect-exam_lesson-0003-01",
+          "produceDescriptionType": "ProduceDescriptionType_ProduceDescriptionName",
+          "targetId": "Label_StyleDot",
+          "text": ""
+        },
+        {
+          "examEffectType": "ProduceExamEffectType_ExamLesson",
+          "originProduceExamEffectId": "e_effect-exam_lesson-0003-01",
+          "produceDescriptionType": "ProduceDescriptionType_ProduceExamEffectType",
+          "targetId": "Label_ExamLesson",
+          "text": "パラメータ"
+        },
+        {
+          "originProduceExamEffectId": "e_effect-exam_lesson-0003-01",
+          "produceDescriptionType": "ProduceDescriptionType_PlainText",
+          "text": "+"
+        },
+        {
+          "effectValue1": 3,
+          "examDescriptionType": "ExamDescriptionType_CustomizeEffectValue1",
+          "originProduceExamEffectId": "e_effect-exam_lesson-0003-01",
+          "produceDescriptionType": "ProduceDescriptionType_Exam",
+          "text": "3"
+        },
+        {
+          "examDescriptionType": "ExamDescriptionType_CustomizeLessonCountAdd",
+          "originProduceExamEffectId": "e_effect-exam_lesson-0003-01",
+          "produceDescriptionType": "ProduceDescriptionType_Exam",
+          "targetId": "Description_LessonCountAdd_CountSection",
+          "text": ""
+        },
+        {
+          "originProduceExamEffectId": "e_effect-exam_lesson-0003-01",
+          "produceDescriptionType": "ProduceDescriptionType_PlainText",
+          "text": ""
+        },
+        {
+          "originProduceExamEffectId": "e_effect-exam_stamina_consumption_down-02",
+          "produceDescriptionType": "ProduceDescriptionType_ProduceDescriptionName",
+          "targetId": "Label_StyleDot",
+          "text": ""
+        },
+        {
+          "examEffectType": "ProduceExamEffectType_ExamStaminaConsumptionDown",
+          "originProduceExamEffectId": "e_effect-exam_stamina_consumption_down-02",
+          "produceDescriptionType": "ProduceDescriptionType_ProduceExamEffectType",
+          "targetId": "Label_ExamStaminaConsumptionDown",
+          "text": "消費体力減少"
+        },
+        {
+          "originProduceExamEffectId": "e_effect-exam_stamina_consumption_down-02",
+          "produceDescriptionType": "ProduceDescriptionType_PlainText",
+          "text": "<nobr>"
+        },
+        {
+          "examDescriptionType": "ExamDescriptionType_CustomizeTurn",
+          "originProduceExamEffectId": "e_effect-exam_stamina_consumption_down-02",
+          "produceDescriptionType": "ProduceDescriptionType_Exam",
+          "text": "2",
+          "turn": 2
+        },
+        {
+          "originProduceExamEffectId": "e_effect-exam_stamina_consumption_down-02",
+          "produceDescriptionType": "ProduceDescriptionType_PlainText",
+          "text": "ターン</nobr>"
+        },
+        {
+          "originProduceExamEffectId": "e_effect-exam_stamina_consumption_down-02",
+          "produceDescriptionType": "ProduceDescriptionType_PlainText",
+          "text": ""
+        },
+        {
+          "originProduceExamEffectId": "e_effect-exam_effect_timer-0001-01-e_effect-exam_card_upgrade-p_card_search-hand-all-0_0",
+          "produceDescriptionType": "ProduceDescriptionType_ProduceDescriptionName",
+          "targetId": "Label_StyleDot",
+          "text": ""
+        },
+        {
+          "originProduceExamEffectId": "e_effect-exam_effect_timer-0001-01-e_effect-exam_card_upgrade-p_card_search-hand-all-0_0",
+          "produceDescriptionType": "ProduceDescriptionType_PlainText",
+          "text": "次のターン、"
+        },
+        {
+          "originProduceExamEffectId": "e_effect-exam_effect_timer-0001-01-e_effect-exam_card_upgrade-p_card_search-hand-all-0_0",
+          "produceDescriptionType": "ProduceDescriptionType_PlainText",
+          "text": "手札をすべて"
+        },
+        {
+          "examEffectType": "ProduceExamEffectType_ExamCardUpgrade",
+          "originProduceExamEffectId": "e_effect-exam_effect_timer-0001-01-e_effect-exam_card_upgrade-p_card_search-hand-all-0_0",
+          "produceDescriptionType": "ProduceDescriptionType_ProduceExamEffectType",
+          "targetId": "Label_ExamCardUpgrade",
+          "text": "レッスン中強化"
+        },
+        {
+          "originProduceExamEffectId": "e_effect-exam_effect_timer-0001-01-e_effect-exam_card_upgrade-p_card_search-hand-all-0_0",
+          "produceDescriptionType": "ProduceDescriptionType_PlainText",
+          "text": " "
+        },
+        {
+          "originProduceExamEffectId": "e_effect-exam_effect_timer-0001-01-e_effect-exam_card_upgrade-p_card_search-hand-all-0_0",
+          "produceDescriptionType": "ProduceDescriptionType_PlainText",
+          "text": ""
+        },
+        {
+          "examDescriptionType": "ExamDescriptionType_CustomizeEffectAdd",
+          "produceDescriptionType": "ProduceDescriptionType_Exam",
+          "text": ""
+        },
+        {
+          "isOnlyOutGame": true,
+          "produceDescriptionType": "ProduceDescriptionType_PlainText",
+          "text": "<nobr>"
+        },
+        {
+          "isOnlyOutGame": true,
+          "produceDescriptionType": "ProduceDescriptionType_ProduceDescription",
+          "targetId": "Label_NoDeckDuplication",
+          "text": "重複不可"
+        },
+        {
+          "isOnlyOutGame": true,
+          "produceDescriptionType": "ProduceDescriptionType_PlainText",
+          "text": " </nobr>"
+        },
+        {
+          "produceCardMovePositionType": "ProduceCardMovePositionType_Lost",
+          "produceDescriptionType": "ProduceDescriptionType_ProduceDescription",
+          "targetId": "Label_ProduceCardMovePositionType_Lost",
+          "text": "レッスン中1回"
+        },
+        {
+          "examDescriptionType": "ExamDescriptionType_CustomizePlayMovePositionLost",
+          "produceDescriptionType": "ProduceDescriptionType_Exam",
+          "text": ""
+        }
+      ],
+      "id": "p_card-00-sup-2_028",
+      "images": {
+        "common": "img_general_skillcard_sup-2_028.webp"
+      },
+      "isCharacterAsset": false,
+      "name": "ストレッチ談議+",
+      "originCharacterId": "",
+      "playEffects": [
+        {
+          "hideIcon": false,
+          "isOncePlayEffect": false,
+          "produceExamEffectId": "e_effect-exam_lesson-0003-01",
+          "produceExamTriggerId": ""
+        },
+        {
+          "hideIcon": false,
+          "isOncePlayEffect": false,
+          "produceExamEffectId": "e_effect-exam_stamina_consumption_down-02",
+          "produceExamTriggerId": ""
+        },
+        {
+          "hideIcon": false,
+          "isOncePlayEffect": false,
+          "produceExamEffectId": "e_effect-exam_effect_timer-0001-01-e_effect-exam_card_upgrade-p_card_search-hand-all-0_0",
+          "produceExamTriggerId": ""
+        }
+      ],
+      "rarity": "ProduceCardRarity_Sr",
+      "text": "3ターン目以降の場合、使用可 / パラメータ / + / 3 / 消費体力減少 / <nobr> / 2 / ターン</nobr> / 次のターン、 / 手札をすべて / レッスン中強化 /   / <nobr> / 重複不可 /  </nobr> / レッスン中1回",
+      "upgradeCount": 1
+    },
+    {
+      "assetId": "img_general_skillcard_act-1_020",
+      "category": "ProduceCardCategory_ActiveSkill",
+      "definition": {
+        "assetId": "img_general_skillcard_act-1_020",
+        "category": "ProduceCardCategory_ActiveSkill",
+        "costType": "ExamCostType_Unknown",
+        "costValue": 0,
+        "effectGroupIds": [
+          "effect_group-visible-exam_lesson-000"
+        ],
+        "evaluation": 15,
+        "forceStamina": 0,
+        "id": "p_card-01-act-1_020",
+        "isCharacterAsset": false,
+        "isConversion": false,
+        "isEndTurnLost": false,
+        "isInitial": false,
+        "isInitialDeckProduceCard": false,
+        "isLimited": false,
+        "isRestrict": false,
+        "isReward": false,
+        "libraryHidden": false,
+        "maxCustomizeCount": 0,
+        "moveEffectTriggerType": "ProduceCardMoveEffectTriggerType_Unknown",
+        "moveProduceExamEffectIds": [],
+        "moveProduceExamTriggerIds": [],
+        "name": "ハイタッチ",
+        "noDeckDuplication": false,
+        "order": "21010130000020",
+        "originCharacterId": "",
+        "originIdolCardId": "",
+        "originPrimaStellaIdolCardId": "",
+        "originSupportCardId": "",
+        "planType": "ProducePlanType_Plan1",
+        "playEffects": [
+          {
+            "hideIcon": false,
+            "isOncePlayEffect": false,
+            "produceExamEffectId": "e_effect-exam_multiple_lesson_buff_lesson-0017-0500-01",
+            "produceExamTriggerId": ""
+          }
+        ],
+        "playMovePositionType": "ProduceCardMovePositionType_Lost",
+        "playProduceExamTriggerId": "",
+        "produceCardCustomizeIds": [],
+        "produceCardStatusEnchantId": "",
+        "rarity": "ProduceCardRarity_R",
+        "rentalUnlockProducerLevel": 1,
+        "searchTag": "",
+        "stamina": 4,
+        "unlockProducerLevel": 13,
+        "upgradeCount": 0,
+        "viewStartTime": "0",
+        "voiceAssetId": ""
+      },
+      "descriptions": [
+        {
+          "examDescriptionType": "ExamDescriptionType_CustomizeInitialAdd",
+          "produceDescriptionType": "ProduceDescriptionType_Exam",
+          "targetId": "Description_ProduceCardIsInitial",
+          "text": ""
+        },
+        {
+          "originProduceExamEffectId": "e_effect-exam_multiple_lesson_buff_lesson-0017-0500-01",
+          "produceDescriptionType": "ProduceDescriptionType_ProduceDescriptionName",
+          "targetId": "Label_StyleDot",
+          "text": ""
+        },
+        {
+          "examEffectType": "ProduceExamEffectType_ExamLesson",
+          "originProduceExamEffectId": "e_effect-exam_multiple_lesson_buff_lesson-0017-0500-01",
+          "produceDescriptionType": "ProduceDescriptionType_ProduceExamEffectType",
+          "targetId": "Label_ExamLesson",
+          "text": "パラメータ"
+        },
+        {
+          "originProduceExamEffectId": "e_effect-exam_multiple_lesson_buff_lesson-0017-0500-01",
+          "produceDescriptionType": "ProduceDescriptionType_PlainText",
+          "text": "<nobr>+"
+        },
+        {
+          "effectValue1": 17,
+          "examDescriptionType": "ExamDescriptionType_CustomizeEffectValue1",
+          "originProduceExamEffectId": "e_effect-exam_multiple_lesson_buff_lesson-0017-0500-01",
+          "produceDescriptionType": "ProduceDescriptionType_Exam",
+          "text": "17"
+        },
+        {
+          "originProduceExamEffectId": "e_effect-exam_multiple_lesson_buff_lesson-0017-0500-01",
+          "produceDescriptionType": "ProduceDescriptionType_PlainText",
+          "text": "</nobr>（"
+        },
+        {
+          "examEffectType": "ProduceExamEffectType_ExamLessonBuff",
+          "originProduceExamEffectId": "e_effect-exam_multiple_lesson_buff_lesson-0017-0500-01",
+          "produceDescriptionType": "ProduceDescriptionType_ProduceExamEffectType",
+          "targetId": "Label_ExamLessonBuff_Produce",
+          "text": "集中"
+        },
+        {
+          "originProduceExamEffectId": "e_effect-exam_multiple_lesson_buff_lesson-0017-0500-01",
+          "produceDescriptionType": "ProduceDescriptionType_PlainText",
+          "text": "効果を<nobr>1.5倍</nobr>適用）"
+        },
+        {
+          "examDescriptionType": "ExamDescriptionType_CustomizeLessonCountAdd",
+          "originProduceExamEffectId": "e_effect-exam_multiple_lesson_buff_lesson-0017-0500-01",
+          "produceDescriptionType": "ProduceDescriptionType_Exam",
+          "targetId": "Description_LessonCountAdd_CountSection",
+          "text": ""
+        },
+        {
+          "originProduceExamEffectId": "e_effect-exam_multiple_lesson_buff_lesson-0017-0500-01",
+          "produceDescriptionType": "ProduceDescriptionType_PlainText",
+          "text": ""
+        },
+        {
+          "examDescriptionType": "ExamDescriptionType_CustomizeEffectAdd",
+          "produceDescriptionType": "ProduceDescriptionType_Exam",
+          "text": ""
+        },
+        {
+          "produceCardMovePositionType": "ProduceCardMovePositionType_Lost",
+          "produceDescriptionType": "ProduceDescriptionType_ProduceDescription",
+          "targetId": "Label_ProduceCardMovePositionType_Lost",
+          "text": "レッスン中1回"
+        },
+        {
+          "examDescriptionType": "ExamDescriptionType_CustomizePlayMovePositionLost",
+          "produceDescriptionType": "ProduceDescriptionType_Exam",
+          "text": ""
+        }
+      ],
+      "id": "p_card-01-act-1_020",
+      "images": {
+        "common": "img_general_skillcard_act-1_020.webp"
+      },
+      "isCharacterAsset": false,
+      "name": "ハイタッチ",
+      "originCharacterId": "",
+      "playEffects": [
+        {
+          "hideIcon": false,
+          "isOncePlayEffect": false,
+          "produceExamEffectId": "e_effect-exam_multiple_lesson_buff_lesson-0017-0500-01",
+          "produceExamTriggerId": ""
+        }
+      ],
+      "rarity": "ProduceCardRarity_R",
+      "text": "パラメータ / <nobr>+ / 17 / </nobr>（ / 集中 / 効果を<nobr>1.5倍</nobr>適用） / レッスン中1回",
+      "upgradeCount": 0
+    },
+    {
+      "assetId": "img_general_skillcard_act-1_020",
+      "category": "ProduceCardCategory_ActiveSkill",
+      "definition": {
+        "assetId": "img_general_skillcard_act-1_020",
+        "category": "ProduceCardCategory_ActiveSkill",
+        "costType": "ExamCostType_Unknown",
+        "costValue": 0,
+        "effectGroupIds": [
+          "effect_group-visible-exam_lesson-000"
+        ],
+        "evaluation": 20,
+        "forceStamina": 0,
+        "id": "p_card-01-act-1_020",
+        "isCharacterAsset": false,
+        "isConversion": false,
+        "isEndTurnLost": false,
+        "isInitial": false,
+        "isInitialDeckProduceCard": false,
+        "isLimited": false,
+        "isRestrict": false,
+        "isReward": false,
+        "libraryHidden": false,
+        "maxCustomizeCount": 3,
+        "moveEffectTriggerType": "ProduceCardMoveEffectTriggerType_Unknown",
+        "moveProduceExamEffectIds": [],
+        "moveProduceExamTriggerIds": [],
+        "name": "ハイタッチ+",
+        "noDeckDuplication": false,
+        "order": "21010130000020",
+        "originCharacterId": "",
+        "originIdolCardId": "",
+        "originPrimaStellaIdolCardId": "",
+        "originSupportCardId": "",
+        "planType": "ProducePlanType_Plan1",
+        "playEffects": [
+          {
+            "hideIcon": false,
+            "isOncePlayEffect": false,
+            "produceExamEffectId": "e_effect-exam_multiple_lesson_buff_lesson-0023-1000-01",
+            "produceExamTriggerId": ""
+          }
+        ],
+        "playMovePositionType": "ProduceCardMovePositionType_Lost",
+        "playProduceExamTriggerId": "",
+        "produceCardCustomizeIds": [
+          "p_card_custom-040_040_070-g_effect-lesson_add-6-g_effect-lesson_add-12-g_effect-lesson_add-30",
+          "p_card_custom-020-g_effect-cost_reduce-2",
+          "p_card_custom-070-g_effect-effect_add-e_effect-exam_block-0009"
+        ],
+        "produceCardStatusEnchantId": "",
+        "rarity": "ProduceCardRarity_R",
+        "rentalUnlockProducerLevel": 1,
+        "searchTag": "",
+        "stamina": 4,
+        "unlockProducerLevel": 13,
+        "upgradeCount": 1,
+        "viewStartTime": "0",
+        "voiceAssetId": ""
+      },
+      "descriptions": [
+        {
+          "examDescriptionType": "ExamDescriptionType_CustomizeInitialAdd",
+          "produceDescriptionType": "ProduceDescriptionType_Exam",
+          "targetId": "Description_ProduceCardIsInitial",
+          "text": ""
+        },
+        {
+          "originProduceExamEffectId": "e_effect-exam_multiple_lesson_buff_lesson-0023-1000-01",
+          "produceDescriptionType": "ProduceDescriptionType_ProduceDescriptionName",
+          "targetId": "Label_StyleDot",
+          "text": ""
+        },
+        {
+          "examEffectType": "ProduceExamEffectType_ExamLesson",
+          "originProduceExamEffectId": "e_effect-exam_multiple_lesson_buff_lesson-0023-1000-01",
+          "produceDescriptionType": "ProduceDescriptionType_ProduceExamEffectType",
+          "targetId": "Label_ExamLesson",
+          "text": "パラメータ"
+        },
+        {
+          "originProduceExamEffectId": "e_effect-exam_multiple_lesson_buff_lesson-0023-1000-01",
+          "produceDescriptionType": "ProduceDescriptionType_PlainText",
+          "text": "<nobr>+"
+        },
+        {
+          "effectValue1": 23,
+          "examDescriptionType": "ExamDescriptionType_CustomizeEffectValue1",
+          "originProduceExamEffectId": "e_effect-exam_multiple_lesson_buff_lesson-0023-1000-01",
+          "produceDescriptionType": "ProduceDescriptionType_Exam",
+          "text": "23"
+        },
+        {
+          "originProduceExamEffectId": "e_effect-exam_multiple_lesson_buff_lesson-0023-1000-01",
+          "produceDescriptionType": "ProduceDescriptionType_PlainText",
+          "text": "</nobr>（"
+        },
+        {
+          "examEffectType": "ProduceExamEffectType_ExamLessonBuff",
+          "originProduceExamEffectId": "e_effect-exam_multiple_lesson_buff_lesson-0023-1000-01",
+          "produceDescriptionType": "ProduceDescriptionType_ProduceExamEffectType",
+          "targetId": "Label_ExamLessonBuff_Produce",
+          "text": "集中"
+        },
+        {
+          "originProduceExamEffectId": "e_effect-exam_multiple_lesson_buff_lesson-0023-1000-01",
+          "produceDescriptionType": "ProduceDescriptionType_PlainText",
+          "text": "効果を<nobr>2倍</nobr>適用）"
+        },
+        {
+          "examDescriptionType": "ExamDescriptionType_CustomizeLessonCountAdd",
+          "originProduceExamEffectId": "e_effect-exam_multiple_lesson_buff_lesson-0023-1000-01",
+          "produceDescriptionType": "ProduceDescriptionType_Exam",
+          "targetId": "Description_LessonCountAdd_CountSection",
+          "text": ""
+        },
+        {
+          "originProduceExamEffectId": "e_effect-exam_multiple_lesson_buff_lesson-0023-1000-01",
+          "produceDescriptionType": "ProduceDescriptionType_PlainText",
+          "text": ""
+        },
+        {
+          "examDescriptionType": "ExamDescriptionType_CustomizeEffectAdd",
+          "produceDescriptionType": "ProduceDescriptionType_Exam",
+          "text": ""
+        },
+        {
+          "produceCardMovePositionType": "ProduceCardMovePositionType_Lost",
+          "produceDescriptionType": "ProduceDescriptionType_ProduceDescription",
+          "targetId": "Label_ProduceCardMovePositionType_Lost",
+          "text": "レッスン中1回"
+        },
+        {
+          "examDescriptionType": "ExamDescriptionType_CustomizePlayMovePositionLost",
+          "produceDescriptionType": "ProduceDescriptionType_Exam",
+          "text": ""
+        }
+      ],
+      "id": "p_card-01-act-1_020",
+      "images": {
+        "common": "img_general_skillcard_act-1_020.webp"
+      },
+      "isCharacterAsset": false,
+      "name": "ハイタッチ+",
+      "originCharacterId": "",
+      "playEffects": [
+        {
+          "hideIcon": false,
+          "isOncePlayEffect": false,
+          "produceExamEffectId": "e_effect-exam_multiple_lesson_buff_lesson-0023-1000-01",
+          "produceExamTriggerId": ""
+        }
+      ],
+      "rarity": "ProduceCardRarity_R",
+      "text": "パラメータ / <nobr>+ / 23 / </nobr>（ / 集中 / 効果を<nobr>2倍</nobr>適用） / レッスン中1回",
+      "upgradeCount": 1
+    },
+    {
+      "assetId": "img_general_skillcard_act-2_061",
+      "category": "ProduceCardCategory_ActiveSkill",
+      "definition": {
+        "assetId": "img_general_skillcard_act-2_061",
+        "category": "ProduceCardCategory_ActiveSkill",
+        "costType": "ExamCostType_Unknown",
+        "costValue": 0,
+        "effectGroupIds": [
+          "effect_group-visible-exam_lesson-000",
+          "effect_group-visible-exam_status_enchant-000",
+          "effect_group-visible-exam_lesson_buff-000"
+        ],
+        "evaluation": 35,
+        "forceStamina": 0,
+        "id": "p_card-01-act-2_061",
+        "isCharacterAsset": true,
+        "isConversion": false,
+        "isEndTurnLost": false,
+        "isInitial": false,
+        "isInitialDeckProduceCard": false,
+        "isLimited": false,
+        "isRestrict": false,
+        "isReward": false,
+        "libraryHidden": false,
+        "maxCustomizeCount": 0,
+        "moveEffectTriggerType": "ProduceCardMoveEffectTriggerType_Unknown",
+        "moveProduceExamEffectIds": [],
+        "moveProduceExamTriggerIds": [],
+        "name": "破竹の勢い",
+        "noDeckDuplication": true,
+        "order": "31010690520061",
+        "originCharacterId": "",
+        "originIdolCardId": "",
+        "originPrimaStellaIdolCardId": "",
+        "originSupportCardId": "",
+        "planType": "ProducePlanType_Plan1",
+        "playEffects": [
+          {
+            "hideIcon": false,
+            "isOncePlayEffect": false,
+            "produceExamEffectId": "e_effect-exam_lesson_buff-0005",
+            "produceExamTriggerId": ""
+          },
+          {
+            "hideIcon": false,
+            "isOncePlayEffect": false,
+            "produceExamEffectId": "e_effect-exam_status_enchant-03-enchant-p_card-01-act-2_061-enc02",
+            "produceExamTriggerId": ""
+          }
+        ],
+        "playMovePositionType": "ProduceCardMovePositionType_Lost",
+        "playProduceExamTriggerId": "e_trigger-none-parameter_buff_up-8",
+        "produceCardCustomizeIds": [],
+        "produceCardStatusEnchantId": "",
+        "rarity": "ProduceCardRarity_Sr",
+        "rentalUnlockProducerLevel": 65,
+        "searchTag": "",
+        "stamina": 2,
+        "unlockProducerLevel": 69,
+        "upgradeCount": 0,
+        "viewStartTime": "0",
+        "voiceAssetId": ""
+      },
+      "descriptions": [
+        {
+          "examDescriptionType": "ExamDescriptionType_CustomizeInitialAdd",
+          "produceDescriptionType": "ProduceDescriptionType_Exam",
+          "targetId": "Description_ProduceCardIsInitial",
+          "text": ""
+        },
+        {
+          "examEffectType": "ProduceExamEffectType_ExamParameterBuff",
+          "originProduceExamTriggerId": "e_trigger-none-parameter_buff_up-8",
+          "produceDescriptionType": "ProduceDescriptionType_ProduceExamEffectType",
+          "targetId": "Label_ExamParameterBuff",
+          "text": "好調"
+        },
+        {
+          "originProduceExamTriggerId": "e_trigger-none-parameter_buff_up-8",
+          "produceDescriptionType": "ProduceDescriptionType_PlainText",
+          "text": "が<nobr>8ターン以上</nobr>の場合、使用可"
+        },
+        {
+          "originProduceExamTriggerId": "e_trigger-none-parameter_buff_up-8",
+          "produceDescriptionType": "ProduceDescriptionType_PlainText",
+          "text": ""
+        },
+        {
+          "originProduceExamTriggerId": "e_trigger-none-parameter_buff_up-8",
+          "produceDescriptionType": "ProduceDescriptionType_PlainText",
+          "text": ""
+        },
+        {
+          "originProduceExamEffectId": "e_effect-exam_lesson_buff-0005",
+          "produceDescriptionType": "ProduceDescriptionType_ProduceDescriptionName",
+          "targetId": "Label_StyleDot",
+          "text": ""
+        },
+        {
+          "examEffectType": "ProduceExamEffectType_ExamLessonBuff",
+          "originProduceExamEffectId": "e_effect-exam_lesson_buff-0005",
+          "produceDescriptionType": "ProduceDescriptionType_ProduceExamEffectType",
+          "targetId": "Label_ExamLessonBuff_Produce",
+          "text": "集中"
+        },
+        {
+          "originProduceExamEffectId": "e_effect-exam_lesson_buff-0005",
+          "produceDescriptionType": "ProduceDescriptionType_PlainText",
+          "text": "<nobr>+"
+        },
+        {
+          "effectValue1": 5,
+          "examDescriptionType": "ExamDescriptionType_CustomizeEffectValue1",
+          "originProduceExamEffectId": "e_effect-exam_lesson_buff-0005",
+          "produceDescriptionType": "ProduceDescriptionType_Exam",
+          "text": "5"
+        },
+        {
+          "originProduceExamEffectId": "e_effect-exam_lesson_buff-0005",
+          "produceDescriptionType": "ProduceDescriptionType_PlainText",
+          "text": "</nobr>"
+        },
+        {
+          "originProduceExamEffectId": "e_effect-exam_lesson_buff-0005",
+          "produceDescriptionType": "ProduceDescriptionType_PlainText",
+          "text": ""
+        },
+        {
+          "originProduceExamEffectId": "e_effect-exam_status_enchant-03-enchant-p_card-01-act-2_061-enc02",
+          "produceDescriptionType": "ProduceDescriptionType_ProduceDescriptionName",
+          "targetId": "Label_StyleDot",
+          "text": ""
+        },
+        {
+          "originProduceExamEffectId": "e_effect-exam_status_enchant-03-enchant-p_card-01-act-2_061-enc02",
+          "produceDescriptionType": "ProduceDescriptionType_PlainText",
+          "text": "以降の<nobr>"
+        },
+        {
+          "examDescriptionType": "ExamDescriptionType_CustomizeTurn",
+          "originProduceExamEffectId": "e_effect-exam_status_enchant-03-enchant-p_card-01-act-2_061-enc02",
+          "produceDescriptionType": "ProduceDescriptionType_Exam",
+          "text": "3",
+          "turn": 3
+        },
+        {
+          "originProduceExamEffectId": "e_effect-exam_status_enchant-03-enchant-p_card-01-act-2_061-enc02",
+          "produceDescriptionType": "ProduceDescriptionType_PlainText",
+          "text": "ターン</nobr>の間、"
+        },
+        {
+          "originProduceExamEffectId": "e_effect-exam_status_enchant-03-enchant-p_card-01-act-2_061-enc02",
+          "produceDescriptionType": "ProduceDescriptionType_PlainText",
+          "text": "ターン開始時、"
+        },
+        {
+          "examEffectType": "ProduceExamEffectType_ExamLesson",
+          "originProduceExamEffectId": "e_effect-exam_status_enchant-03-enchant-p_card-01-act-2_061-enc02",
+          "produceDescriptionType": "ProduceDescriptionType_ProduceExamEffectType",
+          "targetId": "Label_ExamLesson",
+          "text": "パラメータ"
+        },
+        {
+          "originProduceExamEffectId": "e_effect-exam_status_enchant-03-enchant-p_card-01-act-2_061-enc02",
+          "produceDescriptionType": "ProduceDescriptionType_PlainText",
+          "text": "<nobr>+"
+        },
+        {
+          "effectValue1": 5,
+          "examDescriptionType": "ExamDescriptionType_CustomizeEffectValue1",
+          "originProduceExamEffectId": "e_effect-exam_status_enchant-03-enchant-p_card-01-act-2_061-enc02",
+          "produceDescriptionType": "ProduceDescriptionType_Exam",
+          "text": "5"
+        },
+        {
+          "originProduceExamEffectId": "e_effect-exam_status_enchant-03-enchant-p_card-01-act-2_061-enc02",
+          "produceDescriptionType": "ProduceDescriptionType_PlainText",
+          "text": "</nobr>"
+        },
+        {
+          "examDescriptionType": "ExamDescriptionType_CustomizeLessonCountAdd",
+          "originProduceExamEffectId": "e_effect-exam_status_enchant-03-enchant-p_card-01-act-2_061-enc02",
+          "produceDescriptionType": "ProduceDescriptionType_Exam",
+          "targetId": "Description_LessonCountAdd_CountSection",
+          "text": ""
+        },
+        {
+          "originProduceExamEffectId": "e_effect-exam_status_enchant-03-enchant-p_card-01-act-2_061-enc02",
+          "produceDescriptionType": "ProduceDescriptionType_PlainText",
+          "text": ""
+        },
+        {
+          "examDescriptionType": "ExamDescriptionType_CustomizeEffectAdd",
+          "produceDescriptionType": "ProduceDescriptionType_Exam",
+          "text": ""
+        },
+        {
+          "isOnlyOutGame": true,
+          "produceDescriptionType": "ProduceDescriptionType_PlainText",
+          "text": "<nobr>"
+        },
+        {
+          "isOnlyOutGame": true,
+          "produceDescriptionType": "ProduceDescriptionType_ProduceDescription",
+          "targetId": "Label_NoDeckDuplication",
+          "text": "重複不可"
+        },
+        {
+          "isOnlyOutGame": true,
+          "produceDescriptionType": "ProduceDescriptionType_PlainText",
+          "text": " </nobr>"
+        },
+        {
+          "produceCardMovePositionType": "ProduceCardMovePositionType_Lost",
+          "produceDescriptionType": "ProduceDescriptionType_ProduceDescription",
+          "targetId": "Label_ProduceCardMovePositionType_Lost",
+          "text": "レッスン中1回"
+        },
+        {
+          "examDescriptionType": "ExamDescriptionType_CustomizePlayMovePositionLost",
+          "produceDescriptionType": "ProduceDescriptionType_Exam",
+          "text": ""
+        }
+      ],
+      "id": "p_card-01-act-2_061",
+      "images": {
+        "amao": "img_general_skillcard_act-2_061-amao.webp",
+        "atbm": "img_general_skillcard_act-2_061-atbm.webp",
+        "fktn": "img_general_skillcard_act-2_061-fktn.webp",
+        "hmsz": "img_general_skillcard_act-2_061-hmsz.webp",
+        "hrnm": "img_general_skillcard_act-2_061-hrnm.webp",
+        "hski": "img_general_skillcard_act-2_061-hski.webp",
+        "hume": "img_general_skillcard_act-2_061-hume.webp",
+        "jsna": "img_general_skillcard_act-2_061-jsna.webp",
+        "kcna": "img_general_skillcard_act-2_061-kcna.webp",
+        "kllj": "img_general_skillcard_act-2_061-kllj.webp",
+        "shro": "img_general_skillcard_act-2_061-shro.webp",
+        "ssmk": "img_general_skillcard_act-2_061-ssmk.webp",
+        "ttmr": "img_general_skillcard_act-2_061-ttmr.webp"
+      },
+      "isCharacterAsset": true,
+      "name": "破竹の勢い",
+      "originCharacterId": "",
+      "playEffects": [
+        {
+          "hideIcon": false,
+          "isOncePlayEffect": false,
+          "produceExamEffectId": "e_effect-exam_lesson_buff-0005",
+          "produceExamTriggerId": ""
+        },
+        {
+          "hideIcon": false,
+          "isOncePlayEffect": false,
+          "produceExamEffectId": "e_effect-exam_status_enchant-03-enchant-p_card-01-act-2_061-enc02",
+          "produceExamTriggerId": ""
+        }
+      ],
+      "rarity": "ProduceCardRarity_Sr",
+      "text": "好調 / が<nobr>8ターン以上</nobr>の場合、使用可 / 集中 / <nobr>+ / 5 / </nobr> / 以降の<nobr> / 3 / ターン</nobr>の間、 / ターン開始時、 / パラメータ / <nobr>+ / 5 / </nobr> / <nobr> / 重複不可 /  </nobr> / レッスン中1回",
+      "upgradeCount": 0
+    },
+    {
+      "assetId": "img_general_skillcard_act-2_061",
+      "category": "ProduceCardCategory_ActiveSkill",
+      "definition": {
+        "assetId": "img_general_skillcard_act-2_061",
+        "category": "ProduceCardCategory_ActiveSkill",
+        "costType": "ExamCostType_Unknown",
+        "costValue": 0,
+        "effectGroupIds": [
+          "effect_group-visible-exam_lesson-000",
+          "effect_group-visible-exam_status_enchant-000",
+          "effect_group-visible-exam_lesson_buff-000"
+        ],
+        "evaluation": 47,
+        "forceStamina": 0,
+        "id": "p_card-01-act-2_061",
+        "isCharacterAsset": true,
+        "isConversion": false,
+        "isEndTurnLost": false,
+        "isInitial": false,
+        "isInitialDeckProduceCard": false,
+        "isLimited": false,
+        "isRestrict": false,
+        "isReward": false,
+        "libraryHidden": false,
+        "maxCustomizeCount": 2,
+        "moveEffectTriggerType": "ProduceCardMoveEffectTriggerType_Unknown",
+        "moveProduceExamEffectIds": [],
+        "moveProduceExamTriggerIds": [],
+        "name": "破竹の勢い+",
+        "noDeckDuplication": true,
+        "order": "31010690520061",
+        "originCharacterId": "",
+        "originIdolCardId": "",
+        "originPrimaStellaIdolCardId": "",
+        "originSupportCardId": "",
+        "planType": "ProducePlanType_Plan1",
+        "playEffects": [
+          {
+            "hideIcon": false,
+            "isOncePlayEffect": false,
+            "produceExamEffectId": "e_effect-exam_lesson_buff-0007",
+            "produceExamTriggerId": ""
+          },
+          {
+            "hideIcon": false,
+            "isOncePlayEffect": false,
+            "produceExamEffectId": "e_effect-exam_status_enchant-04-enchant-p_card-01-act-2_061-enc02",
+            "produceExamTriggerId": ""
+          }
+        ],
+        "playMovePositionType": "ProduceCardMovePositionType_Lost",
+        "playProduceExamTriggerId": "e_trigger-none-parameter_buff_up-8",
+        "produceCardCustomizeIds": [
+          "p_card_custom-wrapper-p_card-01-act-2_061-a-01",
+          "p_card_custom-wrapper-p_card-01-act-2_061-b-01",
+          "p_card_custom-wrapper-p_card-01-act-2_061-c-01"
+        ],
+        "produceCardStatusEnchantId": "",
+        "rarity": "ProduceCardRarity_Sr",
+        "rentalUnlockProducerLevel": 65,
+        "searchTag": "",
+        "stamina": 2,
+        "unlockProducerLevel": 69,
+        "upgradeCount": 1,
+        "viewStartTime": "0",
+        "voiceAssetId": ""
+      },
+      "descriptions": [
+        {
+          "examDescriptionType": "ExamDescriptionType_CustomizeInitialAdd",
+          "produceDescriptionType": "ProduceDescriptionType_Exam",
+          "targetId": "Description_ProduceCardIsInitial",
+          "text": ""
+        },
+        {
+          "examEffectType": "ProduceExamEffectType_ExamParameterBuff",
+          "originProduceExamTriggerId": "e_trigger-none-parameter_buff_up-8",
+          "produceDescriptionType": "ProduceDescriptionType_ProduceExamEffectType",
+          "targetId": "Label_ExamParameterBuff",
+          "text": "好調"
+        },
+        {
+          "originProduceExamTriggerId": "e_trigger-none-parameter_buff_up-8",
+          "produceDescriptionType": "ProduceDescriptionType_PlainText",
+          "text": "が<nobr>8ターン以上</nobr>の場合、使用可"
+        },
+        {
+          "originProduceExamTriggerId": "e_trigger-none-parameter_buff_up-8",
+          "produceDescriptionType": "ProduceDescriptionType_PlainText",
+          "text": ""
+        },
+        {
+          "originProduceExamTriggerId": "e_trigger-none-parameter_buff_up-8",
+          "produceDescriptionType": "ProduceDescriptionType_PlainText",
+          "text": ""
+        },
+        {
+          "originProduceExamEffectId": "e_effect-exam_lesson_buff-0007",
+          "produceDescriptionType": "ProduceDescriptionType_ProduceDescriptionName",
+          "targetId": "Label_StyleDot",
+          "text": ""
+        },
+        {
+          "examEffectType": "ProduceExamEffectType_ExamLessonBuff",
+          "originProduceExamEffectId": "e_effect-exam_lesson_buff-0007",
+          "produceDescriptionType": "ProduceDescriptionType_ProduceExamEffectType",
+          "targetId": "Label_ExamLessonBuff_Produce",
+          "text": "集中"
+        },
+        {
+          "originProduceExamEffectId": "e_effect-exam_lesson_buff-0007",
+          "produceDescriptionType": "ProduceDescriptionType_PlainText",
+          "text": "<nobr>+"
+        },
+        {
+          "effectValue1": 7,
+          "examDescriptionType": "ExamDescriptionType_CustomizeEffectValue1",
+          "originProduceExamEffectId": "e_effect-exam_lesson_buff-0007",
+          "produceDescriptionType": "ProduceDescriptionType_Exam",
+          "text": "7"
+        },
+        {
+          "originProduceExamEffectId": "e_effect-exam_lesson_buff-0007",
+          "produceDescriptionType": "ProduceDescriptionType_PlainText",
+          "text": "</nobr>"
+        },
+        {
+          "originProduceExamEffectId": "e_effect-exam_lesson_buff-0007",
+          "produceDescriptionType": "ProduceDescriptionType_PlainText",
+          "text": ""
+        },
+        {
+          "originProduceExamEffectId": "e_effect-exam_status_enchant-04-enchant-p_card-01-act-2_061-enc02",
+          "produceDescriptionType": "ProduceDescriptionType_ProduceDescriptionName",
+          "targetId": "Label_StyleDot",
+          "text": ""
+        },
+        {
+          "originProduceExamEffectId": "e_effect-exam_status_enchant-04-enchant-p_card-01-act-2_061-enc02",
+          "produceDescriptionType": "ProduceDescriptionType_PlainText",
+          "text": "以降の<nobr>"
+        },
+        {
+          "examDescriptionType": "ExamDescriptionType_CustomizeTurn",
+          "originProduceExamEffectId": "e_effect-exam_status_enchant-04-enchant-p_card-01-act-2_061-enc02",
+          "produceDescriptionType": "ProduceDescriptionType_Exam",
+          "text": "4",
+          "turn": 4
+        },
+        {
+          "originProduceExamEffectId": "e_effect-exam_status_enchant-04-enchant-p_card-01-act-2_061-enc02",
+          "produceDescriptionType": "ProduceDescriptionType_PlainText",
+          "text": "ターン</nobr>の間、"
+        },
+        {
+          "originProduceExamEffectId": "e_effect-exam_status_enchant-04-enchant-p_card-01-act-2_061-enc02",
+          "produceDescriptionType": "ProduceDescriptionType_PlainText",
+          "text": "ターン開始時、"
+        },
+        {
+          "examEffectType": "ProduceExamEffectType_ExamLesson",
+          "originProduceExamEffectId": "e_effect-exam_status_enchant-04-enchant-p_card-01-act-2_061-enc02",
+          "produceDescriptionType": "ProduceDescriptionType_ProduceExamEffectType",
+          "targetId": "Label_ExamLesson",
+          "text": "パラメータ"
+        },
+        {
+          "originProduceExamEffectId": "e_effect-exam_status_enchant-04-enchant-p_card-01-act-2_061-enc02",
+          "produceDescriptionType": "ProduceDescriptionType_PlainText",
+          "text": "<nobr>+"
+        },
+        {
+          "effectValue1": 5,
+          "examDescriptionType": "ExamDescriptionType_CustomizeEffectValue1",
+          "originProduceExamEffectId": "e_effect-exam_status_enchant-04-enchant-p_card-01-act-2_061-enc02",
+          "produceDescriptionType": "ProduceDescriptionType_Exam",
+          "text": "5"
+        },
+        {
+          "originProduceExamEffectId": "e_effect-exam_status_enchant-04-enchant-p_card-01-act-2_061-enc02",
+          "produceDescriptionType": "ProduceDescriptionType_PlainText",
+          "text": "</nobr>"
+        },
+        {
+          "examDescriptionType": "ExamDescriptionType_CustomizeLessonCountAdd",
+          "originProduceExamEffectId": "e_effect-exam_status_enchant-04-enchant-p_card-01-act-2_061-enc02",
+          "produceDescriptionType": "ProduceDescriptionType_Exam",
+          "targetId": "Description_LessonCountAdd_CountSection",
+          "text": ""
+        },
+        {
+          "originProduceExamEffectId": "e_effect-exam_status_enchant-04-enchant-p_card-01-act-2_061-enc02",
+          "produceDescriptionType": "ProduceDescriptionType_PlainText",
+          "text": ""
+        },
+        {
+          "examDescriptionType": "ExamDescriptionType_CustomizeEffectAdd",
+          "produceDescriptionType": "ProduceDescriptionType_Exam",
+          "text": ""
+        },
+        {
+          "isOnlyOutGame": true,
+          "produceDescriptionType": "ProduceDescriptionType_PlainText",
+          "text": "<nobr>"
+        },
+        {
+          "isOnlyOutGame": true,
+          "produceDescriptionType": "ProduceDescriptionType_ProduceDescription",
+          "targetId": "Label_NoDeckDuplication",
+          "text": "重複不可"
+        },
+        {
+          "isOnlyOutGame": true,
+          "produceDescriptionType": "ProduceDescriptionType_PlainText",
+          "text": " </nobr>"
+        },
+        {
+          "produceCardMovePositionType": "ProduceCardMovePositionType_Lost",
+          "produceDescriptionType": "ProduceDescriptionType_ProduceDescription",
+          "targetId": "Label_ProduceCardMovePositionType_Lost",
+          "text": "レッスン中1回"
+        },
+        {
+          "examDescriptionType": "ExamDescriptionType_CustomizePlayMovePositionLost",
+          "produceDescriptionType": "ProduceDescriptionType_Exam",
+          "text": ""
+        }
+      ],
+      "id": "p_card-01-act-2_061",
+      "images": {
+        "amao": "img_general_skillcard_act-2_061-amao.webp",
+        "atbm": "img_general_skillcard_act-2_061-atbm.webp",
+        "fktn": "img_general_skillcard_act-2_061-fktn.webp",
+        "hmsz": "img_general_skillcard_act-2_061-hmsz.webp",
+        "hrnm": "img_general_skillcard_act-2_061-hrnm.webp",
+        "hski": "img_general_skillcard_act-2_061-hski.webp",
+        "hume": "img_general_skillcard_act-2_061-hume.webp",
+        "jsna": "img_general_skillcard_act-2_061-jsna.webp",
+        "kcna": "img_general_skillcard_act-2_061-kcna.webp",
+        "kllj": "img_general_skillcard_act-2_061-kllj.webp",
+        "shro": "img_general_skillcard_act-2_061-shro.webp",
+        "ssmk": "img_general_skillcard_act-2_061-ssmk.webp",
+        "ttmr": "img_general_skillcard_act-2_061-ttmr.webp"
+      },
+      "isCharacterAsset": true,
+      "name": "破竹の勢い+",
+      "originCharacterId": "",
+      "playEffects": [
+        {
+          "hideIcon": false,
+          "isOncePlayEffect": false,
+          "produceExamEffectId": "e_effect-exam_lesson_buff-0007",
+          "produceExamTriggerId": ""
+        },
+        {
+          "hideIcon": false,
+          "isOncePlayEffect": false,
+          "produceExamEffectId": "e_effect-exam_status_enchant-04-enchant-p_card-01-act-2_061-enc02",
+          "produceExamTriggerId": ""
+        }
+      ],
+      "rarity": "ProduceCardRarity_Sr",
+      "text": "好調 / が<nobr>8ターン以上</nobr>の場合、使用可 / 集中 / <nobr>+ / 7 / </nobr> / 以降の<nobr> / 4 / ターン</nobr>の間、 / ターン開始時、 / パラメータ / <nobr>+ / 5 / </nobr> / <nobr> / 重複不可 /  </nobr> / レッスン中1回",
+      "upgradeCount": 1
+    }
+  ],
+  "customizations": [
+    {
+      "customizeCount": 1,
+      "description": "",
+      "id": "p_card_custom-020-g_effect-cost_reduce-2",
+      "overwriteProduceCardGrowEffectType": "ProduceCardGrowEffectType_Unknown",
+      "produceCardGrowEffectIds": [
+        "g_effect-cost_reduce-2"
+      ],
+      "producePoint": 20
+    },
+    {
+      "customizeCount": 1,
+      "description": "",
+      "id": "p_card_custom-040_040_070-g_effect-lesson_add-6-g_effect-lesson_add-12-g_effect-lesson_add-30",
+      "overwriteProduceCardGrowEffectType": "ProduceCardGrowEffectType_Unknown",
+      "produceCardGrowEffectIds": [
+        "g_effect-lesson_add-6"
+      ],
+      "producePoint": 40
+    },
+    {
+      "customizeCount": 2,
+      "description": "",
+      "id": "p_card_custom-040_040_070-g_effect-lesson_add-6-g_effect-lesson_add-12-g_effect-lesson_add-30",
+      "overwriteProduceCardGrowEffectType": "ProduceCardGrowEffectType_Unknown",
+      "produceCardGrowEffectIds": [
+        "g_effect-lesson_add-12"
+      ],
+      "producePoint": 40
+    },
+    {
+      "customizeCount": 3,
+      "description": "",
+      "id": "p_card_custom-040_040_070-g_effect-lesson_add-6-g_effect-lesson_add-12-g_effect-lesson_add-30",
+      "overwriteProduceCardGrowEffectType": "ProduceCardGrowEffectType_Unknown",
+      "produceCardGrowEffectIds": [
+        "g_effect-lesson_add-30"
+      ],
+      "producePoint": 70
+    },
+    {
+      "customizeCount": 1,
+      "description": "",
+      "id": "p_card_custom-040_070-g_effect-lesson_add-6-g_effect-lesson_add-22",
+      "overwriteProduceCardGrowEffectType": "ProduceCardGrowEffectType_Unknown",
+      "produceCardGrowEffectIds": [
+        "g_effect-lesson_add-6"
+      ],
+      "producePoint": 40
+    },
+    {
+      "customizeCount": 2,
+      "description": "",
+      "id": "p_card_custom-040_070-g_effect-lesson_add-6-g_effect-lesson_add-22",
+      "overwriteProduceCardGrowEffectType": "ProduceCardGrowEffectType_Unknown",
+      "produceCardGrowEffectIds": [
+        "g_effect-lesson_add-22"
+      ],
+      "producePoint": 70
+    },
+    {
+      "customizeCount": 1,
+      "description": "",
+      "id": "p_card_custom-040_070-g_effect-stamina_consumption_down_turn_add-1-g_effect-stamina_consumption_down_turn_add-3",
+      "overwriteProduceCardGrowEffectType": "ProduceCardGrowEffectType_Unknown",
+      "produceCardGrowEffectIds": [
+        "g_effect-stamina_consumption_down_turn_add-1"
+      ],
+      "producePoint": 40
+    },
+    {
+      "customizeCount": 2,
+      "description": "",
+      "id": "p_card_custom-040_070-g_effect-stamina_consumption_down_turn_add-1-g_effect-stamina_consumption_down_turn_add-3",
+      "overwriteProduceCardGrowEffectType": "ProduceCardGrowEffectType_Unknown",
+      "produceCardGrowEffectIds": [
+        "g_effect-stamina_consumption_down_turn_add-3"
+      ],
+      "producePoint": 70
+    },
+    {
+      "customizeCount": 1,
+      "description": "元気追加",
+      "id": "p_card_custom-070-g_effect-effect_add-e_effect-exam_block-0004",
+      "overwriteProduceCardGrowEffectType": "ProduceCardGrowEffectType_BlockAdd",
+      "produceCardGrowEffectIds": [
+        "g_effect-effect_add-e_effect-exam_block-0004"
+      ],
+      "producePoint": 70
+    },
+    {
+      "customizeCount": 1,
+      "description": "元気追加",
+      "id": "p_card_custom-070-g_effect-effect_add-e_effect-exam_block-0009",
+      "overwriteProduceCardGrowEffectType": "ProduceCardGrowEffectType_BlockAdd",
+      "produceCardGrowEffectIds": [
+        "g_effect-effect_add-e_effect-exam_block-0009"
+      ],
+      "producePoint": 70
+    },
+    {
+      "customizeCount": 1,
+      "description": "",
+      "id": "p_card_custom-wrapper-p_card-01-act-2_061-a-01",
+      "overwriteProduceCardGrowEffectType": "ProduceCardGrowEffectType_Unknown",
+      "produceCardGrowEffectIds": [
+        "g_effect-play_trigger_change-e_trigger-none-parameter_buff_up-8-e_trigger-none-parameter_buff_up-4"
+      ],
+      "producePoint": 70
+    },
+    {
+      "customizeCount": 1,
+      "description": "",
+      "id": "p_card_custom-wrapper-p_card-01-act-2_061-b-01",
+      "overwriteProduceCardGrowEffectType": "ProduceCardGrowEffectType_Unknown",
+      "produceCardGrowEffectIds": [
+        "g_effect-lesson_buff_add-1"
+      ],
+      "producePoint": 40
+    },
+    {
+      "customizeCount": 2,
+      "description": "",
+      "id": "p_card_custom-wrapper-p_card-01-act-2_061-b-01",
+      "overwriteProduceCardGrowEffectType": "ProduceCardGrowEffectType_Unknown",
+      "produceCardGrowEffectIds": [
+        "g_effect-lesson_buff_add-3"
+      ],
+      "producePoint": 70
+    },
+    {
+      "customizeCount": 1,
+      "description": "好調追加",
+      "id": "p_card_custom-wrapper-p_card-01-act-2_061-c-01",
+      "overwriteProduceCardGrowEffectType": "ProduceCardGrowEffectType_ParameterBuffTurnAdd",
+      "produceCardGrowEffectIds": [
+        "g_effect-effect_add-e_effect-exam_parameter_buff-02"
+      ],
+      "producePoint": 70
+    }
+  ],
+  "grows": [
+    {
+      "costType": "ExamCostType_Unknown",
+      "effectGroupIds": [],
+      "effectType": "ProduceCardGrowEffectType_CostReduce",
+      "id": "g_effect-cost_reduce-2",
+      "playEffectProduceExamTriggerId": "",
+      "playMovePositionType": "ProduceCardMovePositionType_Unknown",
+      "playProduceExamEffectId": "",
+      "playProduceExamTriggerId": "",
+      "produceCardStatusEnchantId": "",
+      "targetPlayEffectProduceExamTriggerIds": [],
+      "targetPlayProduceExamEffectIds": [],
+      "value": 2
+    },
+    {
+      "costType": "ExamCostType_Unknown",
+      "effectGroupIds": [
+        "effect_group-visible-exam_block-000"
+      ],
+      "effectType": "ProduceCardGrowEffectType_EffectAdd",
+      "id": "g_effect-effect_add-e_effect-exam_block-0004",
+      "playEffectProduceExamTriggerId": "",
+      "playMovePositionType": "ProduceCardMovePositionType_Unknown",
+      "playProduceExamEffectId": "e_effect-exam_block-0004",
+      "playProduceExamTriggerId": "",
+      "produceCardStatusEnchantId": "",
+      "targetPlayEffectProduceExamTriggerIds": [],
+      "targetPlayProduceExamEffectIds": [],
+      "value": 0
+    },
+    {
+      "costType": "ExamCostType_Unknown",
+      "effectGroupIds": [
+        "effect_group-visible-exam_block-000"
+      ],
+      "effectType": "ProduceCardGrowEffectType_EffectAdd",
+      "id": "g_effect-effect_add-e_effect-exam_block-0009",
+      "playEffectProduceExamTriggerId": "",
+      "playMovePositionType": "ProduceCardMovePositionType_Unknown",
+      "playProduceExamEffectId": "e_effect-exam_block-0009",
+      "playProduceExamTriggerId": "",
+      "produceCardStatusEnchantId": "",
+      "targetPlayEffectProduceExamTriggerIds": [],
+      "targetPlayProduceExamEffectIds": [],
+      "value": 0
+    },
+    {
+      "costType": "ExamCostType_Unknown",
+      "effectGroupIds": [
+        "effect_group-visible-exam_parameter_buff-000"
+      ],
+      "effectType": "ProduceCardGrowEffectType_EffectAdd",
+      "id": "g_effect-effect_add-e_effect-exam_parameter_buff-02",
+      "playEffectProduceExamTriggerId": "",
+      "playMovePositionType": "ProduceCardMovePositionType_Unknown",
+      "playProduceExamEffectId": "e_effect-exam_parameter_buff-02",
+      "playProduceExamTriggerId": "",
+      "produceCardStatusEnchantId": "",
+      "targetPlayEffectProduceExamTriggerIds": [],
+      "targetPlayProduceExamEffectIds": [],
+      "value": 0
+    },
+    {
+      "costType": "ExamCostType_Unknown",
+      "effectGroupIds": [],
+      "effectType": "ProduceCardGrowEffectType_LessonAdd",
+      "id": "g_effect-lesson_add-12",
+      "playEffectProduceExamTriggerId": "",
+      "playMovePositionType": "ProduceCardMovePositionType_Unknown",
+      "playProduceExamEffectId": "",
+      "playProduceExamTriggerId": "",
+      "produceCardStatusEnchantId": "",
+      "targetPlayEffectProduceExamTriggerIds": [],
+      "targetPlayProduceExamEffectIds": [],
+      "value": 12
+    },
+    {
+      "costType": "ExamCostType_Unknown",
+      "effectGroupIds": [],
+      "effectType": "ProduceCardGrowEffectType_LessonAdd",
+      "id": "g_effect-lesson_add-22",
+      "playEffectProduceExamTriggerId": "",
+      "playMovePositionType": "ProduceCardMovePositionType_Unknown",
+      "playProduceExamEffectId": "",
+      "playProduceExamTriggerId": "",
+      "produceCardStatusEnchantId": "",
+      "targetPlayEffectProduceExamTriggerIds": [],
+      "targetPlayProduceExamEffectIds": [],
+      "value": 22
+    },
+    {
+      "costType": "ExamCostType_Unknown",
+      "effectGroupIds": [],
+      "effectType": "ProduceCardGrowEffectType_LessonAdd",
+      "id": "g_effect-lesson_add-30",
+      "playEffectProduceExamTriggerId": "",
+      "playMovePositionType": "ProduceCardMovePositionType_Unknown",
+      "playProduceExamEffectId": "",
+      "playProduceExamTriggerId": "",
+      "produceCardStatusEnchantId": "",
+      "targetPlayEffectProduceExamTriggerIds": [],
+      "targetPlayProduceExamEffectIds": [],
+      "value": 30
+    },
+    {
+      "costType": "ExamCostType_Unknown",
+      "effectGroupIds": [],
+      "effectType": "ProduceCardGrowEffectType_LessonAdd",
+      "id": "g_effect-lesson_add-6",
+      "playEffectProduceExamTriggerId": "",
+      "playMovePositionType": "ProduceCardMovePositionType_Unknown",
+      "playProduceExamEffectId": "",
+      "playProduceExamTriggerId": "",
+      "produceCardStatusEnchantId": "",
+      "targetPlayEffectProduceExamTriggerIds": [],
+      "targetPlayProduceExamEffectIds": [],
+      "value": 6
+    },
+    {
+      "costType": "ExamCostType_Unknown",
+      "effectGroupIds": [],
+      "effectType": "ProduceCardGrowEffectType_LessonBuffAdd",
+      "id": "g_effect-lesson_buff_add-1",
+      "playEffectProduceExamTriggerId": "",
+      "playMovePositionType": "ProduceCardMovePositionType_Unknown",
+      "playProduceExamEffectId": "",
+      "playProduceExamTriggerId": "",
+      "produceCardStatusEnchantId": "",
+      "targetPlayEffectProduceExamTriggerIds": [],
+      "targetPlayProduceExamEffectIds": [],
+      "value": 1
+    },
+    {
+      "costType": "ExamCostType_Unknown",
+      "effectGroupIds": [],
+      "effectType": "ProduceCardGrowEffectType_LessonBuffAdd",
+      "id": "g_effect-lesson_buff_add-3",
+      "playEffectProduceExamTriggerId": "",
+      "playMovePositionType": "ProduceCardMovePositionType_Unknown",
+      "playProduceExamEffectId": "",
+      "playProduceExamTriggerId": "",
+      "produceCardStatusEnchantId": "",
+      "targetPlayEffectProduceExamTriggerIds": [],
+      "targetPlayProduceExamEffectIds": [],
+      "value": 3
+    },
+    {
+      "costType": "ExamCostType_Unknown",
+      "effectGroupIds": [],
+      "effectType": "ProduceCardGrowEffectType_PlayTriggerChange",
+      "id": "g_effect-play_trigger_change-e_trigger-none-parameter_buff_up-8-e_trigger-none-parameter_buff_up-4",
+      "playEffectProduceExamTriggerId": "",
+      "playMovePositionType": "ProduceCardMovePositionType_Unknown",
+      "playProduceExamEffectId": "",
+      "playProduceExamTriggerId": "e_trigger-none-parameter_buff_up-4",
+      "produceCardStatusEnchantId": "",
+      "targetPlayEffectProduceExamTriggerIds": [
+        "e_trigger-none-parameter_buff_up-8"
+      ],
+      "targetPlayProduceExamEffectIds": [],
+      "value": 0
+    },
+    {
+      "costType": "ExamCostType_Unknown",
+      "effectGroupIds": [],
+      "effectType": "ProduceCardGrowEffectType_StaminaConsumptionDownTurnAdd",
+      "id": "g_effect-stamina_consumption_down_turn_add-1",
+      "playEffectProduceExamTriggerId": "",
+      "playMovePositionType": "ProduceCardMovePositionType_Unknown",
+      "playProduceExamEffectId": "",
+      "playProduceExamTriggerId": "",
+      "produceCardStatusEnchantId": "",
+      "targetPlayEffectProduceExamTriggerIds": [],
+      "targetPlayProduceExamEffectIds": [],
+      "value": 1
+    },
+    {
+      "costType": "ExamCostType_Unknown",
+      "effectGroupIds": [],
+      "effectType": "ProduceCardGrowEffectType_StaminaConsumptionDownTurnAdd",
+      "id": "g_effect-stamina_consumption_down_turn_add-3",
+      "playEffectProduceExamTriggerId": "",
+      "playMovePositionType": "ProduceCardMovePositionType_Unknown",
+      "playProduceExamEffectId": "",
+      "playProduceExamTriggerId": "",
+      "produceCardStatusEnchantId": "",
+      "targetPlayEffectProduceExamTriggerIds": [],
+      "targetPlayProduceExamEffectIds": [],
+      "value": 3
+    }
+  ],
+  "effects": [
+    {
+      "definition": {
+        "chainProduceExamEffectId": "",
+        "chainProduceExamEffectIds": [],
+        "effectCount": 0,
+        "effectGroupIds": [
+          "effect_group-visible-exam_block-000"
+        ],
+        "effectTurn": 0,
+        "effectType": "ProduceExamEffectType_ExamBlock",
+        "effectValue1": 4,
+        "effectValue2": 0,
+        "id": "e_effect-exam_block-0004",
+        "movePositionType": "ProduceCardMovePositionType_Unknown",
+        "pickCountMax": 0,
+        "pickCountMax2": 0,
+        "pickCountMin": 0,
+        "pickCountMin2": 0,
+        "pickCountReferenceProduceCardSearchId": "",
+        "pickCountReferenceProduceCardSearchId2": "",
+        "pickCountType": "ProducePickCountType_Unknown",
+        "pickCountType2": "ProducePickCountType_Unknown",
+        "pickRangeType": "ProducePickRangeType_Unknown",
+        "pickRangeType2": "ProducePickRangeType_Unknown",
+        "produceCardGrowEffectIds": [],
+        "produceCardSearchId": "",
+        "produceCardSearchId2": "",
+        "produceCardStatusEnchantId": "",
+        "produceExamStatusEnchantId": "",
+        "targetExamEffectType": "ProduceExamEffectType_Unknown",
+        "targetProduceCardId": "",
+        "targetUpgradeCount": 0
+      },
+      "descriptions": [
+        {
+          "examEffectType": "ProduceExamEffectType_ExamBlock",
+          "originProduceExamEffectId": "e_effect-exam_block-0004",
+          "produceDescriptionType": "ProduceDescriptionType_ProduceExamEffectType",
+          "targetId": "Label_ExamBlock",
+          "text": "元気"
+        },
+        {
+          "originProduceExamEffectId": "e_effect-exam_block-0004",
+          "produceDescriptionType": "ProduceDescriptionType_PlainText",
+          "text": "<nobr>+"
+        },
+        {
+          "effectValue1": 4,
+          "examDescriptionType": "ExamDescriptionType_CustomizeEffectValue1",
+          "originProduceExamEffectId": "e_effect-exam_block-0004",
+          "produceDescriptionType": "ProduceDescriptionType_Exam",
+          "text": "4"
+        },
+        {
+          "originProduceExamEffectId": "e_effect-exam_block-0004",
+          "produceDescriptionType": "ProduceDescriptionType_PlainText",
+          "text": "</nobr>"
+        }
+      ],
+      "effectCount": 0,
+      "effectTurn": 0,
+      "effectType": "ProduceExamEffectType_ExamBlock",
+      "effectValue1": 4,
+      "effectValue2": 0,
+      "id": "e_effect-exam_block-0004",
+      "text": "元気 / <nobr>+ / 4 / </nobr>"
+    },
+    {
+      "definition": {
+        "chainProduceExamEffectId": "",
+        "chainProduceExamEffectIds": [],
+        "effectCount": 0,
+        "effectGroupIds": [
+          "effect_group-visible-exam_block-000"
+        ],
+        "effectTurn": 0,
+        "effectType": "ProduceExamEffectType_ExamBlock",
+        "effectValue1": 9,
+        "effectValue2": 0,
+        "id": "e_effect-exam_block-0009",
+        "movePositionType": "ProduceCardMovePositionType_Unknown",
+        "pickCountMax": 0,
+        "pickCountMax2": 0,
+        "pickCountMin": 0,
+        "pickCountMin2": 0,
+        "pickCountReferenceProduceCardSearchId": "",
+        "pickCountReferenceProduceCardSearchId2": "",
+        "pickCountType": "ProducePickCountType_Unknown",
+        "pickCountType2": "ProducePickCountType_Unknown",
+        "pickRangeType": "ProducePickRangeType_Unknown",
+        "pickRangeType2": "ProducePickRangeType_Unknown",
+        "produceCardGrowEffectIds": [],
+        "produceCardSearchId": "",
+        "produceCardSearchId2": "",
+        "produceCardStatusEnchantId": "",
+        "produceExamStatusEnchantId": "",
+        "targetExamEffectType": "ProduceExamEffectType_Unknown",
+        "targetProduceCardId": "",
+        "targetUpgradeCount": 0
+      },
+      "descriptions": [
+        {
+          "examEffectType": "ProduceExamEffectType_ExamBlock",
+          "originProduceExamEffectId": "e_effect-exam_block-0009",
+          "produceDescriptionType": "ProduceDescriptionType_ProduceExamEffectType",
+          "targetId": "Label_ExamBlock",
+          "text": "元気"
+        },
+        {
+          "originProduceExamEffectId": "e_effect-exam_block-0009",
+          "produceDescriptionType": "ProduceDescriptionType_PlainText",
+          "text": "<nobr>+"
+        },
+        {
+          "effectValue1": 9,
+          "examDescriptionType": "ExamDescriptionType_CustomizeEffectValue1",
+          "originProduceExamEffectId": "e_effect-exam_block-0009",
+          "produceDescriptionType": "ProduceDescriptionType_Exam",
+          "text": "9"
+        },
+        {
+          "originProduceExamEffectId": "e_effect-exam_block-0009",
+          "produceDescriptionType": "ProduceDescriptionType_PlainText",
+          "text": "</nobr>"
+        }
+      ],
+      "effectCount": 0,
+      "effectTurn": 0,
+      "effectType": "ProduceExamEffectType_ExamBlock",
+      "effectValue1": 9,
+      "effectValue2": 0,
+      "id": "e_effect-exam_block-0009",
+      "text": "元気 / <nobr>+ / 9 / </nobr>"
+    },
+    {
+      "definition": {
+        "chainProduceExamEffectId": "",
+        "chainProduceExamEffectIds": [],
+        "effectCount": 0,
+        "effectGroupIds": [
+          "effect_group-visible-exam_card_upgrade-000"
+        ],
+        "effectTurn": 0,
+        "effectType": "ProduceExamEffectType_ExamCardUpgrade",
+        "effectValue1": 0,
+        "effectValue2": 0,
+        "id": "e_effect-exam_card_upgrade-p_card_search-hand-all-0_0",
+        "movePositionType": "ProduceCardMovePositionType_Unknown",
+        "pickCountMax": 0,
+        "pickCountMax2": 0,
+        "pickCountMin": 0,
+        "pickCountMin2": 0,
+        "pickCountReferenceProduceCardSearchId": "",
+        "pickCountReferenceProduceCardSearchId2": "",
+        "pickCountType": "ProducePickCountType_Unknown",
+        "pickCountType2": "ProducePickCountType_Unknown",
+        "pickRangeType": "ProducePickRangeType_All",
+        "pickRangeType2": "ProducePickRangeType_Unknown",
+        "produceCardGrowEffectIds": [],
+        "produceCardSearchId": "p_card_search-hand",
+        "produceCardSearchId2": "",
+        "produceCardStatusEnchantId": "",
+        "produceExamStatusEnchantId": "",
+        "targetExamEffectType": "ProduceExamEffectType_Unknown",
+        "targetProduceCardId": "",
+        "targetUpgradeCount": 0
+      },
+      "descriptions": [
+        {
+          "originProduceExamEffectId": "e_effect-exam_card_upgrade-p_card_search-hand-all-0_0",
+          "produceDescriptionType": "ProduceDescriptionType_PlainText",
+          "text": "手札をすべて"
+        },
+        {
+          "examEffectType": "ProduceExamEffectType_ExamCardUpgrade",
+          "originProduceExamEffectId": "e_effect-exam_card_upgrade-p_card_search-hand-all-0_0",
+          "produceDescriptionType": "ProduceDescriptionType_ProduceExamEffectType",
+          "targetId": "Label_ExamCardUpgrade",
+          "text": "レッスン中強化"
+        }
+      ],
+      "effectCount": 0,
+      "effectTurn": 0,
+      "effectType": "ProduceExamEffectType_ExamCardUpgrade",
+      "effectValue1": 0,
+      "effectValue2": 0,
+      "id": "e_effect-exam_card_upgrade-p_card_search-hand-all-0_0",
+      "text": "手札をすべて / レッスン中強化"
+    },
+    {
+      "definition": {
+        "chainProduceExamEffectId": "e_effect-exam_card_upgrade-p_card_search-hand-all-0_0",
+        "chainProduceExamEffectIds": [],
+        "effectCount": 1,
+        "effectGroupIds": [
+          "effect_group-visible-exam_effect_timer-000",
+          "effect_group-visible-exam_card_upgrade-000"
+        ],
+        "effectTurn": 0,
+        "effectType": "ProduceExamEffectType_ExamEffectTimer",
+        "effectValue1": 1,
+        "effectValue2": 0,
+        "id": "e_effect-exam_effect_timer-0001-01-e_effect-exam_card_upgrade-p_card_search-hand-all-0_0",
+        "movePositionType": "ProduceCardMovePositionType_Unknown",
+        "pickCountMax": 0,
+        "pickCountMax2": 0,
+        "pickCountMin": 0,
+        "pickCountMin2": 0,
+        "pickCountReferenceProduceCardSearchId": "",
+        "pickCountReferenceProduceCardSearchId2": "",
+        "pickCountType": "ProducePickCountType_Unknown",
+        "pickCountType2": "ProducePickCountType_Unknown",
+        "pickRangeType": "ProducePickRangeType_Unknown",
+        "pickRangeType2": "ProducePickRangeType_Unknown",
+        "produceCardGrowEffectIds": [],
+        "produceCardSearchId": "",
+        "produceCardSearchId2": "",
+        "produceCardStatusEnchantId": "",
+        "produceExamStatusEnchantId": "",
+        "targetExamEffectType": "ProduceExamEffectType_Unknown",
+        "targetProduceCardId": "",
+        "targetUpgradeCount": 0
+      },
+      "descriptions": [
+        {
+          "originProduceExamEffectId": "e_effect-exam_effect_timer-0001-01-e_effect-exam_card_upgrade-p_card_search-hand-all-0_0",
+          "produceDescriptionType": "ProduceDescriptionType_PlainText",
+          "text": "次のターン、"
+        },
+        {
+          "originProduceExamEffectId": "e_effect-exam_effect_timer-0001-01-e_effect-exam_card_upgrade-p_card_search-hand-all-0_0",
+          "produceDescriptionType": "ProduceDescriptionType_PlainText",
+          "text": "手札をすべて"
+        },
+        {
+          "examEffectType": "ProduceExamEffectType_ExamCardUpgrade",
+          "originProduceExamEffectId": "e_effect-exam_effect_timer-0001-01-e_effect-exam_card_upgrade-p_card_search-hand-all-0_0",
+          "produceDescriptionType": "ProduceDescriptionType_ProduceExamEffectType",
+          "targetId": "Label_ExamCardUpgrade",
+          "text": "レッスン中強化"
+        },
+        {
+          "originProduceExamEffectId": "e_effect-exam_effect_timer-0001-01-e_effect-exam_card_upgrade-p_card_search-hand-all-0_0",
+          "produceDescriptionType": "ProduceDescriptionType_PlainText",
+          "text": " "
+        }
+      ],
+      "effectCount": 1,
+      "effectTurn": 0,
+      "effectType": "ProduceExamEffectType_ExamEffectTimer",
+      "effectValue1": 1,
+      "effectValue2": 0,
+      "id": "e_effect-exam_effect_timer-0001-01-e_effect-exam_card_upgrade-p_card_search-hand-all-0_0",
+      "text": "次のターン、 / 手札をすべて / レッスン中強化 /  "
+    },
+    {
+      "definition": {
+        "chainProduceExamEffectId": "",
+        "chainProduceExamEffectIds": [],
+        "effectCount": 1,
+        "effectGroupIds": [
+          "effect_group-visible-exam_lesson-000"
+        ],
+        "effectTurn": 0,
+        "effectType": "ProduceExamEffectType_ExamLesson",
+        "effectValue1": 3,
+        "effectValue2": 0,
+        "id": "e_effect-exam_lesson-0003-01",
+        "movePositionType": "ProduceCardMovePositionType_Unknown",
+        "pickCountMax": 0,
+        "pickCountMax2": 0,
+        "pickCountMin": 0,
+        "pickCountMin2": 0,
+        "pickCountReferenceProduceCardSearchId": "",
+        "pickCountReferenceProduceCardSearchId2": "",
+        "pickCountType": "ProducePickCountType_Unknown",
+        "pickCountType2": "ProducePickCountType_Unknown",
+        "pickRangeType": "ProducePickRangeType_Unknown",
+        "pickRangeType2": "ProducePickRangeType_Unknown",
+        "produceCardGrowEffectIds": [],
+        "produceCardSearchId": "",
+        "produceCardSearchId2": "",
+        "produceCardStatusEnchantId": "",
+        "produceExamStatusEnchantId": "",
+        "targetExamEffectType": "ProduceExamEffectType_Unknown",
+        "targetProduceCardId": "",
+        "targetUpgradeCount": 0
+      },
+      "descriptions": [
+        {
+          "examEffectType": "ProduceExamEffectType_ExamLesson",
+          "originProduceExamEffectId": "e_effect-exam_lesson-0003-01",
+          "produceDescriptionType": "ProduceDescriptionType_ProduceExamEffectType",
+          "targetId": "Label_ExamLesson",
+          "text": "パラメータ"
+        },
+        {
+          "originProduceExamEffectId": "e_effect-exam_lesson-0003-01",
+          "produceDescriptionType": "ProduceDescriptionType_PlainText",
+          "text": "<nobr>+"
+        },
+        {
+          "effectValue1": 3,
+          "examDescriptionType": "ExamDescriptionType_CustomizeEffectValue1",
+          "originProduceExamEffectId": "e_effect-exam_lesson-0003-01",
+          "produceDescriptionType": "ProduceDescriptionType_Exam",
+          "text": "3"
+        },
+        {
+          "originProduceExamEffectId": "e_effect-exam_lesson-0003-01",
+          "produceDescriptionType": "ProduceDescriptionType_PlainText",
+          "text": "</nobr>"
+        },
+        {
+          "examDescriptionType": "ExamDescriptionType_CustomizeLessonCountAdd",
+          "originProduceExamEffectId": "e_effect-exam_lesson-0003-01",
+          "produceDescriptionType": "ProduceDescriptionType_Exam",
+          "targetId": "Description_LessonCountAdd_CountSection",
+          "text": ""
+        }
+      ],
+      "effectCount": 1,
+      "effectTurn": 0,
+      "effectType": "ProduceExamEffectType_ExamLesson",
+      "effectValue1": 3,
+      "effectValue2": 0,
+      "id": "e_effect-exam_lesson-0003-01",
+      "text": "パラメータ / <nobr>+ / 3 / </nobr>"
+    },
+    {
+      "definition": {
+        "chainProduceExamEffectId": "",
+        "chainProduceExamEffectIds": [],
+        "effectCount": 0,
+        "effectGroupIds": [
+          "effect_group-visible-exam_lesson_buff-000"
+        ],
+        "effectTurn": 0,
+        "effectType": "ProduceExamEffectType_ExamLessonBuff",
+        "effectValue1": 5,
+        "effectValue2": 0,
+        "id": "e_effect-exam_lesson_buff-0005",
+        "movePositionType": "ProduceCardMovePositionType_Unknown",
+        "pickCountMax": 0,
+        "pickCountMax2": 0,
+        "pickCountMin": 0,
+        "pickCountMin2": 0,
+        "pickCountReferenceProduceCardSearchId": "",
+        "pickCountReferenceProduceCardSearchId2": "",
+        "pickCountType": "ProducePickCountType_Unknown",
+        "pickCountType2": "ProducePickCountType_Unknown",
+        "pickRangeType": "ProducePickRangeType_Unknown",
+        "pickRangeType2": "ProducePickRangeType_Unknown",
+        "produceCardGrowEffectIds": [],
+        "produceCardSearchId": "",
+        "produceCardSearchId2": "",
+        "produceCardStatusEnchantId": "",
+        "produceExamStatusEnchantId": "",
+        "targetExamEffectType": "ProduceExamEffectType_Unknown",
+        "targetProduceCardId": "",
+        "targetUpgradeCount": 0
+      },
+      "descriptions": [
+        {
+          "examEffectType": "ProduceExamEffectType_ExamLessonBuff",
+          "originProduceExamEffectId": "e_effect-exam_lesson_buff-0005",
+          "produceDescriptionType": "ProduceDescriptionType_ProduceExamEffectType",
+          "targetId": "Label_ExamLessonBuff_Produce",
+          "text": "集中"
+        },
+        {
+          "originProduceExamEffectId": "e_effect-exam_lesson_buff-0005",
+          "produceDescriptionType": "ProduceDescriptionType_PlainText",
+          "text": "<nobr>+"
+        },
+        {
+          "effectValue1": 5,
+          "examDescriptionType": "ExamDescriptionType_CustomizeEffectValue1",
+          "originProduceExamEffectId": "e_effect-exam_lesson_buff-0005",
+          "produceDescriptionType": "ProduceDescriptionType_Exam",
+          "text": "5"
+        },
+        {
+          "originProduceExamEffectId": "e_effect-exam_lesson_buff-0005",
+          "produceDescriptionType": "ProduceDescriptionType_PlainText",
+          "text": "</nobr>"
+        }
+      ],
+      "effectCount": 0,
+      "effectTurn": 0,
+      "effectType": "ProduceExamEffectType_ExamLessonBuff",
+      "effectValue1": 5,
+      "effectValue2": 0,
+      "id": "e_effect-exam_lesson_buff-0005",
+      "text": "集中 / <nobr>+ / 5 / </nobr>"
+    },
+    {
+      "definition": {
+        "chainProduceExamEffectId": "",
+        "chainProduceExamEffectIds": [],
+        "effectCount": 0,
+        "effectGroupIds": [
+          "effect_group-visible-exam_lesson_buff-000"
+        ],
+        "effectTurn": 0,
+        "effectType": "ProduceExamEffectType_ExamLessonBuff",
+        "effectValue1": 7,
+        "effectValue2": 0,
+        "id": "e_effect-exam_lesson_buff-0007",
+        "movePositionType": "ProduceCardMovePositionType_Unknown",
+        "pickCountMax": 0,
+        "pickCountMax2": 0,
+        "pickCountMin": 0,
+        "pickCountMin2": 0,
+        "pickCountReferenceProduceCardSearchId": "",
+        "pickCountReferenceProduceCardSearchId2": "",
+        "pickCountType": "ProducePickCountType_Unknown",
+        "pickCountType2": "ProducePickCountType_Unknown",
+        "pickRangeType": "ProducePickRangeType_Unknown",
+        "pickRangeType2": "ProducePickRangeType_Unknown",
+        "produceCardGrowEffectIds": [],
+        "produceCardSearchId": "",
+        "produceCardSearchId2": "",
+        "produceCardStatusEnchantId": "",
+        "produceExamStatusEnchantId": "",
+        "targetExamEffectType": "ProduceExamEffectType_Unknown",
+        "targetProduceCardId": "",
+        "targetUpgradeCount": 0
+      },
+      "descriptions": [
+        {
+          "examEffectType": "ProduceExamEffectType_ExamLessonBuff",
+          "originProduceExamEffectId": "e_effect-exam_lesson_buff-0007",
+          "produceDescriptionType": "ProduceDescriptionType_ProduceExamEffectType",
+          "targetId": "Label_ExamLessonBuff_Produce",
+          "text": "集中"
+        },
+        {
+          "originProduceExamEffectId": "e_effect-exam_lesson_buff-0007",
+          "produceDescriptionType": "ProduceDescriptionType_PlainText",
+          "text": "<nobr>+"
+        },
+        {
+          "effectValue1": 7,
+          "examDescriptionType": "ExamDescriptionType_CustomizeEffectValue1",
+          "originProduceExamEffectId": "e_effect-exam_lesson_buff-0007",
+          "produceDescriptionType": "ProduceDescriptionType_Exam",
+          "text": "7"
+        },
+        {
+          "originProduceExamEffectId": "e_effect-exam_lesson_buff-0007",
+          "produceDescriptionType": "ProduceDescriptionType_PlainText",
+          "text": "</nobr>"
+        }
+      ],
+      "effectCount": 0,
+      "effectTurn": 0,
+      "effectType": "ProduceExamEffectType_ExamLessonBuff",
+      "effectValue1": 7,
+      "effectValue2": 0,
+      "id": "e_effect-exam_lesson_buff-0007",
+      "text": "集中 / <nobr>+ / 7 / </nobr>"
+    },
+    {
+      "definition": {
+        "chainProduceExamEffectId": "",
+        "chainProduceExamEffectIds": [],
+        "effectCount": 1,
+        "effectGroupIds": [
+          "effect_group-visible-exam_lesson-000"
+        ],
+        "effectTurn": 0,
+        "effectType": "ProduceExamEffectType_ExamMultipleLessonBuffLesson",
+        "effectValue1": 17,
+        "effectValue2": 500,
+        "id": "e_effect-exam_multiple_lesson_buff_lesson-0017-0500-01",
+        "movePositionType": "ProduceCardMovePositionType_Unknown",
+        "pickCountMax": 0,
+        "pickCountMax2": 0,
+        "pickCountMin": 0,
+        "pickCountMin2": 0,
+        "pickCountReferenceProduceCardSearchId": "",
+        "pickCountReferenceProduceCardSearchId2": "",
+        "pickCountType": "ProducePickCountType_Unknown",
+        "pickCountType2": "ProducePickCountType_Unknown",
+        "pickRangeType": "ProducePickRangeType_Unknown",
+        "pickRangeType2": "ProducePickRangeType_Unknown",
+        "produceCardGrowEffectIds": [],
+        "produceCardSearchId": "",
+        "produceCardSearchId2": "",
+        "produceCardStatusEnchantId": "",
+        "produceExamStatusEnchantId": "",
+        "targetExamEffectType": "ProduceExamEffectType_Unknown",
+        "targetProduceCardId": "",
+        "targetUpgradeCount": 0
+      },
+      "descriptions": [
+        {
+          "examEffectType": "ProduceExamEffectType_ExamLesson",
+          "originProduceExamEffectId": "e_effect-exam_multiple_lesson_buff_lesson-0017-0500-01",
+          "produceDescriptionType": "ProduceDescriptionType_ProduceExamEffectType",
+          "targetId": "Label_ExamLesson",
+          "text": "パラメータ"
+        },
+        {
+          "originProduceExamEffectId": "e_effect-exam_multiple_lesson_buff_lesson-0017-0500-01",
+          "produceDescriptionType": "ProduceDescriptionType_PlainText",
+          "text": "<nobr>+"
+        },
+        {
+          "effectValue1": 17,
+          "examDescriptionType": "ExamDescriptionType_CustomizeEffectValue1",
+          "originProduceExamEffectId": "e_effect-exam_multiple_lesson_buff_lesson-0017-0500-01",
+          "produceDescriptionType": "ProduceDescriptionType_Exam",
+          "text": "17"
+        },
+        {
+          "originProduceExamEffectId": "e_effect-exam_multiple_lesson_buff_lesson-0017-0500-01",
+          "produceDescriptionType": "ProduceDescriptionType_PlainText",
+          "text": "</nobr>（"
+        },
+        {
+          "examEffectType": "ProduceExamEffectType_ExamLessonBuff",
+          "originProduceExamEffectId": "e_effect-exam_multiple_lesson_buff_lesson-0017-0500-01",
+          "produceDescriptionType": "ProduceDescriptionType_ProduceExamEffectType",
+          "targetId": "Label_ExamLessonBuff_Produce",
+          "text": "集中"
+        },
+        {
+          "originProduceExamEffectId": "e_effect-exam_multiple_lesson_buff_lesson-0017-0500-01",
+          "produceDescriptionType": "ProduceDescriptionType_PlainText",
+          "text": "効果を<nobr>1.5倍</nobr>適用）"
+        },
+        {
+          "examDescriptionType": "ExamDescriptionType_CustomizeLessonCountAdd",
+          "originProduceExamEffectId": "e_effect-exam_multiple_lesson_buff_lesson-0017-0500-01",
+          "produceDescriptionType": "ProduceDescriptionType_Exam",
+          "targetId": "Description_LessonCountAdd_CountSection",
+          "text": ""
+        }
+      ],
+      "effectCount": 1,
+      "effectTurn": 0,
+      "effectType": "ProduceExamEffectType_ExamMultipleLessonBuffLesson",
+      "effectValue1": 17,
+      "effectValue2": 500,
+      "id": "e_effect-exam_multiple_lesson_buff_lesson-0017-0500-01",
+      "text": "パラメータ / <nobr>+ / 17 / </nobr>（ / 集中 / 効果を<nobr>1.5倍</nobr>適用）"
+    },
+    {
+      "definition": {
+        "chainProduceExamEffectId": "",
+        "chainProduceExamEffectIds": [],
+        "effectCount": 1,
+        "effectGroupIds": [
+          "effect_group-visible-exam_lesson-000"
+        ],
+        "effectTurn": 0,
+        "effectType": "ProduceExamEffectType_ExamMultipleLessonBuffLesson",
+        "effectValue1": 23,
+        "effectValue2": 1000,
+        "id": "e_effect-exam_multiple_lesson_buff_lesson-0023-1000-01",
+        "movePositionType": "ProduceCardMovePositionType_Unknown",
+        "pickCountMax": 0,
+        "pickCountMax2": 0,
+        "pickCountMin": 0,
+        "pickCountMin2": 0,
+        "pickCountReferenceProduceCardSearchId": "",
+        "pickCountReferenceProduceCardSearchId2": "",
+        "pickCountType": "ProducePickCountType_Unknown",
+        "pickCountType2": "ProducePickCountType_Unknown",
+        "pickRangeType": "ProducePickRangeType_Unknown",
+        "pickRangeType2": "ProducePickRangeType_Unknown",
+        "produceCardGrowEffectIds": [],
+        "produceCardSearchId": "",
+        "produceCardSearchId2": "",
+        "produceCardStatusEnchantId": "",
+        "produceExamStatusEnchantId": "",
+        "targetExamEffectType": "ProduceExamEffectType_Unknown",
+        "targetProduceCardId": "",
+        "targetUpgradeCount": 0
+      },
+      "descriptions": [
+        {
+          "examEffectType": "ProduceExamEffectType_ExamLesson",
+          "originProduceExamEffectId": "e_effect-exam_multiple_lesson_buff_lesson-0023-1000-01",
+          "produceDescriptionType": "ProduceDescriptionType_ProduceExamEffectType",
+          "targetId": "Label_ExamLesson",
+          "text": "パラメータ"
+        },
+        {
+          "originProduceExamEffectId": "e_effect-exam_multiple_lesson_buff_lesson-0023-1000-01",
+          "produceDescriptionType": "ProduceDescriptionType_PlainText",
+          "text": "<nobr>+"
+        },
+        {
+          "effectValue1": 23,
+          "examDescriptionType": "ExamDescriptionType_CustomizeEffectValue1",
+          "originProduceExamEffectId": "e_effect-exam_multiple_lesson_buff_lesson-0023-1000-01",
+          "produceDescriptionType": "ProduceDescriptionType_Exam",
+          "text": "23"
+        },
+        {
+          "originProduceExamEffectId": "e_effect-exam_multiple_lesson_buff_lesson-0023-1000-01",
+          "produceDescriptionType": "ProduceDescriptionType_PlainText",
+          "text": "</nobr>（"
+        },
+        {
+          "examEffectType": "ProduceExamEffectType_ExamLessonBuff",
+          "originProduceExamEffectId": "e_effect-exam_multiple_lesson_buff_lesson-0023-1000-01",
+          "produceDescriptionType": "ProduceDescriptionType_ProduceExamEffectType",
+          "targetId": "Label_ExamLessonBuff_Produce",
+          "text": "集中"
+        },
+        {
+          "originProduceExamEffectId": "e_effect-exam_multiple_lesson_buff_lesson-0023-1000-01",
+          "produceDescriptionType": "ProduceDescriptionType_PlainText",
+          "text": "効果を<nobr>2倍</nobr>適用）"
+        },
+        {
+          "examDescriptionType": "ExamDescriptionType_CustomizeLessonCountAdd",
+          "originProduceExamEffectId": "e_effect-exam_multiple_lesson_buff_lesson-0023-1000-01",
+          "produceDescriptionType": "ProduceDescriptionType_Exam",
+          "targetId": "Description_LessonCountAdd_CountSection",
+          "text": ""
+        }
+      ],
+      "effectCount": 1,
+      "effectTurn": 0,
+      "effectType": "ProduceExamEffectType_ExamMultipleLessonBuffLesson",
+      "effectValue1": 23,
+      "effectValue2": 1000,
+      "id": "e_effect-exam_multiple_lesson_buff_lesson-0023-1000-01",
+      "text": "パラメータ / <nobr>+ / 23 / </nobr>（ / 集中 / 効果を<nobr>2倍</nobr>適用）"
+    },
+    {
+      "definition": {
+        "chainProduceExamEffectId": "",
+        "chainProduceExamEffectIds": [],
+        "effectCount": 0,
+        "effectGroupIds": [
+          "effect_group-visible-exam_parameter_buff-000"
+        ],
+        "effectTurn": 2,
+        "effectType": "ProduceExamEffectType_ExamParameterBuff",
+        "effectValue1": 0,
+        "effectValue2": 0,
+        "id": "e_effect-exam_parameter_buff-02",
+        "movePositionType": "ProduceCardMovePositionType_Unknown",
+        "pickCountMax": 0,
+        "pickCountMax2": 0,
+        "pickCountMin": 0,
+        "pickCountMin2": 0,
+        "pickCountReferenceProduceCardSearchId": "",
+        "pickCountReferenceProduceCardSearchId2": "",
+        "pickCountType": "ProducePickCountType_Unknown",
+        "pickCountType2": "ProducePickCountType_Unknown",
+        "pickRangeType": "ProducePickRangeType_Unknown",
+        "pickRangeType2": "ProducePickRangeType_Unknown",
+        "produceCardGrowEffectIds": [],
+        "produceCardSearchId": "",
+        "produceCardSearchId2": "",
+        "produceCardStatusEnchantId": "",
+        "produceExamStatusEnchantId": "",
+        "targetExamEffectType": "ProduceExamEffectType_Unknown",
+        "targetProduceCardId": "",
+        "targetUpgradeCount": 0
+      },
+      "descriptions": [
+        {
+          "examEffectType": "ProduceExamEffectType_ExamParameterBuff",
+          "originProduceExamEffectId": "e_effect-exam_parameter_buff-02",
+          "produceDescriptionType": "ProduceDescriptionType_ProduceExamEffectType",
+          "targetId": "Label_ExamParameterBuff",
+          "text": "好調"
+        },
+        {
+          "originProduceExamEffectId": "e_effect-exam_parameter_buff-02",
+          "produceDescriptionType": "ProduceDescriptionType_PlainText",
+          "text": "<nobr>"
+        },
+        {
+          "examDescriptionType": "ExamDescriptionType_CustomizeTurn",
+          "originProduceExamEffectId": "e_effect-exam_parameter_buff-02",
+          "produceDescriptionType": "ProduceDescriptionType_Exam",
+          "text": "2",
+          "turn": 2
+        },
+        {
+          "originProduceExamEffectId": "e_effect-exam_parameter_buff-02",
+          "produceDescriptionType": "ProduceDescriptionType_PlainText",
+          "text": "ターン</nobr>"
+        }
+      ],
+      "effectCount": 0,
+      "effectTurn": 2,
+      "effectType": "ProduceExamEffectType_ExamParameterBuff",
+      "effectValue1": 0,
+      "effectValue2": 0,
+      "id": "e_effect-exam_parameter_buff-02",
+      "text": "好調 / <nobr> / 2 / ターン</nobr>"
+    },
+    {
+      "definition": {
+        "chainProduceExamEffectId": "",
+        "chainProduceExamEffectIds": [],
+        "effectCount": 0,
+        "effectGroupIds": [
+          "effect_group-visible-exam_stamina_consumption_down-000"
+        ],
+        "effectTurn": 2,
+        "effectType": "ProduceExamEffectType_ExamStaminaConsumptionDown",
+        "effectValue1": 0,
+        "effectValue2": 0,
+        "id": "e_effect-exam_stamina_consumption_down-02",
+        "movePositionType": "ProduceCardMovePositionType_Unknown",
+        "pickCountMax": 0,
+        "pickCountMax2": 0,
+        "pickCountMin": 0,
+        "pickCountMin2": 0,
+        "pickCountReferenceProduceCardSearchId": "",
+        "pickCountReferenceProduceCardSearchId2": "",
+        "pickCountType": "ProducePickCountType_Unknown",
+        "pickCountType2": "ProducePickCountType_Unknown",
+        "pickRangeType": "ProducePickRangeType_Unknown",
+        "pickRangeType2": "ProducePickRangeType_Unknown",
+        "produceCardGrowEffectIds": [],
+        "produceCardSearchId": "",
+        "produceCardSearchId2": "",
+        "produceCardStatusEnchantId": "",
+        "produceExamStatusEnchantId": "",
+        "targetExamEffectType": "ProduceExamEffectType_Unknown",
+        "targetProduceCardId": "",
+        "targetUpgradeCount": 0
+      },
+      "descriptions": [
+        {
+          "examEffectType": "ProduceExamEffectType_ExamStaminaConsumptionDown",
+          "originProduceExamEffectId": "e_effect-exam_stamina_consumption_down-02",
+          "produceDescriptionType": "ProduceDescriptionType_ProduceExamEffectType",
+          "targetId": "Label_ExamStaminaConsumptionDown",
+          "text": "消費体力減少"
+        },
+        {
+          "originProduceExamEffectId": "e_effect-exam_stamina_consumption_down-02",
+          "produceDescriptionType": "ProduceDescriptionType_PlainText",
+          "text": "<nobr>"
+        },
+        {
+          "examDescriptionType": "ExamDescriptionType_CustomizeTurn",
+          "originProduceExamEffectId": "e_effect-exam_stamina_consumption_down-02",
+          "produceDescriptionType": "ProduceDescriptionType_Exam",
+          "text": "2",
+          "turn": 2
+        },
+        {
+          "originProduceExamEffectId": "e_effect-exam_stamina_consumption_down-02",
+          "produceDescriptionType": "ProduceDescriptionType_PlainText",
+          "text": "ターン</nobr>"
+        }
+      ],
+      "effectCount": 0,
+      "effectTurn": 2,
+      "effectType": "ProduceExamEffectType_ExamStaminaConsumptionDown",
+      "effectValue1": 0,
+      "effectValue2": 0,
+      "id": "e_effect-exam_stamina_consumption_down-02",
+      "text": "消費体力減少 / <nobr> / 2 / ターン</nobr>"
+    },
+    {
+      "definition": {
+        "chainProduceExamEffectId": "",
+        "chainProduceExamEffectIds": [],
+        "effectCount": 0,
+        "effectGroupIds": [
+          "effect_group-visible-exam_lesson-000",
+          "effect_group-visible-exam_status_enchant-000"
+        ],
+        "effectTurn": 3,
+        "effectType": "ProduceExamEffectType_ExamStatusEnchant",
+        "effectValue1": 0,
+        "effectValue2": 0,
+        "id": "e_effect-exam_status_enchant-03-enchant-p_card-01-act-2_061-enc02",
+        "movePositionType": "ProduceCardMovePositionType_Unknown",
+        "pickCountMax": 0,
+        "pickCountMax2": 0,
+        "pickCountMin": 0,
+        "pickCountMin2": 0,
+        "pickCountReferenceProduceCardSearchId": "",
+        "pickCountReferenceProduceCardSearchId2": "",
+        "pickCountType": "ProducePickCountType_Unknown",
+        "pickCountType2": "ProducePickCountType_Unknown",
+        "pickRangeType": "ProducePickRangeType_Unknown",
+        "pickRangeType2": "ProducePickRangeType_Unknown",
+        "produceCardGrowEffectIds": [],
+        "produceCardSearchId": "",
+        "produceCardSearchId2": "",
+        "produceCardStatusEnchantId": "",
+        "produceExamStatusEnchantId": "enchant-p_card-01-act-2_061-enc02",
+        "targetExamEffectType": "ProduceExamEffectType_Unknown",
+        "targetProduceCardId": "",
+        "targetUpgradeCount": 0
+      },
+      "descriptions": [
+        {
+          "examDescriptionType": "ExamDescriptionType_ExamTurn",
+          "originProduceExamEffectId": "e_effect-exam_status_enchant-03-enchant-p_card-01-act-2_061-enc02",
+          "produceDescriptionType": "ProduceDescriptionType_Exam",
+          "text": ""
+        },
+        {
+          "originProduceExamEffectId": "e_effect-exam_status_enchant-03-enchant-p_card-01-act-2_061-enc02",
+          "produceDescriptionType": "ProduceDescriptionType_PlainText",
+          "text": "の間、"
+        },
+        {
+          "originProduceExamEffectId": "e_effect-exam_status_enchant-03-enchant-p_card-01-act-2_061-enc02",
+          "produceDescriptionType": "ProduceDescriptionType_PlainText",
+          "text": "ターン開始時、"
+        },
+        {
+          "examEffectType": "ProduceExamEffectType_ExamLesson",
+          "originProduceExamEffectId": "e_effect-exam_status_enchant-03-enchant-p_card-01-act-2_061-enc02",
+          "produceDescriptionType": "ProduceDescriptionType_ProduceExamEffectType",
+          "targetId": "Label_ExamLesson",
+          "text": "パラメータ"
+        },
+        {
+          "originProduceExamEffectId": "e_effect-exam_status_enchant-03-enchant-p_card-01-act-2_061-enc02",
+          "produceDescriptionType": "ProduceDescriptionType_PlainText",
+          "text": "<nobr>+"
+        },
+        {
+          "effectValue1": 5,
+          "examDescriptionType": "ExamDescriptionType_CustomizeEffectValue1",
+          "originProduceExamEffectId": "e_effect-exam_status_enchant-03-enchant-p_card-01-act-2_061-enc02",
+          "produceDescriptionType": "ProduceDescriptionType_Exam",
+          "text": "5"
+        },
+        {
+          "originProduceExamEffectId": "e_effect-exam_status_enchant-03-enchant-p_card-01-act-2_061-enc02",
+          "produceDescriptionType": "ProduceDescriptionType_PlainText",
+          "text": "</nobr>"
+        },
+        {
+          "examDescriptionType": "ExamDescriptionType_CustomizeLessonCountAdd",
+          "originProduceExamEffectId": "e_effect-exam_status_enchant-03-enchant-p_card-01-act-2_061-enc02",
+          "produceDescriptionType": "ProduceDescriptionType_Exam",
+          "targetId": "Description_LessonCountAdd_CountSection",
+          "text": ""
+        }
+      ],
+      "effectCount": 0,
+      "effectTurn": 3,
+      "effectType": "ProduceExamEffectType_ExamStatusEnchant",
+      "effectValue1": 0,
+      "effectValue2": 0,
+      "id": "e_effect-exam_status_enchant-03-enchant-p_card-01-act-2_061-enc02",
+      "text": "の間、 / ターン開始時、 / パラメータ / <nobr>+ / 5 / </nobr>"
+    },
+    {
+      "definition": {
+        "chainProduceExamEffectId": "",
+        "chainProduceExamEffectIds": [],
+        "effectCount": 0,
+        "effectGroupIds": [
+          "effect_group-visible-exam_lesson-000",
+          "effect_group-visible-exam_status_enchant-000"
+        ],
+        "effectTurn": 4,
+        "effectType": "ProduceExamEffectType_ExamStatusEnchant",
+        "effectValue1": 0,
+        "effectValue2": 0,
+        "id": "e_effect-exam_status_enchant-04-enchant-p_card-01-act-2_061-enc02",
+        "movePositionType": "ProduceCardMovePositionType_Unknown",
+        "pickCountMax": 0,
+        "pickCountMax2": 0,
+        "pickCountMin": 0,
+        "pickCountMin2": 0,
+        "pickCountReferenceProduceCardSearchId": "",
+        "pickCountReferenceProduceCardSearchId2": "",
+        "pickCountType": "ProducePickCountType_Unknown",
+        "pickCountType2": "ProducePickCountType_Unknown",
+        "pickRangeType": "ProducePickRangeType_Unknown",
+        "pickRangeType2": "ProducePickRangeType_Unknown",
+        "produceCardGrowEffectIds": [],
+        "produceCardSearchId": "",
+        "produceCardSearchId2": "",
+        "produceCardStatusEnchantId": "",
+        "produceExamStatusEnchantId": "enchant-p_card-01-act-2_061-enc02",
+        "targetExamEffectType": "ProduceExamEffectType_Unknown",
+        "targetProduceCardId": "",
+        "targetUpgradeCount": 0
+      },
+      "descriptions": [
+        {
+          "examDescriptionType": "ExamDescriptionType_ExamTurn",
+          "originProduceExamEffectId": "e_effect-exam_status_enchant-04-enchant-p_card-01-act-2_061-enc02",
+          "produceDescriptionType": "ProduceDescriptionType_Exam",
+          "text": ""
+        },
+        {
+          "originProduceExamEffectId": "e_effect-exam_status_enchant-04-enchant-p_card-01-act-2_061-enc02",
+          "produceDescriptionType": "ProduceDescriptionType_PlainText",
+          "text": "の間、"
+        },
+        {
+          "originProduceExamEffectId": "e_effect-exam_status_enchant-04-enchant-p_card-01-act-2_061-enc02",
+          "produceDescriptionType": "ProduceDescriptionType_PlainText",
+          "text": "ターン開始時、"
+        },
+        {
+          "examEffectType": "ProduceExamEffectType_ExamLesson",
+          "originProduceExamEffectId": "e_effect-exam_status_enchant-04-enchant-p_card-01-act-2_061-enc02",
+          "produceDescriptionType": "ProduceDescriptionType_ProduceExamEffectType",
+          "targetId": "Label_ExamLesson",
+          "text": "パラメータ"
+        },
+        {
+          "originProduceExamEffectId": "e_effect-exam_status_enchant-04-enchant-p_card-01-act-2_061-enc02",
+          "produceDescriptionType": "ProduceDescriptionType_PlainText",
+          "text": "<nobr>+"
+        },
+        {
+          "effectValue1": 5,
+          "examDescriptionType": "ExamDescriptionType_CustomizeEffectValue1",
+          "originProduceExamEffectId": "e_effect-exam_status_enchant-04-enchant-p_card-01-act-2_061-enc02",
+          "produceDescriptionType": "ProduceDescriptionType_Exam",
+          "text": "5"
+        },
+        {
+          "originProduceExamEffectId": "e_effect-exam_status_enchant-04-enchant-p_card-01-act-2_061-enc02",
+          "produceDescriptionType": "ProduceDescriptionType_PlainText",
+          "text": "</nobr>"
+        },
+        {
+          "examDescriptionType": "ExamDescriptionType_CustomizeLessonCountAdd",
+          "originProduceExamEffectId": "e_effect-exam_status_enchant-04-enchant-p_card-01-act-2_061-enc02",
+          "produceDescriptionType": "ProduceDescriptionType_Exam",
+          "targetId": "Description_LessonCountAdd_CountSection",
+          "text": ""
+        }
+      ],
+      "effectCount": 0,
+      "effectTurn": 4,
+      "effectType": "ProduceExamEffectType_ExamStatusEnchant",
+      "effectValue1": 0,
+      "effectValue2": 0,
+      "id": "e_effect-exam_status_enchant-04-enchant-p_card-01-act-2_061-enc02",
+      "text": "の間、 / ターン開始時、 / パラメータ / <nobr>+ / 5 / </nobr>"
+    }
+  ],
+  "triggers": [
+    {
+      "id": "e_trigger-exam_start_turn-turn_progress_up-2",
+      "playEffectProduceDescriptions": [
+        {
+          "originProduceExamTriggerId": "e_trigger-exam_start_turn-turn_progress_up-2",
+          "produceDescriptionType": "ProduceDescriptionType_PlainText",
+          "text": "3ターン目以降の場合、"
+        }
+      ],
+      "playProduceDescriptions": [
+        {
+          "originProduceExamTriggerId": "e_trigger-exam_start_turn-turn_progress_up-2",
+          "produceDescriptionType": "ProduceDescriptionType_PlainText",
+          "text": "3ターン目以降の場合、使用可"
+        }
+      ]
+    },
+    {
+      "id": "e_trigger-none-parameter_buff_up-4",
+      "playEffectProduceDescriptions": [
+        {
+          "examEffectType": "ProduceExamEffectType_ExamParameterBuff",
+          "originProduceExamTriggerId": "e_trigger-none-parameter_buff_up-4",
+          "produceDescriptionType": "ProduceDescriptionType_ProduceExamEffectType",
+          "targetId": "Label_ExamParameterBuff",
+          "text": "好調"
+        },
+        {
+          "originProduceExamTriggerId": "e_trigger-none-parameter_buff_up-4",
+          "produceDescriptionType": "ProduceDescriptionType_PlainText",
+          "text": "が<nobr>4ターン以上</nobr>の場合、"
+        }
+      ],
+      "playProduceDescriptions": [
+        {
+          "examEffectType": "ProduceExamEffectType_ExamParameterBuff",
+          "originProduceExamTriggerId": "e_trigger-none-parameter_buff_up-4",
+          "produceDescriptionType": "ProduceDescriptionType_ProduceExamEffectType",
+          "targetId": "Label_ExamParameterBuff",
+          "text": "好調"
+        },
+        {
+          "originProduceExamTriggerId": "e_trigger-none-parameter_buff_up-4",
+          "produceDescriptionType": "ProduceDescriptionType_PlainText",
+          "text": "が<nobr>4ターン以上</nobr>の場合、使用可"
+        }
+      ]
+    },
+    {
+      "id": "e_trigger-none-parameter_buff_up-8",
+      "playEffectProduceDescriptions": [
+        {
+          "examEffectType": "ProduceExamEffectType_ExamParameterBuff",
+          "originProduceExamTriggerId": "e_trigger-none-parameter_buff_up-8",
+          "produceDescriptionType": "ProduceDescriptionType_ProduceExamEffectType",
+          "targetId": "Label_ExamParameterBuff",
+          "text": "好調"
+        },
+        {
+          "originProduceExamTriggerId": "e_trigger-none-parameter_buff_up-8",
+          "produceDescriptionType": "ProduceDescriptionType_PlainText",
+          "text": "が<nobr>8ターン以上</nobr>の場合、"
+        }
+      ],
+      "playProduceDescriptions": [
+        {
+          "examEffectType": "ProduceExamEffectType_ExamParameterBuff",
+          "originProduceExamTriggerId": "e_trigger-none-parameter_buff_up-8",
+          "produceDescriptionType": "ProduceDescriptionType_ProduceExamEffectType",
+          "targetId": "Label_ExamParameterBuff",
+          "text": "好調"
+        },
+        {
+          "originProduceExamTriggerId": "e_trigger-none-parameter_buff_up-8",
+          "produceDescriptionType": "ProduceDescriptionType_PlainText",
+          "text": "が<nobr>8ターン以上</nobr>の場合、使用可"
+        }
+      ]
+    }
+  ],
+  "engineCards": [
+    {
+      "id": 34,
+      "name": "ハイタッチ",
+      "availableCustomizations": "",
+      "rarity": "R",
+      "type": "active",
+      "plan": "sense",
+      "unlockPlv": 13,
+      "upgraded": false,
+      "unique": false,
+      "sourceType": "produce",
+      "pIdolId": "",
+      "forceInitialHand": false,
+      "conditions": "",
+      "cost": "cost-=4",
+      "actions": "concentrationMultiplier=1.5; score+=17",
+      "limit": 1,
+      "effects": ""
+    },
+    {
+      "id": 35,
+      "name": "ハイタッチ+",
+      "availableCustomizations": "65,29,27",
+      "rarity": "R",
+      "type": "active",
+      "plan": "sense",
+      "unlockPlv": 13,
+      "upgraded": true,
+      "unique": false,
+      "sourceType": "produce",
+      "pIdolId": "",
+      "forceInitialHand": false,
+      "conditions": "",
+      "cost": "cost-=4",
+      "actions": "concentrationMultiplier=2; score+=23",
+      "limit": 1,
+      "effects": ""
+    },
+    {
+      "id": 242,
+      "name": "ストレッチ談義",
+      "availableCustomizations": "",
+      "rarity": "SR",
+      "type": "active",
+      "plan": "free",
+      "unlockPlv": 1,
+      "upgraded": false,
+      "unique": true,
+      "sourceType": "support",
+      "pIdolId": "",
+      "forceInitialHand": false,
+      "conditions": "if:turnsElapsed>=2",
+      "cost": "cost-=3",
+      "actions": "score+=3; halfCostTurns+=2; at:turn { upgradeHand; limit:1 }",
+      "limit": 1,
+      "effects": ""
+    },
+    {
+      "id": 243,
+      "name": "ストレッチ談義+",
+      "availableCustomizations": "48,58,27",
+      "rarity": "SR",
+      "type": "active",
+      "plan": "free",
+      "unlockPlv": 1,
+      "upgraded": true,
+      "unique": true,
+      "sourceType": "support",
+      "pIdolId": "",
+      "forceInitialHand": false,
+      "conditions": "if:turnsElapsed>=2",
+      "cost": "cost-=0",
+      "actions": "score+=3; halfCostTurns+=2; at:turn { upgradeHand; limit:1 }",
+      "limit": 1,
+      "effects": ""
+    },
+    {
+      "id": 596,
+      "name": "破竹の勢い",
+      "availableCustomizations": "",
+      "rarity": "SR",
+      "type": "active",
+      "plan": "sense",
+      "unlockPlv": 69,
+      "upgraded": false,
+      "unique": true,
+      "sourceType": "produce",
+      "pIdolId": "",
+      "forceInitialHand": false,
+      "conditions": "if:goodConditionTurns>=8",
+      "cost": "cost-=2",
+      "actions": "concentration+=5; at:startOfTurn { score+=5; limit:3 }",
+      "limit": 1,
+      "effects": ""
+    },
+    {
+      "id": 597,
+      "name": "破竹の勢い+",
+      "availableCustomizations": "97,54,14",
+      "rarity": "SR",
+      "type": "active",
+      "plan": "sense",
+      "unlockPlv": 69,
+      "upgraded": true,
+      "unique": true,
+      "sourceType": "produce",
+      "pIdolId": "",
+      "forceInitialHand": false,
+      "conditions": "@usable if:goodConditionTurns>=8",
+      "cost": "cost-=2",
+      "actions": "concentration+=7; at:startOfTurn { score+=5; limit:4 }",
+      "limit": 1,
+      "effects": ""
+    }
+  ],
+  "engineCustomizations": [
+    {
+      "id": 14,
+      "alias": "goodConditionTurnsAdd1",
+      "name": "好調追加",
+      "type": "buff",
+      "price": 70,
+      "max": 1,
+      "forceInitialHand": "",
+      "conditions": "",
+      "cost": "",
+      "actions": "goodConditionTurns+=2",
+      "limit": "",
+      "effects": ""
+    },
+    {
+      "id": 58,
+      "alias": "halfCostTurns2",
+      "name": "消費軽減+",
+      "type": "buff",
+      "price": "40,70",
+      "max": 2,
+      "forceInitialHand": "",
+      "conditions": "",
+      "cost": "",
+      "actions": "",
+      "limit": "",
+      "effects": "level:1 { at:prestage { target:this { g.halfCostTurns+=1 } } } level:2 { at:prestage { target:this { g.halfCostTurns+=3 } } }"
+    },
+    {
+      "id": 54,
+      "alias": "concentration2",
+      "name": "集中+",
+      "type": "buff",
+      "price": "40,70",
+      "max": 2,
+      "forceInitialHand": "",
+      "conditions": "",
+      "cost": "",
+      "actions": "",
+      "limit": "",
+      "effects": "level:1 { at:prestage { target:this { g.concentration+=1 } } } level:2 { at:prestage { target:this { g.concentration+=3 } } }"
+    },
+    {
+      "id": 29,
+      "alias": "cost1",
+      "name": "コスト値-",
+      "type": "cost",
+      "price": 20,
+      "max": 1,
+      "forceInitialHand": "",
+      "conditions": "",
+      "cost": "",
+      "actions": "",
+      "limit": "",
+      "effects": "at:prestage { target:this { g.cost+=2 } }"
+    },
+    {
+      "id": 97,
+      "alias": "hachikuCondition1",
+      "name": "条件変更",
+      "type": "effect",
+      "price": 70,
+      "max": 1,
+      "forceInitialHand": "",
+      "conditions": "@usable if:goodConditionTurns>=4",
+      "cost": "",
+      "actions": "",
+      "limit": "",
+      "effects": ""
+    },
+    {
+      "id": 27,
+      "alias": "genkiAdd1_4",
+      "name": "元気追加",
+      "type": "genki",
+      "price": 70,
+      "max": 1,
+      "forceInitialHand": "",
+      "conditions": "",
+      "cost": "",
+      "actions": "genki+=4",
+      "limit": "",
+      "effects": ""
+    },
+    {
+      "id": 28,
+      "alias": "genkiAdd1_9",
+      "name": "元気追加",
+      "type": "genki",
+      "price": 70,
+      "max": 1,
+      "forceInitialHand": "",
+      "conditions": "",
+      "cost": "",
+      "actions": "genki+=9",
+      "limit": "",
+      "effects": ""
+    },
+    {
+      "id": 48,
+      "alias": "score2_6",
+      "name": "パラメータ+",
+      "type": "score",
+      "price": "40,70",
+      "max": 2,
+      "forceInitialHand": "",
+      "conditions": "",
+      "cost": "",
+      "actions": "",
+      "limit": "",
+      "effects": "level:1 { at:prestage { target:this { g.score+=6 } } } level:2 { at:prestage { target:this { g.score+=22 } } }"
+    },
+    {
+      "id": 65,
+      "alias": "score3_6",
+      "name": "パラメータ+",
+      "type": "score",
+      "price": "40,40,70",
+      "max": 3,
+      "forceInitialHand": "",
+      "conditions": "",
+      "cost": "",
+      "actions": "",
+      "limit": "",
+      "effects": "level:1 { at:prestage { target:this { g.score+=6 } } } level:2 { at:prestage { target:this { g.score+=12 } } } level:3 { at:prestage { target:this { g.score+=30 } } }"
+    }
+  ],
+  "entries": [
+    {
+      "reference": {
+        "id": "p_card-00-sup-2_028",
+        "upgradeCount": 0,
+        "customizes": []
+      },
+      "record": {
+        "assetId": "img_general_skillcard_sup-2_028",
+        "category": "ProduceCardCategory_ActiveSkill",
+        "definition": {
+          "assetId": "img_general_skillcard_sup-2_028",
+          "category": "ProduceCardCategory_ActiveSkill",
+          "costType": "ExamCostType_Unknown",
+          "costValue": 0,
+          "effectGroupIds": [
+            "effect_group-visible-exam_lesson-000",
+            "effect_group-visible-exam_effect_timer-000",
+            "effect_group-visible-exam_stamina_consumption_down-000",
+            "effect_group-visible-exam_card_upgrade-000"
+          ],
+          "evaluation": 32,
+          "forceStamina": 0,
+          "id": "p_card-00-sup-2_028",
+          "isCharacterAsset": false,
+          "isConversion": false,
+          "isEndTurnLost": false,
+          "isInitial": false,
+          "isInitialDeckProduceCard": false,
+          "isLimited": false,
+          "isRestrict": false,
+          "isReward": false,
+          "libraryHidden": false,
+          "maxCustomizeCount": 0,
+          "moveEffectTriggerType": "ProduceCardMoveEffectTriggerType_Unknown",
+          "moveProduceExamEffectIds": [],
+          "moveProduceExamTriggerIds": [],
+          "name": "ストレッチ談議",
+          "noDeckDuplication": true,
+          "order": "39000010000028",
+          "originCharacterId": "",
+          "originIdolCardId": "",
+          "originPrimaStellaIdolCardId": "",
+          "originSupportCardId": "s_card-2-0006",
+          "planType": "ProducePlanType_Common",
+          "playEffects": [
+            {
+              "hideIcon": false,
+              "isOncePlayEffect": false,
+              "produceExamEffectId": "e_effect-exam_lesson-0003-01",
+              "produceExamTriggerId": ""
+            },
+            {
+              "hideIcon": false,
+              "isOncePlayEffect": false,
+              "produceExamEffectId": "e_effect-exam_stamina_consumption_down-02",
+              "produceExamTriggerId": ""
+            },
+            {
+              "hideIcon": false,
+              "isOncePlayEffect": false,
+              "produceExamEffectId": "e_effect-exam_effect_timer-0001-01-e_effect-exam_card_upgrade-p_card_search-hand-all-0_0",
+              "produceExamTriggerId": ""
+            }
+          ],
+          "playMovePositionType": "ProduceCardMovePositionType_Lost",
+          "playProduceExamTriggerId": "e_trigger-exam_start_turn-turn_progress_up-2",
+          "produceCardCustomizeIds": [],
+          "produceCardStatusEnchantId": "",
+          "rarity": "ProduceCardRarity_Sr",
+          "rentalUnlockProducerLevel": 0,
+          "searchTag": "",
+          "stamina": 3,
+          "unlockProducerLevel": 0,
+          "upgradeCount": 0,
+          "viewStartTime": "0",
+          "voiceAssetId": ""
+        },
+        "descriptions": [
+          {
+            "examDescriptionType": "ExamDescriptionType_CustomizeInitialAdd",
+            "produceDescriptionType": "ProduceDescriptionType_Exam",
+            "targetId": "Description_ProduceCardIsInitial",
+            "text": ""
+          },
+          {
+            "originProduceExamTriggerId": "e_trigger-exam_start_turn-turn_progress_up-2",
+            "produceDescriptionType": "ProduceDescriptionType_PlainText",
+            "text": "3ターン目以降の場合、使用可"
+          },
+          {
+            "originProduceExamTriggerId": "e_trigger-exam_start_turn-turn_progress_up-2",
+            "produceDescriptionType": "ProduceDescriptionType_PlainText",
+            "text": ""
+          },
+          {
+            "originProduceExamEffectId": "e_effect-exam_lesson-0003-01",
+            "produceDescriptionType": "ProduceDescriptionType_ProduceDescriptionName",
+            "targetId": "Label_StyleDot",
+            "text": ""
+          },
+          {
+            "examEffectType": "ProduceExamEffectType_ExamLesson",
+            "originProduceExamEffectId": "e_effect-exam_lesson-0003-01",
+            "produceDescriptionType": "ProduceDescriptionType_ProduceExamEffectType",
+            "targetId": "Label_ExamLesson",
+            "text": "パラメータ"
+          },
+          {
+            "originProduceExamEffectId": "e_effect-exam_lesson-0003-01",
+            "produceDescriptionType": "ProduceDescriptionType_PlainText",
+            "text": "+"
+          },
+          {
+            "effectValue1": 3,
+            "examDescriptionType": "ExamDescriptionType_CustomizeEffectValue1",
+            "originProduceExamEffectId": "e_effect-exam_lesson-0003-01",
+            "produceDescriptionType": "ProduceDescriptionType_Exam",
+            "text": "3"
+          },
+          {
+            "examDescriptionType": "ExamDescriptionType_CustomizeLessonCountAdd",
+            "originProduceExamEffectId": "e_effect-exam_lesson-0003-01",
+            "produceDescriptionType": "ProduceDescriptionType_Exam",
+            "targetId": "Description_LessonCountAdd_CountSection",
+            "text": ""
+          },
+          {
+            "originProduceExamEffectId": "e_effect-exam_lesson-0003-01",
+            "produceDescriptionType": "ProduceDescriptionType_PlainText",
+            "text": ""
+          },
+          {
+            "originProduceExamEffectId": "e_effect-exam_stamina_consumption_down-02",
+            "produceDescriptionType": "ProduceDescriptionType_ProduceDescriptionName",
+            "targetId": "Label_StyleDot",
+            "text": ""
+          },
+          {
+            "examEffectType": "ProduceExamEffectType_ExamStaminaConsumptionDown",
+            "originProduceExamEffectId": "e_effect-exam_stamina_consumption_down-02",
+            "produceDescriptionType": "ProduceDescriptionType_ProduceExamEffectType",
+            "targetId": "Label_ExamStaminaConsumptionDown",
+            "text": "消費体力減少"
+          },
+          {
+            "originProduceExamEffectId": "e_effect-exam_stamina_consumption_down-02",
+            "produceDescriptionType": "ProduceDescriptionType_PlainText",
+            "text": "<nobr>"
+          },
+          {
+            "examDescriptionType": "ExamDescriptionType_CustomizeTurn",
+            "originProduceExamEffectId": "e_effect-exam_stamina_consumption_down-02",
+            "produceDescriptionType": "ProduceDescriptionType_Exam",
+            "text": "2",
+            "turn": 2
+          },
+          {
+            "originProduceExamEffectId": "e_effect-exam_stamina_consumption_down-02",
+            "produceDescriptionType": "ProduceDescriptionType_PlainText",
+            "text": "ターン</nobr>"
+          },
+          {
+            "originProduceExamEffectId": "e_effect-exam_stamina_consumption_down-02",
+            "produceDescriptionType": "ProduceDescriptionType_PlainText",
+            "text": ""
+          },
+          {
+            "originProduceExamEffectId": "e_effect-exam_effect_timer-0001-01-e_effect-exam_card_upgrade-p_card_search-hand-all-0_0",
+            "produceDescriptionType": "ProduceDescriptionType_ProduceDescriptionName",
+            "targetId": "Label_StyleDot",
+            "text": ""
+          },
+          {
+            "originProduceExamEffectId": "e_effect-exam_effect_timer-0001-01-e_effect-exam_card_upgrade-p_card_search-hand-all-0_0",
+            "produceDescriptionType": "ProduceDescriptionType_PlainText",
+            "text": "次のターン、"
+          },
+          {
+            "originProduceExamEffectId": "e_effect-exam_effect_timer-0001-01-e_effect-exam_card_upgrade-p_card_search-hand-all-0_0",
+            "produceDescriptionType": "ProduceDescriptionType_PlainText",
+            "text": "手札をすべて"
+          },
+          {
+            "examEffectType": "ProduceExamEffectType_ExamCardUpgrade",
+            "originProduceExamEffectId": "e_effect-exam_effect_timer-0001-01-e_effect-exam_card_upgrade-p_card_search-hand-all-0_0",
+            "produceDescriptionType": "ProduceDescriptionType_ProduceExamEffectType",
+            "targetId": "Label_ExamCardUpgrade",
+            "text": "レッスン中強化"
+          },
+          {
+            "originProduceExamEffectId": "e_effect-exam_effect_timer-0001-01-e_effect-exam_card_upgrade-p_card_search-hand-all-0_0",
+            "produceDescriptionType": "ProduceDescriptionType_PlainText",
+            "text": " "
+          },
+          {
+            "originProduceExamEffectId": "e_effect-exam_effect_timer-0001-01-e_effect-exam_card_upgrade-p_card_search-hand-all-0_0",
+            "produceDescriptionType": "ProduceDescriptionType_PlainText",
+            "text": ""
+          },
+          {
+            "examDescriptionType": "ExamDescriptionType_CustomizeEffectAdd",
+            "produceDescriptionType": "ProduceDescriptionType_Exam",
+            "text": ""
+          },
+          {
+            "isOnlyOutGame": true,
+            "produceDescriptionType": "ProduceDescriptionType_PlainText",
+            "text": "<nobr>"
+          },
+          {
+            "isOnlyOutGame": true,
+            "produceDescriptionType": "ProduceDescriptionType_ProduceDescription",
+            "targetId": "Label_NoDeckDuplication",
+            "text": "重複不可"
+          },
+          {
+            "isOnlyOutGame": true,
+            "produceDescriptionType": "ProduceDescriptionType_PlainText",
+            "text": " </nobr>"
+          },
+          {
+            "produceCardMovePositionType": "ProduceCardMovePositionType_Lost",
+            "produceDescriptionType": "ProduceDescriptionType_ProduceDescription",
+            "targetId": "Label_ProduceCardMovePositionType_Lost",
+            "text": "レッスン中1回"
+          },
+          {
+            "examDescriptionType": "ExamDescriptionType_CustomizePlayMovePositionLost",
+            "produceDescriptionType": "ProduceDescriptionType_Exam",
+            "text": ""
+          }
+        ],
+        "id": "p_card-00-sup-2_028",
+        "images": {
+          "common": "img_general_skillcard_sup-2_028.webp"
+        },
+        "isCharacterAsset": false,
+        "name": "ストレッチ談議",
+        "originCharacterId": "",
+        "playEffects": [
+          {
+            "hideIcon": false,
+            "isOncePlayEffect": false,
+            "produceExamEffectId": "e_effect-exam_lesson-0003-01",
+            "produceExamTriggerId": ""
+          },
+          {
+            "hideIcon": false,
+            "isOncePlayEffect": false,
+            "produceExamEffectId": "e_effect-exam_stamina_consumption_down-02",
+            "produceExamTriggerId": ""
+          },
+          {
+            "hideIcon": false,
+            "isOncePlayEffect": false,
+            "produceExamEffectId": "e_effect-exam_effect_timer-0001-01-e_effect-exam_card_upgrade-p_card_search-hand-all-0_0",
+            "produceExamTriggerId": ""
+          }
+        ],
+        "rarity": "ProduceCardRarity_Sr",
+        "text": "3ターン目以降の場合、使用可 / パラメータ / + / 3 / 消費体力減少 / <nobr> / 2 / ターン</nobr> / 次のターン、 / 手札をすべて / レッスン中強化 /   / <nobr> / 重複不可 /  </nobr> / レッスン中1回",
+        "upgradeCount": 0
+      },
+      "customizations": []
+    },
+    {
+      "reference": {
+        "id": "p_card-00-sup-2_028",
+        "upgradeCount": 1,
+        "customizes": []
+      },
+      "record": {
+        "assetId": "img_general_skillcard_sup-2_028",
+        "category": "ProduceCardCategory_ActiveSkill",
+        "definition": {
+          "assetId": "img_general_skillcard_sup-2_028",
+          "category": "ProduceCardCategory_ActiveSkill",
+          "costType": "ExamCostType_Unknown",
+          "costValue": 0,
+          "effectGroupIds": [
+            "effect_group-visible-exam_lesson-000",
+            "effect_group-visible-exam_effect_timer-000",
+            "effect_group-visible-exam_stamina_consumption_down-000",
+            "effect_group-visible-exam_card_upgrade-000"
+          ],
+          "evaluation": 42,
+          "forceStamina": 0,
+          "id": "p_card-00-sup-2_028",
+          "isCharacterAsset": false,
+          "isConversion": false,
+          "isEndTurnLost": false,
+          "isInitial": false,
+          "isInitialDeckProduceCard": false,
+          "isLimited": false,
+          "isRestrict": false,
+          "isReward": false,
+          "libraryHidden": false,
+          "maxCustomizeCount": 2,
+          "moveEffectTriggerType": "ProduceCardMoveEffectTriggerType_Unknown",
+          "moveProduceExamEffectIds": [],
+          "moveProduceExamTriggerIds": [],
+          "name": "ストレッチ談議+",
+          "noDeckDuplication": true,
+          "order": "39000010000028",
+          "originCharacterId": "",
+          "originIdolCardId": "",
+          "originPrimaStellaIdolCardId": "",
+          "originSupportCardId": "s_card-2-0006",
+          "planType": "ProducePlanType_Common",
+          "playEffects": [
+            {
+              "hideIcon": false,
+              "isOncePlayEffect": false,
+              "produceExamEffectId": "e_effect-exam_lesson-0003-01",
+              "produceExamTriggerId": ""
+            },
+            {
+              "hideIcon": false,
+              "isOncePlayEffect": false,
+              "produceExamEffectId": "e_effect-exam_stamina_consumption_down-02",
+              "produceExamTriggerId": ""
+            },
+            {
+              "hideIcon": false,
+              "isOncePlayEffect": false,
+              "produceExamEffectId": "e_effect-exam_effect_timer-0001-01-e_effect-exam_card_upgrade-p_card_search-hand-all-0_0",
+              "produceExamTriggerId": ""
+            }
+          ],
+          "playMovePositionType": "ProduceCardMovePositionType_Lost",
+          "playProduceExamTriggerId": "e_trigger-exam_start_turn-turn_progress_up-2",
+          "produceCardCustomizeIds": [
+            "p_card_custom-040_070-g_effect-lesson_add-6-g_effect-lesson_add-22",
+            "p_card_custom-040_070-g_effect-stamina_consumption_down_turn_add-1-g_effect-stamina_consumption_down_turn_add-3",
+            "p_card_custom-070-g_effect-effect_add-e_effect-exam_block-0004"
+          ],
+          "produceCardStatusEnchantId": "",
+          "rarity": "ProduceCardRarity_Sr",
+          "rentalUnlockProducerLevel": 0,
+          "searchTag": "",
+          "stamina": 0,
+          "unlockProducerLevel": 0,
+          "upgradeCount": 1,
+          "viewStartTime": "0",
+          "voiceAssetId": ""
+        },
+        "descriptions": [
+          {
+            "examDescriptionType": "ExamDescriptionType_CustomizeInitialAdd",
+            "produceDescriptionType": "ProduceDescriptionType_Exam",
+            "targetId": "Description_ProduceCardIsInitial",
+            "text": ""
+          },
+          {
+            "originProduceExamTriggerId": "e_trigger-exam_start_turn-turn_progress_up-2",
+            "produceDescriptionType": "ProduceDescriptionType_PlainText",
+            "text": "3ターン目以降の場合、使用可"
+          },
+          {
+            "originProduceExamTriggerId": "e_trigger-exam_start_turn-turn_progress_up-2",
+            "produceDescriptionType": "ProduceDescriptionType_PlainText",
+            "text": ""
+          },
+          {
+            "originProduceExamEffectId": "e_effect-exam_lesson-0003-01",
+            "produceDescriptionType": "ProduceDescriptionType_ProduceDescriptionName",
+            "targetId": "Label_StyleDot",
+            "text": ""
+          },
+          {
+            "examEffectType": "ProduceExamEffectType_ExamLesson",
+            "originProduceExamEffectId": "e_effect-exam_lesson-0003-01",
+            "produceDescriptionType": "ProduceDescriptionType_ProduceExamEffectType",
+            "targetId": "Label_ExamLesson",
+            "text": "パラメータ"
+          },
+          {
+            "originProduceExamEffectId": "e_effect-exam_lesson-0003-01",
+            "produceDescriptionType": "ProduceDescriptionType_PlainText",
+            "text": "+"
+          },
+          {
+            "effectValue1": 3,
+            "examDescriptionType": "ExamDescriptionType_CustomizeEffectValue1",
+            "originProduceExamEffectId": "e_effect-exam_lesson-0003-01",
+            "produceDescriptionType": "ProduceDescriptionType_Exam",
+            "text": "3"
+          },
+          {
+            "examDescriptionType": "ExamDescriptionType_CustomizeLessonCountAdd",
+            "originProduceExamEffectId": "e_effect-exam_lesson-0003-01",
+            "produceDescriptionType": "ProduceDescriptionType_Exam",
+            "targetId": "Description_LessonCountAdd_CountSection",
+            "text": ""
+          },
+          {
+            "originProduceExamEffectId": "e_effect-exam_lesson-0003-01",
+            "produceDescriptionType": "ProduceDescriptionType_PlainText",
+            "text": ""
+          },
+          {
+            "originProduceExamEffectId": "e_effect-exam_stamina_consumption_down-02",
+            "produceDescriptionType": "ProduceDescriptionType_ProduceDescriptionName",
+            "targetId": "Label_StyleDot",
+            "text": ""
+          },
+          {
+            "examEffectType": "ProduceExamEffectType_ExamStaminaConsumptionDown",
+            "originProduceExamEffectId": "e_effect-exam_stamina_consumption_down-02",
+            "produceDescriptionType": "ProduceDescriptionType_ProduceExamEffectType",
+            "targetId": "Label_ExamStaminaConsumptionDown",
+            "text": "消費体力減少"
+          },
+          {
+            "originProduceExamEffectId": "e_effect-exam_stamina_consumption_down-02",
+            "produceDescriptionType": "ProduceDescriptionType_PlainText",
+            "text": "<nobr>"
+          },
+          {
+            "examDescriptionType": "ExamDescriptionType_CustomizeTurn",
+            "originProduceExamEffectId": "e_effect-exam_stamina_consumption_down-02",
+            "produceDescriptionType": "ProduceDescriptionType_Exam",
+            "text": "2",
+            "turn": 2
+          },
+          {
+            "originProduceExamEffectId": "e_effect-exam_stamina_consumption_down-02",
+            "produceDescriptionType": "ProduceDescriptionType_PlainText",
+            "text": "ターン</nobr>"
+          },
+          {
+            "originProduceExamEffectId": "e_effect-exam_stamina_consumption_down-02",
+            "produceDescriptionType": "ProduceDescriptionType_PlainText",
+            "text": ""
+          },
+          {
+            "originProduceExamEffectId": "e_effect-exam_effect_timer-0001-01-e_effect-exam_card_upgrade-p_card_search-hand-all-0_0",
+            "produceDescriptionType": "ProduceDescriptionType_ProduceDescriptionName",
+            "targetId": "Label_StyleDot",
+            "text": ""
+          },
+          {
+            "originProduceExamEffectId": "e_effect-exam_effect_timer-0001-01-e_effect-exam_card_upgrade-p_card_search-hand-all-0_0",
+            "produceDescriptionType": "ProduceDescriptionType_PlainText",
+            "text": "次のターン、"
+          },
+          {
+            "originProduceExamEffectId": "e_effect-exam_effect_timer-0001-01-e_effect-exam_card_upgrade-p_card_search-hand-all-0_0",
+            "produceDescriptionType": "ProduceDescriptionType_PlainText",
+            "text": "手札をすべて"
+          },
+          {
+            "examEffectType": "ProduceExamEffectType_ExamCardUpgrade",
+            "originProduceExamEffectId": "e_effect-exam_effect_timer-0001-01-e_effect-exam_card_upgrade-p_card_search-hand-all-0_0",
+            "produceDescriptionType": "ProduceDescriptionType_ProduceExamEffectType",
+            "targetId": "Label_ExamCardUpgrade",
+            "text": "レッスン中強化"
+          },
+          {
+            "originProduceExamEffectId": "e_effect-exam_effect_timer-0001-01-e_effect-exam_card_upgrade-p_card_search-hand-all-0_0",
+            "produceDescriptionType": "ProduceDescriptionType_PlainText",
+            "text": " "
+          },
+          {
+            "originProduceExamEffectId": "e_effect-exam_effect_timer-0001-01-e_effect-exam_card_upgrade-p_card_search-hand-all-0_0",
+            "produceDescriptionType": "ProduceDescriptionType_PlainText",
+            "text": ""
+          },
+          {
+            "examDescriptionType": "ExamDescriptionType_CustomizeEffectAdd",
+            "produceDescriptionType": "ProduceDescriptionType_Exam",
+            "text": ""
+          },
+          {
+            "isOnlyOutGame": true,
+            "produceDescriptionType": "ProduceDescriptionType_PlainText",
+            "text": "<nobr>"
+          },
+          {
+            "isOnlyOutGame": true,
+            "produceDescriptionType": "ProduceDescriptionType_ProduceDescription",
+            "targetId": "Label_NoDeckDuplication",
+            "text": "重複不可"
+          },
+          {
+            "isOnlyOutGame": true,
+            "produceDescriptionType": "ProduceDescriptionType_PlainText",
+            "text": " </nobr>"
+          },
+          {
+            "produceCardMovePositionType": "ProduceCardMovePositionType_Lost",
+            "produceDescriptionType": "ProduceDescriptionType_ProduceDescription",
+            "targetId": "Label_ProduceCardMovePositionType_Lost",
+            "text": "レッスン中1回"
+          },
+          {
+            "examDescriptionType": "ExamDescriptionType_CustomizePlayMovePositionLost",
+            "produceDescriptionType": "ProduceDescriptionType_Exam",
+            "text": ""
+          }
+        ],
+        "id": "p_card-00-sup-2_028",
+        "images": {
+          "common": "img_general_skillcard_sup-2_028.webp"
+        },
+        "isCharacterAsset": false,
+        "name": "ストレッチ談議+",
+        "originCharacterId": "",
+        "playEffects": [
+          {
+            "hideIcon": false,
+            "isOncePlayEffect": false,
+            "produceExamEffectId": "e_effect-exam_lesson-0003-01",
+            "produceExamTriggerId": ""
+          },
+          {
+            "hideIcon": false,
+            "isOncePlayEffect": false,
+            "produceExamEffectId": "e_effect-exam_stamina_consumption_down-02",
+            "produceExamTriggerId": ""
+          },
+          {
+            "hideIcon": false,
+            "isOncePlayEffect": false,
+            "produceExamEffectId": "e_effect-exam_effect_timer-0001-01-e_effect-exam_card_upgrade-p_card_search-hand-all-0_0",
+            "produceExamTriggerId": ""
+          }
+        ],
+        "rarity": "ProduceCardRarity_Sr",
+        "text": "3ターン目以降の場合、使用可 / パラメータ / + / 3 / 消費体力減少 / <nobr> / 2 / ターン</nobr> / 次のターン、 / 手札をすべて / レッスン中強化 /   / <nobr> / 重複不可 /  </nobr> / レッスン中1回",
+        "upgradeCount": 1
+      },
+      "customizations": []
+    },
+    {
+      "reference": {
+        "id": "p_card-01-act-1_020",
+        "upgradeCount": 1,
+        "customizes": [
+          {
+            "id": "p_card_custom-070-g_effect-effect_add-e_effect-exam_block-0009",
+            "customizeCount": 1
+          }
+        ]
+      },
+      "record": {
+        "assetId": "img_general_skillcard_act-1_020",
+        "category": "ProduceCardCategory_ActiveSkill",
+        "definition": {
+          "assetId": "img_general_skillcard_act-1_020",
+          "category": "ProduceCardCategory_ActiveSkill",
+          "costType": "ExamCostType_Unknown",
+          "costValue": 0,
+          "effectGroupIds": [
+            "effect_group-visible-exam_lesson-000"
+          ],
+          "evaluation": 20,
+          "forceStamina": 0,
+          "id": "p_card-01-act-1_020",
+          "isCharacterAsset": false,
+          "isConversion": false,
+          "isEndTurnLost": false,
+          "isInitial": false,
+          "isInitialDeckProduceCard": false,
+          "isLimited": false,
+          "isRestrict": false,
+          "isReward": false,
+          "libraryHidden": false,
+          "maxCustomizeCount": 3,
+          "moveEffectTriggerType": "ProduceCardMoveEffectTriggerType_Unknown",
+          "moveProduceExamEffectIds": [],
+          "moveProduceExamTriggerIds": [],
+          "name": "ハイタッチ+",
+          "noDeckDuplication": false,
+          "order": "21010130000020",
+          "originCharacterId": "",
+          "originIdolCardId": "",
+          "originPrimaStellaIdolCardId": "",
+          "originSupportCardId": "",
+          "planType": "ProducePlanType_Plan1",
+          "playEffects": [
+            {
+              "hideIcon": false,
+              "isOncePlayEffect": false,
+              "produceExamEffectId": "e_effect-exam_multiple_lesson_buff_lesson-0023-1000-01",
+              "produceExamTriggerId": ""
+            }
+          ],
+          "playMovePositionType": "ProduceCardMovePositionType_Lost",
+          "playProduceExamTriggerId": "",
+          "produceCardCustomizeIds": [
+            "p_card_custom-040_040_070-g_effect-lesson_add-6-g_effect-lesson_add-12-g_effect-lesson_add-30",
+            "p_card_custom-020-g_effect-cost_reduce-2",
+            "p_card_custom-070-g_effect-effect_add-e_effect-exam_block-0009"
+          ],
+          "produceCardStatusEnchantId": "",
+          "rarity": "ProduceCardRarity_R",
+          "rentalUnlockProducerLevel": 1,
+          "searchTag": "",
+          "stamina": 4,
+          "unlockProducerLevel": 13,
+          "upgradeCount": 1,
+          "viewStartTime": "0",
+          "voiceAssetId": ""
+        },
+        "descriptions": [
+          {
+            "examDescriptionType": "ExamDescriptionType_CustomizeInitialAdd",
+            "produceDescriptionType": "ProduceDescriptionType_Exam",
+            "targetId": "Description_ProduceCardIsInitial",
+            "text": ""
+          },
+          {
+            "originProduceExamEffectId": "e_effect-exam_multiple_lesson_buff_lesson-0023-1000-01",
+            "produceDescriptionType": "ProduceDescriptionType_ProduceDescriptionName",
+            "targetId": "Label_StyleDot",
+            "text": ""
+          },
+          {
+            "examEffectType": "ProduceExamEffectType_ExamLesson",
+            "originProduceExamEffectId": "e_effect-exam_multiple_lesson_buff_lesson-0023-1000-01",
+            "produceDescriptionType": "ProduceDescriptionType_ProduceExamEffectType",
+            "targetId": "Label_ExamLesson",
+            "text": "パラメータ"
+          },
+          {
+            "originProduceExamEffectId": "e_effect-exam_multiple_lesson_buff_lesson-0023-1000-01",
+            "produceDescriptionType": "ProduceDescriptionType_PlainText",
+            "text": "<nobr>+"
+          },
+          {
+            "effectValue1": 23,
+            "examDescriptionType": "ExamDescriptionType_CustomizeEffectValue1",
+            "originProduceExamEffectId": "e_effect-exam_multiple_lesson_buff_lesson-0023-1000-01",
+            "produceDescriptionType": "ProduceDescriptionType_Exam",
+            "text": "23"
+          },
+          {
+            "originProduceExamEffectId": "e_effect-exam_multiple_lesson_buff_lesson-0023-1000-01",
+            "produceDescriptionType": "ProduceDescriptionType_PlainText",
+            "text": "</nobr>（"
+          },
+          {
+            "examEffectType": "ProduceExamEffectType_ExamLessonBuff",
+            "originProduceExamEffectId": "e_effect-exam_multiple_lesson_buff_lesson-0023-1000-01",
+            "produceDescriptionType": "ProduceDescriptionType_ProduceExamEffectType",
+            "targetId": "Label_ExamLessonBuff_Produce",
+            "text": "集中"
+          },
+          {
+            "originProduceExamEffectId": "e_effect-exam_multiple_lesson_buff_lesson-0023-1000-01",
+            "produceDescriptionType": "ProduceDescriptionType_PlainText",
+            "text": "効果を<nobr>2倍</nobr>適用）"
+          },
+          {
+            "examDescriptionType": "ExamDescriptionType_CustomizeLessonCountAdd",
+            "originProduceExamEffectId": "e_effect-exam_multiple_lesson_buff_lesson-0023-1000-01",
+            "produceDescriptionType": "ProduceDescriptionType_Exam",
+            "targetId": "Description_LessonCountAdd_CountSection",
+            "text": ""
+          },
+          {
+            "originProduceExamEffectId": "e_effect-exam_multiple_lesson_buff_lesson-0023-1000-01",
+            "produceDescriptionType": "ProduceDescriptionType_PlainText",
+            "text": ""
+          },
+          {
+            "examDescriptionType": "ExamDescriptionType_CustomizeEffectAdd",
+            "produceDescriptionType": "ProduceDescriptionType_Exam",
+            "text": ""
+          },
+          {
+            "produceCardMovePositionType": "ProduceCardMovePositionType_Lost",
+            "produceDescriptionType": "ProduceDescriptionType_ProduceDescription",
+            "targetId": "Label_ProduceCardMovePositionType_Lost",
+            "text": "レッスン中1回"
+          },
+          {
+            "examDescriptionType": "ExamDescriptionType_CustomizePlayMovePositionLost",
+            "produceDescriptionType": "ProduceDescriptionType_Exam",
+            "text": ""
+          }
+        ],
+        "id": "p_card-01-act-1_020",
+        "images": {
+          "common": "img_general_skillcard_act-1_020.webp"
+        },
+        "isCharacterAsset": false,
+        "name": "ハイタッチ+",
+        "originCharacterId": "",
+        "playEffects": [
+          {
+            "hideIcon": false,
+            "isOncePlayEffect": false,
+            "produceExamEffectId": "e_effect-exam_multiple_lesson_buff_lesson-0023-1000-01",
+            "produceExamTriggerId": ""
+          }
+        ],
+        "rarity": "ProduceCardRarity_R",
+        "text": "パラメータ / <nobr>+ / 23 / </nobr>（ / 集中 / 効果を<nobr>2倍</nobr>適用） / レッスン中1回",
+        "upgradeCount": 1
+      },
+      "customizations": [
+        {
+          "record": {
+            "customizeCount": 1,
+            "description": "元気追加",
+            "id": "p_card_custom-070-g_effect-effect_add-e_effect-exam_block-0009",
+            "overwriteProduceCardGrowEffectType": "ProduceCardGrowEffectType_BlockAdd",
+            "produceCardGrowEffectIds": [
+              "g_effect-effect_add-e_effect-exam_block-0009"
+            ],
+            "producePoint": 70
+          },
+          "grows": [
+            {
+              "costType": "ExamCostType_Unknown",
+              "effectGroupIds": [
+                "effect_group-visible-exam_block-000"
+              ],
+              "effectType": "ProduceCardGrowEffectType_EffectAdd",
+              "id": "g_effect-effect_add-e_effect-exam_block-0009",
+              "playEffectProduceExamTriggerId": "",
+              "playMovePositionType": "ProduceCardMovePositionType_Unknown",
+              "playProduceExamEffectId": "e_effect-exam_block-0009",
+              "playProduceExamTriggerId": "",
+              "produceCardStatusEnchantId": "",
+              "targetPlayEffectProduceExamTriggerIds": [],
+              "targetPlayProduceExamEffectIds": [],
+              "value": 0
+            }
+          ],
+          "effects": [
+            {
+              "definition": {
+                "chainProduceExamEffectId": "",
+                "chainProduceExamEffectIds": [],
+                "effectCount": 0,
+                "effectGroupIds": [
+                  "effect_group-visible-exam_block-000"
+                ],
+                "effectTurn": 0,
+                "effectType": "ProduceExamEffectType_ExamBlock",
+                "effectValue1": 9,
+                "effectValue2": 0,
+                "id": "e_effect-exam_block-0009",
+                "movePositionType": "ProduceCardMovePositionType_Unknown",
+                "pickCountMax": 0,
+                "pickCountMax2": 0,
+                "pickCountMin": 0,
+                "pickCountMin2": 0,
+                "pickCountReferenceProduceCardSearchId": "",
+                "pickCountReferenceProduceCardSearchId2": "",
+                "pickCountType": "ProducePickCountType_Unknown",
+                "pickCountType2": "ProducePickCountType_Unknown",
+                "pickRangeType": "ProducePickRangeType_Unknown",
+                "pickRangeType2": "ProducePickRangeType_Unknown",
+                "produceCardGrowEffectIds": [],
+                "produceCardSearchId": "",
+                "produceCardSearchId2": "",
+                "produceCardStatusEnchantId": "",
+                "produceExamStatusEnchantId": "",
+                "targetExamEffectType": "ProduceExamEffectType_Unknown",
+                "targetProduceCardId": "",
+                "targetUpgradeCount": 0
+              },
+              "descriptions": [
+                {
+                  "examEffectType": "ProduceExamEffectType_ExamBlock",
+                  "originProduceExamEffectId": "e_effect-exam_block-0009",
+                  "produceDescriptionType": "ProduceDescriptionType_ProduceExamEffectType",
+                  "targetId": "Label_ExamBlock",
+                  "text": "元気"
+                },
+                {
+                  "originProduceExamEffectId": "e_effect-exam_block-0009",
+                  "produceDescriptionType": "ProduceDescriptionType_PlainText",
+                  "text": "<nobr>+"
+                },
+                {
+                  "effectValue1": 9,
+                  "examDescriptionType": "ExamDescriptionType_CustomizeEffectValue1",
+                  "originProduceExamEffectId": "e_effect-exam_block-0009",
+                  "produceDescriptionType": "ProduceDescriptionType_Exam",
+                  "text": "9"
+                },
+                {
+                  "originProduceExamEffectId": "e_effect-exam_block-0009",
+                  "produceDescriptionType": "ProduceDescriptionType_PlainText",
+                  "text": "</nobr>"
+                }
+              ],
+              "effectCount": 0,
+              "effectTurn": 0,
+              "effectType": "ProduceExamEffectType_ExamBlock",
+              "effectValue1": 9,
+              "effectValue2": 0,
+              "id": "e_effect-exam_block-0009",
+              "text": "元気 / <nobr>+ / 9 / </nobr>"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "reference": {
+        "id": "p_card-01-act-2_061",
+        "upgradeCount": 1,
+        "customizes": [
+          {
+            "id": "p_card_custom-wrapper-p_card-01-act-2_061-a-01",
+            "customizeCount": 1
+          }
+        ]
+      },
+      "record": {
+        "assetId": "img_general_skillcard_act-2_061",
+        "category": "ProduceCardCategory_ActiveSkill",
+        "definition": {
+          "assetId": "img_general_skillcard_act-2_061",
+          "category": "ProduceCardCategory_ActiveSkill",
+          "costType": "ExamCostType_Unknown",
+          "costValue": 0,
+          "effectGroupIds": [
+            "effect_group-visible-exam_lesson-000",
+            "effect_group-visible-exam_status_enchant-000",
+            "effect_group-visible-exam_lesson_buff-000"
+          ],
+          "evaluation": 47,
+          "forceStamina": 0,
+          "id": "p_card-01-act-2_061",
+          "isCharacterAsset": true,
+          "isConversion": false,
+          "isEndTurnLost": false,
+          "isInitial": false,
+          "isInitialDeckProduceCard": false,
+          "isLimited": false,
+          "isRestrict": false,
+          "isReward": false,
+          "libraryHidden": false,
+          "maxCustomizeCount": 2,
+          "moveEffectTriggerType": "ProduceCardMoveEffectTriggerType_Unknown",
+          "moveProduceExamEffectIds": [],
+          "moveProduceExamTriggerIds": [],
+          "name": "破竹の勢い+",
+          "noDeckDuplication": true,
+          "order": "31010690520061",
+          "originCharacterId": "",
+          "originIdolCardId": "",
+          "originPrimaStellaIdolCardId": "",
+          "originSupportCardId": "",
+          "planType": "ProducePlanType_Plan1",
+          "playEffects": [
+            {
+              "hideIcon": false,
+              "isOncePlayEffect": false,
+              "produceExamEffectId": "e_effect-exam_lesson_buff-0007",
+              "produceExamTriggerId": ""
+            },
+            {
+              "hideIcon": false,
+              "isOncePlayEffect": false,
+              "produceExamEffectId": "e_effect-exam_status_enchant-04-enchant-p_card-01-act-2_061-enc02",
+              "produceExamTriggerId": ""
+            }
+          ],
+          "playMovePositionType": "ProduceCardMovePositionType_Lost",
+          "playProduceExamTriggerId": "e_trigger-none-parameter_buff_up-8",
+          "produceCardCustomizeIds": [
+            "p_card_custom-wrapper-p_card-01-act-2_061-a-01",
+            "p_card_custom-wrapper-p_card-01-act-2_061-b-01",
+            "p_card_custom-wrapper-p_card-01-act-2_061-c-01"
+          ],
+          "produceCardStatusEnchantId": "",
+          "rarity": "ProduceCardRarity_Sr",
+          "rentalUnlockProducerLevel": 65,
+          "searchTag": "",
+          "stamina": 2,
+          "unlockProducerLevel": 69,
+          "upgradeCount": 1,
+          "viewStartTime": "0",
+          "voiceAssetId": ""
+        },
+        "descriptions": [
+          {
+            "examDescriptionType": "ExamDescriptionType_CustomizeInitialAdd",
+            "produceDescriptionType": "ProduceDescriptionType_Exam",
+            "targetId": "Description_ProduceCardIsInitial",
+            "text": ""
+          },
+          {
+            "examEffectType": "ProduceExamEffectType_ExamParameterBuff",
+            "originProduceExamTriggerId": "e_trigger-none-parameter_buff_up-8",
+            "produceDescriptionType": "ProduceDescriptionType_ProduceExamEffectType",
+            "targetId": "Label_ExamParameterBuff",
+            "text": "好調"
+          },
+          {
+            "originProduceExamTriggerId": "e_trigger-none-parameter_buff_up-8",
+            "produceDescriptionType": "ProduceDescriptionType_PlainText",
+            "text": "が<nobr>8ターン以上</nobr>の場合、使用可"
+          },
+          {
+            "originProduceExamTriggerId": "e_trigger-none-parameter_buff_up-8",
+            "produceDescriptionType": "ProduceDescriptionType_PlainText",
+            "text": ""
+          },
+          {
+            "originProduceExamTriggerId": "e_trigger-none-parameter_buff_up-8",
+            "produceDescriptionType": "ProduceDescriptionType_PlainText",
+            "text": ""
+          },
+          {
+            "originProduceExamEffectId": "e_effect-exam_lesson_buff-0007",
+            "produceDescriptionType": "ProduceDescriptionType_ProduceDescriptionName",
+            "targetId": "Label_StyleDot",
+            "text": ""
+          },
+          {
+            "examEffectType": "ProduceExamEffectType_ExamLessonBuff",
+            "originProduceExamEffectId": "e_effect-exam_lesson_buff-0007",
+            "produceDescriptionType": "ProduceDescriptionType_ProduceExamEffectType",
+            "targetId": "Label_ExamLessonBuff_Produce",
+            "text": "集中"
+          },
+          {
+            "originProduceExamEffectId": "e_effect-exam_lesson_buff-0007",
+            "produceDescriptionType": "ProduceDescriptionType_PlainText",
+            "text": "<nobr>+"
+          },
+          {
+            "effectValue1": 7,
+            "examDescriptionType": "ExamDescriptionType_CustomizeEffectValue1",
+            "originProduceExamEffectId": "e_effect-exam_lesson_buff-0007",
+            "produceDescriptionType": "ProduceDescriptionType_Exam",
+            "text": "7"
+          },
+          {
+            "originProduceExamEffectId": "e_effect-exam_lesson_buff-0007",
+            "produceDescriptionType": "ProduceDescriptionType_PlainText",
+            "text": "</nobr>"
+          },
+          {
+            "originProduceExamEffectId": "e_effect-exam_lesson_buff-0007",
+            "produceDescriptionType": "ProduceDescriptionType_PlainText",
+            "text": ""
+          },
+          {
+            "originProduceExamEffectId": "e_effect-exam_status_enchant-04-enchant-p_card-01-act-2_061-enc02",
+            "produceDescriptionType": "ProduceDescriptionType_ProduceDescriptionName",
+            "targetId": "Label_StyleDot",
+            "text": ""
+          },
+          {
+            "originProduceExamEffectId": "e_effect-exam_status_enchant-04-enchant-p_card-01-act-2_061-enc02",
+            "produceDescriptionType": "ProduceDescriptionType_PlainText",
+            "text": "以降の<nobr>"
+          },
+          {
+            "examDescriptionType": "ExamDescriptionType_CustomizeTurn",
+            "originProduceExamEffectId": "e_effect-exam_status_enchant-04-enchant-p_card-01-act-2_061-enc02",
+            "produceDescriptionType": "ProduceDescriptionType_Exam",
+            "text": "4",
+            "turn": 4
+          },
+          {
+            "originProduceExamEffectId": "e_effect-exam_status_enchant-04-enchant-p_card-01-act-2_061-enc02",
+            "produceDescriptionType": "ProduceDescriptionType_PlainText",
+            "text": "ターン</nobr>の間、"
+          },
+          {
+            "originProduceExamEffectId": "e_effect-exam_status_enchant-04-enchant-p_card-01-act-2_061-enc02",
+            "produceDescriptionType": "ProduceDescriptionType_PlainText",
+            "text": "ターン開始時、"
+          },
+          {
+            "examEffectType": "ProduceExamEffectType_ExamLesson",
+            "originProduceExamEffectId": "e_effect-exam_status_enchant-04-enchant-p_card-01-act-2_061-enc02",
+            "produceDescriptionType": "ProduceDescriptionType_ProduceExamEffectType",
+            "targetId": "Label_ExamLesson",
+            "text": "パラメータ"
+          },
+          {
+            "originProduceExamEffectId": "e_effect-exam_status_enchant-04-enchant-p_card-01-act-2_061-enc02",
+            "produceDescriptionType": "ProduceDescriptionType_PlainText",
+            "text": "<nobr>+"
+          },
+          {
+            "effectValue1": 5,
+            "examDescriptionType": "ExamDescriptionType_CustomizeEffectValue1",
+            "originProduceExamEffectId": "e_effect-exam_status_enchant-04-enchant-p_card-01-act-2_061-enc02",
+            "produceDescriptionType": "ProduceDescriptionType_Exam",
+            "text": "5"
+          },
+          {
+            "originProduceExamEffectId": "e_effect-exam_status_enchant-04-enchant-p_card-01-act-2_061-enc02",
+            "produceDescriptionType": "ProduceDescriptionType_PlainText",
+            "text": "</nobr>"
+          },
+          {
+            "examDescriptionType": "ExamDescriptionType_CustomizeLessonCountAdd",
+            "originProduceExamEffectId": "e_effect-exam_status_enchant-04-enchant-p_card-01-act-2_061-enc02",
+            "produceDescriptionType": "ProduceDescriptionType_Exam",
+            "targetId": "Description_LessonCountAdd_CountSection",
+            "text": ""
+          },
+          {
+            "originProduceExamEffectId": "e_effect-exam_status_enchant-04-enchant-p_card-01-act-2_061-enc02",
+            "produceDescriptionType": "ProduceDescriptionType_PlainText",
+            "text": ""
+          },
+          {
+            "examDescriptionType": "ExamDescriptionType_CustomizeEffectAdd",
+            "produceDescriptionType": "ProduceDescriptionType_Exam",
+            "text": ""
+          },
+          {
+            "isOnlyOutGame": true,
+            "produceDescriptionType": "ProduceDescriptionType_PlainText",
+            "text": "<nobr>"
+          },
+          {
+            "isOnlyOutGame": true,
+            "produceDescriptionType": "ProduceDescriptionType_ProduceDescription",
+            "targetId": "Label_NoDeckDuplication",
+            "text": "重複不可"
+          },
+          {
+            "isOnlyOutGame": true,
+            "produceDescriptionType": "ProduceDescriptionType_PlainText",
+            "text": " </nobr>"
+          },
+          {
+            "produceCardMovePositionType": "ProduceCardMovePositionType_Lost",
+            "produceDescriptionType": "ProduceDescriptionType_ProduceDescription",
+            "targetId": "Label_ProduceCardMovePositionType_Lost",
+            "text": "レッスン中1回"
+          },
+          {
+            "examDescriptionType": "ExamDescriptionType_CustomizePlayMovePositionLost",
+            "produceDescriptionType": "ProduceDescriptionType_Exam",
+            "text": ""
+          }
+        ],
+        "id": "p_card-01-act-2_061",
+        "images": {
+          "amao": "img_general_skillcard_act-2_061-amao.webp",
+          "atbm": "img_general_skillcard_act-2_061-atbm.webp",
+          "fktn": "img_general_skillcard_act-2_061-fktn.webp",
+          "hmsz": "img_general_skillcard_act-2_061-hmsz.webp",
+          "hrnm": "img_general_skillcard_act-2_061-hrnm.webp",
+          "hski": "img_general_skillcard_act-2_061-hski.webp",
+          "hume": "img_general_skillcard_act-2_061-hume.webp",
+          "jsna": "img_general_skillcard_act-2_061-jsna.webp",
+          "kcna": "img_general_skillcard_act-2_061-kcna.webp",
+          "kllj": "img_general_skillcard_act-2_061-kllj.webp",
+          "shro": "img_general_skillcard_act-2_061-shro.webp",
+          "ssmk": "img_general_skillcard_act-2_061-ssmk.webp",
+          "ttmr": "img_general_skillcard_act-2_061-ttmr.webp"
+        },
+        "isCharacterAsset": true,
+        "name": "破竹の勢い+",
+        "originCharacterId": "",
+        "playEffects": [
+          {
+            "hideIcon": false,
+            "isOncePlayEffect": false,
+            "produceExamEffectId": "e_effect-exam_lesson_buff-0007",
+            "produceExamTriggerId": ""
+          },
+          {
+            "hideIcon": false,
+            "isOncePlayEffect": false,
+            "produceExamEffectId": "e_effect-exam_status_enchant-04-enchant-p_card-01-act-2_061-enc02",
+            "produceExamTriggerId": ""
+          }
+        ],
+        "rarity": "ProduceCardRarity_Sr",
+        "text": "好調 / が<nobr>8ターン以上</nobr>の場合、使用可 / 集中 / <nobr>+ / 7 / </nobr> / 以降の<nobr> / 4 / ターン</nobr>の間、 / ターン開始時、 / パラメータ / <nobr>+ / 5 / </nobr> / <nobr> / 重複不可 /  </nobr> / レッスン中1回",
+        "upgradeCount": 1
+      },
+      "customizations": [
+        {
+          "record": {
+            "customizeCount": 1,
+            "description": "",
+            "id": "p_card_custom-wrapper-p_card-01-act-2_061-a-01",
+            "overwriteProduceCardGrowEffectType": "ProduceCardGrowEffectType_Unknown",
+            "produceCardGrowEffectIds": [
+              "g_effect-play_trigger_change-e_trigger-none-parameter_buff_up-8-e_trigger-none-parameter_buff_up-4"
+            ],
+            "producePoint": 70
+          },
+          "grows": [
+            {
+              "costType": "ExamCostType_Unknown",
+              "effectGroupIds": [],
+              "effectType": "ProduceCardGrowEffectType_PlayTriggerChange",
+              "id": "g_effect-play_trigger_change-e_trigger-none-parameter_buff_up-8-e_trigger-none-parameter_buff_up-4",
+              "playEffectProduceExamTriggerId": "",
+              "playMovePositionType": "ProduceCardMovePositionType_Unknown",
+              "playProduceExamEffectId": "",
+              "playProduceExamTriggerId": "e_trigger-none-parameter_buff_up-4",
+              "produceCardStatusEnchantId": "",
+              "targetPlayEffectProduceExamTriggerIds": [
+                "e_trigger-none-parameter_buff_up-8"
+              ],
+              "targetPlayProduceExamEffectIds": [],
+              "value": 0
+            }
+          ],
+          "effects": [],
+          "triggers": [
+            {
+              "id": "e_trigger-none-parameter_buff_up-4",
+              "playEffectProduceDescriptions": [
+                {
+                  "examEffectType": "ProduceExamEffectType_ExamParameterBuff",
+                  "originProduceExamTriggerId": "e_trigger-none-parameter_buff_up-4",
+                  "produceDescriptionType": "ProduceDescriptionType_ProduceExamEffectType",
+                  "targetId": "Label_ExamParameterBuff",
+                  "text": "好調"
+                },
+                {
+                  "originProduceExamTriggerId": "e_trigger-none-parameter_buff_up-4",
+                  "produceDescriptionType": "ProduceDescriptionType_PlainText",
+                  "text": "が<nobr>4ターン以上</nobr>の場合、"
+                }
+              ],
+              "playProduceDescriptions": [
+                {
+                  "examEffectType": "ProduceExamEffectType_ExamParameterBuff",
+                  "originProduceExamTriggerId": "e_trigger-none-parameter_buff_up-4",
+                  "produceDescriptionType": "ProduceDescriptionType_ProduceExamEffectType",
+                  "targetId": "Label_ExamParameterBuff",
+                  "text": "好調"
+                },
+                {
+                  "originProduceExamTriggerId": "e_trigger-none-parameter_buff_up-4",
+                  "produceDescriptionType": "ProduceDescriptionType_PlainText",
+                  "text": "が<nobr>4ターン以上</nobr>の場合、使用可"
+                }
+              ]
+            },
+            {
+              "id": "e_trigger-none-parameter_buff_up-8",
+              "playEffectProduceDescriptions": [
+                {
+                  "examEffectType": "ProduceExamEffectType_ExamParameterBuff",
+                  "originProduceExamTriggerId": "e_trigger-none-parameter_buff_up-8",
+                  "produceDescriptionType": "ProduceDescriptionType_ProduceExamEffectType",
+                  "targetId": "Label_ExamParameterBuff",
+                  "text": "好調"
+                },
+                {
+                  "originProduceExamTriggerId": "e_trigger-none-parameter_buff_up-8",
+                  "produceDescriptionType": "ProduceDescriptionType_PlainText",
+                  "text": "が<nobr>8ターン以上</nobr>の場合、"
+                }
+              ],
+              "playProduceDescriptions": [
+                {
+                  "examEffectType": "ProduceExamEffectType_ExamParameterBuff",
+                  "originProduceExamTriggerId": "e_trigger-none-parameter_buff_up-8",
+                  "produceDescriptionType": "ProduceDescriptionType_ProduceExamEffectType",
+                  "targetId": "Label_ExamParameterBuff",
+                  "text": "好調"
+                },
+                {
+                  "originProduceExamTriggerId": "e_trigger-none-parameter_buff_up-8",
+                  "produceDescriptionType": "ProduceDescriptionType_PlainText",
+                  "text": "が<nobr>8ターン以上</nobr>の場合、使用可"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

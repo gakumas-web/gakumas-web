@@ -177,16 +177,19 @@ test('初始属性固定满培养刻度，灰色剩余不计入当前值，六�
   assert.deepEqual([start.calculations['Vocal 成长率'].value,start.calculations['Vocal 成长率'].remaining],[20,1]);
 });
 
-test('HIF 专属卡按归属联接，独立于普通强化且解锁状态保持未知',()=>{
+test('HIF 专属卡按归属联接，已采集升级状态独立于普通强化预览',()=>{
   const held={idolCardId:'i_card-ttmr-3-016',levelLimitRank:6,potentialRank:0};
   const cards=[{id:'hif-a',upgradeCount:0,definition:{originPrimaStellaIdolCardId:held.idolCardId}},
     {id:'hif-a',upgradeCount:1,definition:{originPrimaStellaIdolCardId:held.idolCardId}},
     {id:'hif-b',upgradeCount:0,definition:{originPrimaStellaIdolCardId:'i_card-fktn-3-013'}}];
   const subject=createProgression(data,{ProduceCard:cards},semantics);
-  for(const rank of [0,6]){
-    const hif=subject.idolPreview(held,rank,0).rewards.filter(row=>row.scope==='hif-final');
+  for(const [time,state] of [[undefined,'unknown'],[0,'locked'],[1234,'unlocked']])for(const rank of [0,6]){
+    const hif=subject.idolPreview({...held,primaStellaUpgradedTime:time},rank,0).rewards.filter(row=>row.scope==='hif-final');
     assert.equal(hif.length,1);assert.deepEqual(hif[0].card,{id:'hif-a',upgradeCount:0,customizes:[]});
-    assert.equal(hif[0].unlockState,'unknown');assert.equal(hif[0].changed,false);
+    assert.equal(hif[0].unlockState,state);assert.equal(hif[0].changed,false);assert.equal('primaStellaUpgradedTime' in hif[0],false);
+  }
+  for(const [ownership,state] of [['unowned','locked'],['unknown','unknown']])for(const rank of [0,6]){
+    const reward=subject.idolPreview({...held,ownership},rank,0).rewards.find(row=>row.scope==='hif-final');assert.equal(reward.unlockState,state);
   }
   assert.equal(subject.idolPreview({idolCardId:'i_card-amao-1-000',levelLimitRank:0,potentialRank:0}).rewards.some(row=>row.scope==='hif-final'),false);
 });

@@ -33,11 +33,12 @@ test('计划和属性组合排序使用固定分类，同类支援按稀有度�
   assert.deepEqual(ids(sortCollectionEntries(rows,'type','supportCards')),['vocalHigh','vocalLow','vocalSR','dance']);
   assert.deepEqual(ids(sortCollectionEntries(rows,'plan','idolCards')),['vocalLow','vocalHigh','vocalSR','dance']);
 });
-test('缺失装扮日期按已核对批次补齐，原始日期优先且不污染目录',async()=>{
+test('装扮补充日期来自内容分包，原始日期优先且缺失时不自行推定',async()=>{
   const {skinSortTimes}=await import('../domain/catalog.mjs');
   const {readFileSync}=await import('node:fs');
   const skins=JSON.parse(readFileSync(new URL('./fixtures/public-data/idols.json',import.meta.url))).skins;
-  const before=JSON.stringify(skins),times=skinSortTimes(skins);
+  const supplements=JSON.parse(readFileSync(new URL('./fixtures/public-data/reference-data.json',import.meta.url))).catalogMetadata.skinReleaseTimes;
+  const before=JSON.stringify(skins),times=skinSortTimes(skins,supplements);
   const displayed=skins.filter(s=>s.theme||s.name);
   assert.ok(displayed.every(s=>times.has(s.id)));
   assert.equal(displayed.filter(s=>times.get(s.id).source!=='catalog').length,11);
@@ -47,9 +48,8 @@ test('缺失装扮日期按已核对批次补齐，原始日期优先且不污�
   assert.equal(times.get('i_card-skin-jsna-3-016').referenceIds.length,12);
   assert.equal(JSON.stringify(skins),before);
   const changed=skins.map(s=>s.id==='i_card-skin-amao-3-001'?{...s,viewStartTime:'123'}:s);
-  assert.deepEqual(skinSortTimes(changed).get('i_card-skin-amao-3-001'),{time:123,source:'catalog'});
-  const conflicted=skins.map(s=>s.id==='i_card-skin-hmsz-3-015'?{...s,viewStartTime:'123'}:s);
-  assert.equal(skinSortTimes(conflicted).has('i_card-skin-jsna-3-016'),false);
+  assert.deepEqual(skinSortTimes(changed,supplements).get('i_card-skin-amao-3-001'),{time:123,source:'catalog'});
+  assert.equal(skinSortTimes(skins,{}).has('i_card-skin-jsna-3-016'),false);
   assert.equal(skinSortTimes([{id:'unknown',theme:'夏 · キミとセミブルー',viewStartTime:'0'}]).size,0);
 });
 

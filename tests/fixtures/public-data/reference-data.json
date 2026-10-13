@@ -1,0 +1,523 @@
+{
+  "catalogMetadata": {
+    "schema_version": 1,
+    "characterColors": {
+      "amao": "#C45DC8",
+      "atbm": "#8874FF",
+      "fktn": "#FFD203",
+      "hmsz": "#6EA3FC",
+      "hrnm": "#FD7EC2",
+      "hski": "#FF4F64",
+      "hume": "#F74C2C",
+      "jsna": "#FFAC28",
+      "kcna": "#FE8A22",
+      "kllj": "#D2E3E4",
+      "shro": "#00BED8",
+      "ssmk": "#92DE5A",
+      "ttmr": "#27B4EB",
+      "nasr": "#92debb"
+    },
+    "skinReleaseTimes": {
+      "i_card-skin-amao-3-001": {
+        "time": 1719759600000,
+        "source": "reported-batch",
+        "precision": "day",
+        "url": "https://ascii.jp/elem/000/004/207/4207337/"
+      },
+      "i_card-skin-fktn-3-003": {
+        "time": 1719759600000,
+        "source": "reported-batch",
+        "precision": "day",
+        "url": "https://ascii.jp/elem/000/004/207/4207337/"
+      },
+      "i_card-skin-hski-3-003": {
+        "time": 1719759600000,
+        "source": "reported-batch",
+        "precision": "day",
+        "url": "https://ascii.jp/elem/000/004/207/4207337/"
+      },
+      "i_card-skin-kllj-3-002": {
+        "time": 1719759600000,
+        "source": "reported-batch",
+        "precision": "day",
+        "url": "https://ascii.jp/elem/000/004/207/4207337/"
+      },
+      "i_card-skin-ssmk-3-001": {
+        "time": 1719759600000,
+        "source": "reported-batch",
+        "precision": "day",
+        "url": "https://ascii.jp/elem/000/004/207/4207337/"
+      },
+      "i_card-skin-ttmr-3-003": {
+        "time": 1719759600000,
+        "source": "reported-batch",
+        "precision": "day",
+        "url": "https://ascii.jp/elem/000/004/207/4207337/"
+      },
+      "i_card-skin-hrnm-3-001": {
+        "time": 1720710000000,
+        "source": "reported-batch",
+        "precision": "day",
+        "url": "https://ascii.jp/elem/000/004/207/4207337/"
+      },
+      "i_card-skin-hume-3-001": {
+        "time": 1720710000000,
+        "source": "reported-batch",
+        "precision": "day",
+        "url": "https://ascii.jp/elem/000/004/207/4207337/"
+      },
+      "i_card-skin-kcna-3-003": {
+        "time": 1720710000000,
+        "source": "reported-batch",
+        "precision": "day",
+        "url": "https://ascii.jp/elem/000/004/207/4207337/"
+      },
+      "i_card-skin-shro-3-003": {
+        "time": 1720710000000,
+        "source": "reported-batch",
+        "precision": "day",
+        "url": "https://ascii.jp/elem/000/004/207/4207337/"
+      },
+      "i_card-skin-jsna-3-016": {
+        "time": 1772157600000,
+        "source": "same-batch",
+        "referenceIds": [
+          "i_card-skin-amao-3-016",
+          "i_card-skin-atbm-3-013",
+          "i_card-skin-fktn-3-017",
+          "i_card-skin-hmsz-3-015",
+          "i_card-skin-hrnm-3-016",
+          "i_card-skin-hski-3-016",
+          "i_card-skin-hume-3-016",
+          "i_card-skin-kcna-3-017",
+          "i_card-skin-kllj-3-016",
+          "i_card-skin-shro-3-017",
+          "i_card-skin-ssmk-3-016",
+          "i_card-skin-ttmr-3-017"
+        ]
+      }
+    }
+  },
+  "communityRules": {
+    "schema_version": 1,
+    "hifStar": {
+      "enabled": true,
+      "finalCap": 1335,
+      "bonusMultiplier": 1.5,
+      "rounding": "floor",
+      "item": {
+        "id": "pitem_00-3-265-0",
+        "name": "H.I.Fワッペン",
+        "limit": 20,
+        "baseReward": 10,
+        "countField": "triggerCount",
+        "matchingCountField": "reactionCount"
+      },
+      "battle": {
+        "spLessons": [
+          30,
+          10
+        ],
+        "rounds": [
+          120,
+          150
+        ]
+      },
+      "classification": "player-inferred",
+      "verification": "maintainer-confirmed-game-consistent"
+    },
+    "contestCosts": {
+      "classification": "player-inferred",
+      "verification": "maintainer-confirmed-game-consistent",
+      "exclusiveCost": 0,
+      "supportCard": {
+        "base": 96,
+        "upgraded": 126
+      },
+      "initialProducerLevelMax": 2,
+      "rarities": {
+        "N": {
+          "base": 0,
+          "upgraded": 0
+        },
+        "TROUBLE": {
+          "base": 0,
+          "upgraded": 0
+        },
+        "LEGEND": {
+          "base": 0,
+          "upgraded": 0
+        },
+        "SSR": {
+          "base": 150,
+          "upgraded": 204
+        },
+        "SR": {
+          "base": 105,
+          "upgraded": 141,
+          "initial": {
+            "base": 75,
+            "upgraded": 102
+          }
+        },
+        "R": {
+          "base": 45,
+          "upgraded": 60,
+          "initial": {
+            "base": 30,
+            "upgraded": 39
+          }
+        }
+      },
+      "ranges": [
+        {
+          "rank": "SSS+",
+          "min": 546,
+          "max": 858
+        },
+        {
+          "rank": "SSS",
+          "min": 546,
+          "max": 858
+        },
+        {
+          "rank": "SS+",
+          "min": 651,
+          "max": 858
+        },
+        {
+          "rank": "SS",
+          "min": 651,
+          "max": 804
+        },
+        {
+          "rank": "S+",
+          "min": 546,
+          "max": 741
+        },
+        {
+          "rank": "S",
+          "min": 546,
+          "max": 642
+        },
+        {
+          "rank": "A+",
+          "min": 441,
+          "max": 594
+        },
+        {
+          "rank": "A",
+          "min": 441,
+          "max": 519
+        },
+        {
+          "rank": "B+",
+          "min": 306,
+          "max": 423
+        },
+        {
+          "rank": "B",
+          "min": 306,
+          "max": 363
+        }
+      ],
+      "rankAliases": {
+        "S4": "SSS+",
+        "S4+": "SSS+",
+        "S5": "SSS+",
+        "S5+": "SSS+"
+      }
+    },
+    "contestCustomizations": {
+      "classification": "player-inferred",
+      "verification": "user-selected-reference",
+      "source": "https://wikiwiki.jp/gakumas/カスタマイズについて",
+      "checked": "2026-10-12",
+      "perCard": {
+        "idol": 1,
+        "support": 2,
+        "common": 3
+      },
+      "ranks": {
+        "F": {
+          "cards": {
+            "idol": 0,
+            "support": 0,
+            "common": 0
+          },
+          "guaranteedCounts": {
+            "idol": 0,
+            "support": 0,
+            "commonFirst": 0,
+            "commonSecond": 0
+          },
+          "provisional": false
+        },
+        "E": {
+          "cards": {
+            "idol": 0,
+            "support": 0,
+            "common": 0
+          },
+          "guaranteedCounts": {
+            "idol": 0,
+            "support": 0,
+            "commonFirst": 0,
+            "commonSecond": 0
+          },
+          "provisional": false
+        },
+        "D": {
+          "cards": {
+            "idol": 0,
+            "support": 0,
+            "common": 0
+          },
+          "guaranteedCounts": {
+            "idol": 0,
+            "support": 0,
+            "commonFirst": 0,
+            "commonSecond": 0
+          },
+          "provisional": false
+        },
+        "C": {
+          "cards": {
+            "idol": 0,
+            "support": 0,
+            "common": 0
+          },
+          "guaranteedCounts": {
+            "idol": 0,
+            "support": 0,
+            "commonFirst": 0,
+            "commonSecond": 0
+          },
+          "provisional": false
+        },
+        "C+": {
+          "cards": {
+            "idol": 0,
+            "support": 0,
+            "common": 0
+          },
+          "guaranteedCounts": {
+            "idol": 0,
+            "support": 0,
+            "commonFirst": 0,
+            "commonSecond": 0
+          },
+          "provisional": false
+        },
+        "B": {
+          "cards": {
+            "idol": 0,
+            "support": 0,
+            "common": 0
+          },
+          "guaranteedCounts": {
+            "idol": 0,
+            "support": 0,
+            "commonFirst": 0,
+            "commonSecond": 0
+          },
+          "provisional": false
+        },
+        "B+": {
+          "cards": {
+            "idol": 0,
+            "support": 0,
+            "common": 0
+          },
+          "guaranteedCounts": {
+            "idol": 0,
+            "support": 0,
+            "commonFirst": 0,
+            "commonSecond": 0
+          },
+          "provisional": false
+        },
+        "A": {
+          "cards": {
+            "idol": 0,
+            "support": 0,
+            "common": 0
+          },
+          "guaranteedCounts": {
+            "idol": 0,
+            "support": 0,
+            "commonFirst": 0,
+            "commonSecond": 0
+          },
+          "provisional": false
+        },
+        "A+": {
+          "cards": {
+            "idol": 0,
+            "support": 0,
+            "common": 0
+          },
+          "guaranteedCounts": {
+            "idol": 0,
+            "support": 0,
+            "commonFirst": 0,
+            "commonSecond": 0
+          },
+          "provisional": false
+        },
+        "S": {
+          "cards": {
+            "idol": 1,
+            "support": 1,
+            "common": 1
+          },
+          "guaranteedCounts": {
+            "idol": 0,
+            "support": 0,
+            "commonFirst": 0,
+            "commonSecond": 0
+          },
+          "provisional": false
+        },
+        "S+": {
+          "cards": {
+            "idol": 1,
+            "support": 1,
+            "common": 1
+          },
+          "guaranteedCounts": {
+            "idol": 1,
+            "support": 1,
+            "commonFirst": 1,
+            "commonSecond": 0
+          },
+          "provisional": false
+        },
+        "SS": {
+          "cards": {
+            "idol": 1,
+            "support": 1,
+            "common": 1
+          },
+          "guaranteedCounts": {
+            "idol": 1,
+            "support": 2,
+            "commonFirst": 2,
+            "commonSecond": 0
+          },
+          "provisional": false
+        },
+        "SS+": {
+          "cards": {
+            "idol": 1,
+            "support": 1,
+            "common": 1
+          },
+          "guaranteedCounts": {
+            "idol": 1,
+            "support": 2,
+            "commonFirst": 2,
+            "commonSecond": 0
+          },
+          "provisional": false
+        },
+        "SSS": {
+          "cards": {
+            "idol": 1,
+            "support": 1,
+            "common": 2
+          },
+          "guaranteedCounts": {
+            "idol": 1,
+            "support": 2,
+            "commonFirst": 2,
+            "commonSecond": 0
+          },
+          "provisional": false
+        },
+        "SSS+": {
+          "cards": {
+            "idol": 1,
+            "support": 1,
+            "common": 2
+          },
+          "guaranteedCounts": {
+            "idol": 1,
+            "support": 2,
+            "commonFirst": 2,
+            "commonSecond": 2
+          },
+          "provisional": false
+        },
+        "S4": {
+          "cards": {
+            "idol": 1,
+            "support": 1,
+            "common": 2
+          },
+          "guaranteedCounts": {
+            "idol": 1,
+            "support": 2,
+            "commonFirst": 2,
+            "commonSecond": 2
+          },
+          "provisional": false
+        },
+        "S4+": {
+          "cards": {
+            "idol": 1,
+            "support": 1,
+            "common": 2
+          },
+          "guaranteedCounts": {
+            "idol": 1,
+            "support": 2,
+            "commonFirst": 2,
+            "commonSecond": 2
+          },
+          "provisional": false
+        },
+        "S5": {
+          "cards": {
+            "idol": 1,
+            "support": 1,
+            "common": 2
+          },
+          "guaranteedCounts": {
+            "idol": 1,
+            "support": 2,
+            "commonFirst": 2,
+            "commonSecond": 2
+          },
+          "provisional": true
+        }
+      }
+    },
+    "contestItems": {
+      "classification": "player-inferred",
+      "verification": "maintainer-instruction",
+      "checked": "2026-10-12",
+      "ranks": {
+        "F": 2,
+        "E": 2,
+        "D": 2,
+        "C": 2,
+        "C+": 2,
+        "B": 2,
+        "B+": 2,
+        "A": 2,
+        "A+": 2,
+        "S": 2,
+        "S+": 2,
+        "SS": 2,
+        "SS+": 2,
+        "SSS": 3,
+        "SSS+": 3,
+        "S4": 3,
+        "S4+": 3,
+        "S5": 3,
+        "S5+": 3
+      }
+    }
+  }
+}

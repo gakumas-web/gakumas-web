@@ -3,10 +3,12 @@ import argparse
 import base64
 from functools import partial
 import hashlib
+import gzip
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 import io
 import json
 import re
+import tarfile
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from threading import Thread
@@ -46,6 +48,14 @@ def check(browser_path=None):
                 face=io.BytesIO();Image.new('RGB',(24,24),'green').save(face,'WEBP');face_bytes=face.getvalue();face_sha=hashlib.sha256(face_bytes).hexdigest()
                 (source/'objects'/(face_sha+'.webp')).write_bytes(face_bytes)
                 index['files']['images/img_sd_hski_face-00.webp']={'sha256':face_sha,'bytes':len(face_bytes)};index['cdn_objects'].append(face_sha+'.webp')
+                # 将跨版本探针放入真正的基础包，验证旧用途包失效，而非仍可回源的 CDN 增量。
+                objects={key:index['files'][name] for key,name in [(sha+'.webp','images/img_review_full.webp'),(face_sha+'.webp','images/img_sd_hski_face-00.webp')]}
+                archive=io.BytesIO()
+                with tarfile.open(fileobj=archive,mode='w',format=tarfile.USTAR_FORMAT) as tar:
+                    for name,body in [('manifest.json',json.dumps({'format':'gakumas-image-base','schema_version':1,'objects':objects}).encode()),('objects/'+sha+'.webp',raw),('objects/'+face_sha+'.webp',face_bytes)]:
+                        entry=tarfile.TarInfo(name);entry.size=len(body);tar.addfile(entry,io.BytesIO(body))
+                packed=gzip.compress(archive.getvalue(),mtime=0);pack_sha=hashlib.sha256(packed).hexdigest();(source/(pack_sha+'.tar.gz')).write_bytes(packed)
+                index['baseline']['packages'].append({'url':origin+'/source/'+pack_sha+'.tar.gz','bytes':len(packed),'sha256':pack_sha,'objects':objects});index['cdn_objects']=[]
                 fixture(root,version,index,characters={'test':'合成角色','hski':'合成咲季'});prepare(root/version,root/('locks-'+version))
                 build(root/version/'dist',root/('locks-'+version)/'asset-lock.json',root/('locks-'+version)/'content-lock.json',mirror_images=True)
             site=root/'live'/'dist';site.parent.mkdir();(root/'one'/'dist').rename(site)

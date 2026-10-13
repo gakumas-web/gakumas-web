@@ -1,3 +1,6 @@
+import {validMemoryPowerTables} from './memory-power.mjs';
+import {validProducerLevels} from './producer-level.mjs';
+import {validateCatalogMetadata,validateCommunityRules} from './reference-contract.mjs';
 import {validateImageDelivery} from './image-delivery.mjs';
 // 公共内容与用户库存使用独立合同；这里不接收或发送账号数据。
 export const contentScopes=['catalog','effects','abilities','progression','achievements'];
@@ -54,6 +57,12 @@ export async function validateContentPart(name,bytes,manifest){
     const tables=['effects','abilities'].includes(scope)?value.tables:scope==='progression'?value.progression.tables:value.achievements;
     if(!object(tables)||!names.every(name=>Array.isArray(tables[name])))fail('content_part_invalid');
   }
+  try{
+    if(scope==='catalog'&&value.catalogMetadata!==undefined)validateCatalogMetadata(value.catalogMetadata);
+    if(scope==='progression'&&!validMemoryPowerTables(value.progression.tables))fail('content_part_invalid');
+    if(scope==='progression'&&value.progression.tables.ProducerLevel!==undefined&&!validProducerLevels(value.progression.tables.ProducerLevel))fail('content_part_invalid');
+    if(scope==='progression'&&value.communityRules!==undefined)validateCommunityRules(value.communityRules);
+  }catch{fail('content_part_invalid');}
   return {text,value};
 }
 export async function validateContentBundle(value,webVersion){

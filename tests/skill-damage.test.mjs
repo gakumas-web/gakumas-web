@@ -51,7 +51,63 @@ test('消耗按已选附魔等级合并，不重复乘次数，保留零值与�
   assert.deepEqual(visual.costs.map(({kind,value})=>({kind,value})),[{kind:'stamina',value:1},{kind:'direct',value:1},{kind:'status',value:0}]);
   assert.equal(visual.costs[0].icon,uiIconURL('skill-stamina.webp'));
   assert.equal(visual.costs[1].icon,uiIconURL('skill-stamina-direct.webp'));
-  assert.match(visual.costs[1].label,/无法用元气抵消/);
+  assert.equal(visual.costs[1].label,'体力');
   assert.deepEqual(supportSkillVisual({...reference,customizes:[{id:'effect',customizeCount:1}]}).costs.map(c=>c.value),[3,1,2]);
   assert.equal(supportSkillVisual({...reference,customizes:[{id:'unknown',customizeCount:1}]}).costsKnown,false);
+});
+
+test('固定伤害、次数与元气按当前附魔等级计算，消耗附魔不隐藏伤害',()=>{
+  installMaster({tables:{ProduceItem:[],MemoryAbility:[],ProduceSkill:[],ProduceEffect:[],ProduceExamEffect:[
+    {id:'hit',effectType:'ProduceExamEffectType_ExamLesson',effectValue1:18,effectCount:1},
+    {id:'shield',effectType:'ProduceExamEffectType_ExamBlock',effectValue1:10,effectCount:0},
+  ],ProduceCard:[{id:'enchanted',upgradeCount:1,definition:{},playEffects:[{produceExamEffectId:'hit'},{produceExamEffectId:'shield'}]}]},semantics:{tables:{
+    ProduceCardCustomize:[{id:'custom',customizeCount:2,produceCardGrowEffectIds:['damage','count','block']},{id:'cost',customizeCount:1,produceCardGrowEffectIds:['cost']},{id:'replace',customizeCount:1,produceCardGrowEffectIds:['replace']}],
+    ProduceCardGrowEffect:[{id:'damage',effectType:'ProduceCardGrowEffectType_LessonAdd',value:12},{id:'count',effectType:'ProduceCardGrowEffectType_LessonCountAdd',value:1},{id:'block',effectType:'ProduceCardGrowEffectType_BlockReduce',value:3},{id:'cost',effectType:'ProduceCardGrowEffectType_CostReduce',value:1},{id:'replace',effectType:'ProduceCardGrowEffectType_EffectChange'}],
+  }}});
+  const visual=id=>supportSkillVisual({id:'enchanted',upgradeCount:1,customizes:[{id,customizeCount:id==='custom'?2:1}]});
+  assert.deepEqual(visual('custom').damage,{value:30,count:2});assert.deepEqual(visual('custom').block,{value:7,count:0});
+  assert.deepEqual(visual('cost').damage,{value:18,count:1});assert.equal(visual('replace').damage,undefined);
+});
+
+test('新增无关效果与使用条件不隐藏原值，多段固定效果逐段保留',()=>{
+  installMaster({tables:{ProduceItem:[],MemoryAbility:[],ProduceSkill:[],ProduceEffect:[],ProduceExamEffect:[
+    {id:'hit',effectType:'ProduceExamEffectType_ExamLesson',effectValue1:18,effectCount:2},
+    {id:'shield',effectType:'ProduceExamEffectType_ExamBlock',effectValue1:10,effectCount:0},
+    {id:'extra-hit',effectType:'ProduceExamEffectType_ExamLesson',effectValue1:6,effectCount:1},
+    {id:'extra-shield',effectType:'ProduceExamEffectType_ExamBlock',effectValue1:4,effectCount:0},
+    {id:'buff',effectType:'ProduceExamEffectType_ExamLessonBuff',effectValue1:2},
+    {id:'dynamic',effectType:'ProduceExamEffectType_ExamLessonDependBlock',effectValue1:100},
+  ],ProduceCard:[{id:'card',upgradeCount:1,definition:{},playEffects:[{produceExamEffectId:'hit'},{produceExamEffectId:'shield'}]}]},semantics:{tables:{
+    ProduceCardCustomize:['buff','hit','shield','conditional','usage','status','replace'].map(id=>({id,customizeCount:1,produceCardGrowEffectIds:[id]})),
+    ProduceCardGrowEffect:[
+      {id:'buff',effectType:'ProduceCardGrowEffectType_EffectAdd',playProduceExamEffectId:'buff'},
+      {id:'hit',effectType:'ProduceCardGrowEffectType_EffectAdd',playProduceExamEffectId:'extra-hit'},
+      {id:'shield',effectType:'ProduceCardGrowEffectType_EffectAdd',playProduceExamEffectId:'extra-shield'},
+      {id:'conditional',effectType:'ProduceCardGrowEffectType_EffectAdd',playProduceExamEffectId:'extra-hit',playEffectProduceExamTriggerId:'condition'},
+      {id:'usage',effectType:'ProduceCardGrowEffectType_PlayTriggerChange',playProduceExamTriggerId:'condition'},
+      {id:'status',effectType:'ProduceCardGrowEffectType_CardStatusEnchantChange',produceCardStatusEnchantId:'status'},
+      {id:'replace',effectType:'ProduceCardGrowEffectType_EffectChange',targetPlayProduceExamEffectIds:['hit'],playProduceExamEffectId:'dynamic'},
+    ],
+  }}});
+  const visual=id=>supportSkillVisual({id:'card',upgradeCount:1,customizes:[{id,customizeCount:1}]});
+  for(const id of ['buff','conditional','usage','status']){assert.deepEqual(visual(id).damage,{value:18,count:2});assert.deepEqual(visual(id).block,{value:10,count:0});}
+  assert.deepEqual(visual('hit').damage,{parts:[{value:18,count:2},{value:6,count:1}]});
+  assert.deepEqual(visual('shield').block,{parts:[{value:10,count:0},{value:4,count:0}]});
+  assert.equal(visual('replace').damage,undefined);assert.deepEqual(visual('replace').block,{value:10,count:0});
+});
+
+test('效果条件替换只影响目标，解除条件后显示固定数值，仍有条件则不显示',()=>{
+  installMaster({tables:{ProduceItem:[],MemoryAbility:[],ProduceSkill:[],ProduceEffect:[],ProduceExamEffect:[
+    {id:'hit',effectType:'ProduceExamEffectType_ExamLesson',effectValue1:12,effectCount:1},
+    {id:'shield',effectType:'ProduceExamEffectType_ExamBlock',effectValue1:8,effectCount:0},
+  ],ProduceCard:[{id:'conditional',upgradeCount:1,definition:{},playEffects:[{produceExamEffectId:'hit',produceExamTriggerId:'hit-condition'},{produceExamEffectId:'shield',produceExamTriggerId:'other-condition'}]}]},semantics:{tables:{
+    ProduceCardCustomize:['remove','change'].map(id=>({id,customizeCount:1,produceCardGrowEffectIds:[id]})),
+    ProduceCardGrowEffect:[
+      {id:'remove',effectType:'ProduceCardGrowEffectType_PlayEffectTriggerChange',targetPlayEffectProduceExamTriggerIds:['hit-condition'],playEffectProduceExamTriggerId:''},
+      {id:'change',effectType:'ProduceCardGrowEffectType_PlayEffectTriggerChange',targetPlayEffectProduceExamTriggerIds:['hit-condition'],playEffectProduceExamTriggerId:'new-condition'},
+    ],
+  }}});
+  const visual=id=>supportSkillVisual({id:'conditional',upgradeCount:1,customizes:[{id,customizeCount:1}]});
+  assert.deepEqual(visual('remove').damage,{value:12,count:1});assert.equal(visual('remove').block,undefined);
+  assert.equal(visual('change').damage,undefined);
 });

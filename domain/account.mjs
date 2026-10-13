@@ -1,3 +1,6 @@
+// 内置预览使用明确的合成标识，与用户导入的游戏账号独立存储。
+export const PREVIEW_ACCOUNT='synthetic-preview-account';
+export const isPreviewAccount=id=>id===PREVIEW_ACCOUNT;
 // 档案只使用游戏公开 ID，不创建匿名占位账号。
 export const validPublicUserId=value=>typeof value==='string'&&/^[A-Za-z0-9_-]{1,64}$/.test(value);
 export const accountProfile=id=>validPublicUserId(id)?`account-${id}`:null;

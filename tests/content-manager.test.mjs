@@ -102,3 +102,16 @@ test('公开资料进度按响应正文计数，整套校验保存后才就绪',
   assert.ok(states.some(row=>row.phase==='downloading'&&row.bytes>0));assert.ok(states.some(row=>row.phase==='saving'));
   assert.ok(states.filter(row=>row.phase==='downloading').every(row=>row.bytes<=row.totalBytes));
 });
+
+test('资源计划不兼容时保留旧内容缓存，不在下次启动留下不可用版本',async()=>{
+  const old=await contentFixture('v1'),next=await contentFixture('v2'),store=memoryContentStore({...old.bundle,origin:'local'});
+  const manager=createContentManager({...options,store,fetcher:contentTransport(next),validateResources:()=>{throw new Error('image_program_update_required');}});
+  await manager.initialize();await assert.rejects(manager.refresh(),/content_web_too_old/);assert.equal(store.writes,0);assert.equal(store.value.manifest_sha256,old.bundle.manifest_sha256);assert.equal(manager.status().version,'v1');
+});
+test('独立频道离线时从站点初始资料启动，已有资料可用且仍检查独立频道',async()=>{
+  const old=await contentFixture('v1'),calls=[],store=memoryContentStore(),local=contentTransport(old,calls);
+  const manager=createContentManager({...options,channelURL:'https://channel.example.invalid/channel.json',bootstrapChannelURL:'https://example.invalid/content/channel.json',store,fetcher:async(url,options)=>{
+    if(new URL(url).origin==='https://channel.example.invalid'){calls.push({url,options});throw new Error('offline');}return local(url,options);
+  }});
+  await manager.initialize();await assert.rejects(manager.refresh(),/offline/);assert.equal(manager.status().version,'v1');assert.equal(store.value.manifest_sha256,old.bundle.manifest_sha256);assert.ok(calls.some(call=>new URL(call.url).origin==='https://channel.example.invalid'));
+});

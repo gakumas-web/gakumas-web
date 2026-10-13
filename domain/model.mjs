@@ -57,12 +57,13 @@ export function parseSnapshot(input) {
     publicUserId: validPublicUserId,
     format:x=>x===CAPTURE_FORMAT,schema_version:x=>x===CAPTURE_SCHEMA,source:x=>x==='user_get',
     captured_at: validCapturedAt, count: integer,
+    producerExp:x=>Number.isSafeInteger(x)&&x>=0,
     achievements: array(record),characters: array(record),supportCards: array(record), memories: array(record), idolCards: array(record), items: array(record), idolCardSkins: array(record),
   }, ['format','schema_version','source','publicUserId','captured_at','count','memories','idolCards','items','idolCardSkins','supportCards','achievements','characters']);
   if (result.count !== result.memories.length) throw new InputError();
   const seen = new Set();
   result.memories = result.memories.map(inputMemory => {
-    const m = fields(inputMemory, memorySchema, Object.keys(memorySchema));
+    const m = fields(inputMemory, {...memorySchema,inheritCount:integer}, Object.keys(memorySchema));
     if (seen.has(m.userMemoryId)) throw new InputError();
     seen.add(m.userMemoryId);
     if (m.produceCard !== undefined) m.produceCard = cleanCard(m.produceCard);
@@ -111,7 +112,9 @@ export async function prepareSnapshot(input) {
   return {...snapshot, memories, fingerprint};
 }
 export const shown = value => value === undefined ? t('未记录') : String(value);
-export const title = m => t('回忆 {0}',[String(m.ordinal).padStart(3, '0')]);
+// 短码仅用于展示；标签、比较、链接和持久化仍使用完整 key。
+export const memoryShortId = m => /^[a-f0-9]{64}$/.test(m.key??'')?m.key.slice(0,8):null;
+export const title = m => memoryShortId(m)?t('回忆 {0}',[memoryShortId(m)]):t('回忆');
 const shotDateFormats=new Map();
 export function shotDate(m) {
   if (m.shotTime === undefined || m.shotTime === 0) return t('日期未记录');

@@ -63,3 +63,8 @@ test('所有收藏分区无损往返，缺少分区不能冒充空收藏',async(
   delete clean.library.favorites.idolCardSkins;
   await assert.rejects(parseAccountBackup(clean));
 });
+
+test('账号备份保留独立模拟页签偏好',async()=>{
+  const input=structuredClone(sample);input.preferences.tab='seasonSimulation';
+  const output=await parseAccountBackup(input);assert.equal(output.preferences.tab,'seasonSimulation');assert.ok(output.preferences.views.seasonSimulation);
+});

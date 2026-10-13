@@ -39,3 +39,8 @@ test('丢弃图片路径与未知账户字段', () => {
   assert.equal('imagePath' in result.memories[0], false);
   assert.equal('account' in result.memories[0], false);
 });
+test('保留可选合成次数，缺失不补零且拒绝无效值', () => {
+  for(const inheritCount of [0,1,2])assert.equal(parseSnapshot(snapshot({...memory(),inheritCount})).memories[0].inheritCount,inheritCount);
+  assert.equal('inheritCount' in parseSnapshot(snapshot()).memories[0],false);
+  for(const inheritCount of [-1,0.5,'0',null])assert.throws(()=>parseSnapshot(snapshot({...memory(),inheritCount})));
+});

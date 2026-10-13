@@ -13,16 +13,22 @@
 
 本项目与采集器、公开内容及图片维护项目独立。使用采集器导出的账号目录或本工具的账号数据包即可，不需要游戏令牌、CA 私钥、协议材料或采集器网络接口。公开卡片资料由 gakumas-data 单独发布，不必随卡池变化重新构建 Web 程序。
 
+## Windows 便携版
+
+每次成功部署会生成 Windows x64 Release 包。完整解压后双击 `gakumas-web.exe`，浏览器打开 `http://127.0.0.1:18765/`，无需额外运行环境。便携包复用同次 Pages 构建，包含相同的公开资料、图片和预览账号开关。制品校验、复用已有运行及发布流程见[便携版说明](docs/portable-release.md)。
+
 ## 本地运行
 
 需要 Python 3.11+ 构建静态文件；浏览器使用原生 JavaScript 模块，无需安装前端依赖。Node.js 22+ 仅用于单元测试。
 
 ```sh
 python3 -B tools/build.py
-python3 -B -m http.server 8080 --bind 127.0.0.1 --directory dist
+python3 -B -m http.server 18765 --bind 127.0.0.1 --directory dist
 ```
 
-打开 `http://127.0.0.1:8080/`。不要使用 `file://`，也不要把源码根目录直接作为公网文件目录；正式发布目录为 `dist/`。
+也可执行 `npm run preview` 快速启动 `dist/`。当前本地测试工作区使用 `npm run preview:local` 启动 `local/ui-visual-refinement/dist/`，其中包含正在验收的界面改动。两者均使用 Python 标准库静态服务，无需安装后端框架。
+
+打开 `http://127.0.0.1:18765/`。不要使用 `file://`，也不要把源码根目录直接作为公网文件目录；正式发布目录为 `dist/`。
 
 干净构建只包含程序，不附带游戏目录或图片。在「账号数据管理 → 卡片资料」导入 gakumas-data 的内容包，即可离线使用目录；也可由部署者独立安装内容目录或配置 HTTPS 内容频道，见 [内容更新](docs/content.md)。
 
@@ -32,7 +38,7 @@ python3 -B -m http.server 8080 --bind 127.0.0.1 --directory dist
 docker compose up --build -d
 ```
 
-默认访问 `http://127.0.0.1:8080/`。镜像使用构建阶段生成的静态产物，运行阶段仅有非 root Nginx；无需 Python 服务、数据库、账号配置或库存卷挂载。容器采用只读文件系统和临时 `/tmp`。
+默认访问 `http://127.0.0.1:18765/`。镜像使用构建阶段生成的静态产物，运行阶段仅有非 root Nginx；无需 Python 服务、数据库、账号配置或库存卷挂载。容器采用只读文件系统和临时 `/tmp`。
 
 如需远程访问，使用自己的 HTTPS 反向代理连接该端口。普通远程 HTTP 不属于完整支持环境：加密数据包依赖 Web Crypto。不要把库存目录或密钥目录挂入容器。
 
@@ -75,7 +81,7 @@ python3 -B tools/check_public.py
 python3 -B tools/build.py
 ```
 
-可选浏览器验收：准备 `requirements-test.txt` 中的 Playwright 和 Chromium，启动已安装内容的静态服务后执行 `python3 -B tests/browser_static.py --url http://127.0.0.1:8080/`。无初始内容的部署可通过 `--content-bundle <文件>` 显式导入测试内容。`tests/browser_content_updates.py` 单独验证内容更新、失败保留、离线缓存、本地导入和子目录访问。所有账号样本均为合成数据。
+可选浏览器验收：准备 `requirements-test.txt` 中的 Playwright 和 Chromium，启动已安装内容的静态服务后执行 `python3 -B tests/browser_static.py --url http://127.0.0.1:18765/`。无初始内容的部署可通过 `--content-bundle <文件>` 显式导入测试内容。`tests/browser_content_updates.py` 单独验证内容更新、失败保留、离线缓存、本地导入和子目录访问。所有账号样本均为合成数据。
 
 发布前可用 `python3 -B tools/check_public.py --export ../web-source-export` 导出干净源码。`.gitignore` 与 Docker 上下文均采用白名单；`local/`、`dist/`、测试输出、库存与凭据不进入源码仓库。详情见 [SECURITY.md](SECURITY.md)。
 

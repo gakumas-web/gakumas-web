@@ -1,0 +1,266 @@
+[
+  {
+    "assetId": "img_general_pitem_3-115",
+    "definition": {
+      "assetId": "img_general_pitem_3-115",
+      "effectGroupIds": [
+        "effect_group-visible-exam_parameter_buff-000",
+        "effect_group-visible-exam_lesson_buff_reduce-000"
+      ],
+      "evaluation": 100,
+      "fireInterval": 0,
+      "fireLimit": 0,
+      "id": "pitem_01-3-115-0",
+      "isChallenge": false,
+      "isEasy": false,
+      "isExamEffect": true,
+      "isHighScoreRush": false,
+      "isLimited": false,
+      "isResearch": false,
+      "isUpgraded": false,
+      "libraryHidden": false,
+      "name": "「Pっち」",
+      "order": "42103801150",
+      "originIdolCardId": "i_card-ssmk-3-010",
+      "originSupportCardId": "",
+      "planType": "ProducePlanType_Plan1",
+      "produceItemEffectIds": [
+        "p_item_effect-exam_status_enchant-inf-enchant-pitem_01-3-115-0-enc01"
+      ],
+      "produceTriggerId": "",
+      "produceTriggerIds": [],
+      "rarity": "ProduceItemRarity_Ssr",
+      "skills": [
+        {
+          "produceItemEffectId": "p_item_effect-exam_status_enchant-inf-enchant-pitem_01-3-115-0-enc01",
+          "produceTriggerId": ""
+        }
+      ],
+      "viewStartTime": "1743472800000"
+    },
+    "descriptions": [
+      {
+        "examEffectType": "ProduceExamEffectType_ExamLessonBuff",
+        "originProduceExamTriggerId": "e_trigger-exam_play_count_interval-2-lesson_buff_up-8",
+        "produceDescriptionType": "ProduceDescriptionType_ProduceExamEffectType",
+        "targetId": "Label_ExamLessonBuff_Produce",
+        "text": "集中"
+      },
+      {
+        "originProduceExamTriggerId": "e_trigger-exam_play_count_interval-2-lesson_buff_up-8",
+        "produceDescriptionType": "ProduceDescriptionType_PlainText",
+        "text": "が<nobr>8以上</nobr>の場合、スキルカードを2回使用するごとに、"
+      },
+      {
+        "originProduceExamTriggerId": "e_trigger-exam_play_count_interval-2-lesson_buff_up-8",
+        "produceDescriptionType": "ProduceDescriptionType_PlainText",
+        "text": ""
+      },
+      {
+        "produceDescriptionType": "ProduceDescriptionType_ProduceDescriptionName",
+        "targetId": "Label_StyleDot",
+        "text": ""
+      },
+      {
+        "examEffectType": "ProduceExamEffectType_ExamParameterBuff",
+        "originProduceExamEffectId": "e_effect-exam_parameter_buff-03",
+        "produceDescriptionType": "ProduceDescriptionType_ProduceExamEffectType",
+        "targetId": "Label_ExamParameterBuff",
+        "text": "好調"
+      },
+      {
+        "originProduceExamEffectId": "e_effect-exam_parameter_buff-03",
+        "produceDescriptionType": "ProduceDescriptionType_PlainText",
+        "text": "<nobr>"
+      },
+      {
+        "examDescriptionType": "ExamDescriptionType_CustomizeTurn",
+        "originProduceExamEffectId": "e_effect-exam_parameter_buff-03",
+        "produceDescriptionType": "ProduceDescriptionType_Exam",
+        "text": "3",
+        "turn": 3
+      },
+      {
+        "originProduceExamEffectId": "e_effect-exam_parameter_buff-03",
+        "produceDescriptionType": "ProduceDescriptionType_PlainText",
+        "text": "ターン</nobr>"
+      },
+      {
+        "originProduceExamEffectId": "e_effect-exam_parameter_buff-03",
+        "produceDescriptionType": "ProduceDescriptionType_PlainText",
+        "text": ""
+      },
+      {
+        "produceDescriptionType": "ProduceDescriptionType_ProduceDescriptionName",
+        "targetId": "Label_StyleDot",
+        "text": ""
+      },
+      {
+        "examEffectType": "ProduceExamEffectType_ExamLessonBuffReduce",
+        "originProduceExamEffectId": "e_effect-exam_lesson_buff_reduce-0001",
+        "produceDescriptionType": "ProduceDescriptionType_ProduceExamEffectType",
+        "targetId": "Label_ExamLessonBuffReduce",
+        "text": "集中減少"
+      },
+      {
+        "originProduceExamEffectId": "e_effect-exam_lesson_buff_reduce-0001",
+        "produceDescriptionType": "ProduceDescriptionType_PlainText",
+        "text": "<nobr>"
+      },
+      {
+        "effectValue1": 1,
+        "examDescriptionType": "ExamDescriptionType_CustomizeEffectValue1",
+        "originProduceExamEffectId": "e_effect-exam_lesson_buff_reduce-0001",
+        "produceDescriptionType": "ProduceDescriptionType_Exam",
+        "text": "1"
+      },
+      {
+        "originProduceExamEffectId": "e_effect-exam_lesson_buff_reduce-0001",
+        "produceDescriptionType": "ProduceDescriptionType_PlainText",
+        "text": "</nobr>"
+      },
+      {
+        "originProduceExamEffectId": "e_effect-exam_lesson_buff_reduce-0001",
+        "produceDescriptionType": "ProduceDescriptionType_PlainText",
+        "text": ""
+      }
+    ],
+    "id": "pitem_01-3-115-0",
+    "image": "img_general_pitem_3-115.webp",
+    "isUpgraded": false,
+    "name": "「Pっち」",
+    "text": "集中 / が<nobr>8以上</nobr>の場合、スキルカードを2回使用するごとに、 / 好調 / <nobr> / 3 / ターン</nobr> / 集中減少 / <nobr> / 1 / </nobr>"
+  },
+  {
+    "assetId": "img_general_pitem_3-115",
+    "definition": {
+      "assetId": "img_general_pitem_3-115",
+      "effectGroupIds": [
+        "effect_group-visible-exam_parameter_buff-000",
+        "effect_group-visible-exam_lesson_buff_reduce-000"
+      ],
+      "evaluation": 140,
+      "fireInterval": 0,
+      "fireLimit": 0,
+      "id": "pitem_01-3-115-1",
+      "isChallenge": false,
+      "isEasy": false,
+      "isExamEffect": true,
+      "isHighScoreRush": false,
+      "isLimited": false,
+      "isResearch": false,
+      "isUpgraded": true,
+      "libraryHidden": false,
+      "name": "「Pっち」+",
+      "order": "42103801151",
+      "originIdolCardId": "i_card-ssmk-3-010",
+      "originSupportCardId": "",
+      "planType": "ProducePlanType_Plan1",
+      "produceItemEffectIds": [
+        "p_item_effect-exam_status_enchant-inf-enchant-pitem_01-3-115-1-enc01"
+      ],
+      "produceTriggerId": "",
+      "produceTriggerIds": [],
+      "rarity": "ProduceItemRarity_Ssr",
+      "skills": [
+        {
+          "produceItemEffectId": "p_item_effect-exam_status_enchant-inf-enchant-pitem_01-3-115-1-enc01",
+          "produceTriggerId": ""
+        }
+      ],
+      "viewStartTime": "1743472800000"
+    },
+    "descriptions": [
+      {
+        "examEffectType": "ProduceExamEffectType_ExamLessonBuff",
+        "originProduceExamTriggerId": "e_trigger-exam_play_count_interval-2-lesson_buff_up-3",
+        "produceDescriptionType": "ProduceDescriptionType_ProduceExamEffectType",
+        "targetId": "Label_ExamLessonBuff_Produce",
+        "text": "集中"
+      },
+      {
+        "originProduceExamTriggerId": "e_trigger-exam_play_count_interval-2-lesson_buff_up-3",
+        "produceDescriptionType": "ProduceDescriptionType_PlainText",
+        "text": "が<nobr>3以上</nobr>の場合、スキルカードを2回使用するごとに、"
+      },
+      {
+        "originProduceExamTriggerId": "e_trigger-exam_play_count_interval-2-lesson_buff_up-3",
+        "produceDescriptionType": "ProduceDescriptionType_PlainText",
+        "text": ""
+      },
+      {
+        "produceDescriptionType": "ProduceDescriptionType_ProduceDescriptionName",
+        "targetId": "Label_StyleDot",
+        "text": ""
+      },
+      {
+        "examEffectType": "ProduceExamEffectType_ExamParameterBuff",
+        "originProduceExamEffectId": "e_effect-exam_parameter_buff-03",
+        "produceDescriptionType": "ProduceDescriptionType_ProduceExamEffectType",
+        "targetId": "Label_ExamParameterBuff",
+        "text": "好調"
+      },
+      {
+        "originProduceExamEffectId": "e_effect-exam_parameter_buff-03",
+        "produceDescriptionType": "ProduceDescriptionType_PlainText",
+        "text": "<nobr>"
+      },
+      {
+        "examDescriptionType": "ExamDescriptionType_CustomizeTurn",
+        "originProduceExamEffectId": "e_effect-exam_parameter_buff-03",
+        "produceDescriptionType": "ProduceDescriptionType_Exam",
+        "text": "3",
+        "turn": 3
+      },
+      {
+        "originProduceExamEffectId": "e_effect-exam_parameter_buff-03",
+        "produceDescriptionType": "ProduceDescriptionType_PlainText",
+        "text": "ターン</nobr>"
+      },
+      {
+        "originProduceExamEffectId": "e_effect-exam_parameter_buff-03",
+        "produceDescriptionType": "ProduceDescriptionType_PlainText",
+        "text": ""
+      },
+      {
+        "produceDescriptionType": "ProduceDescriptionType_ProduceDescriptionName",
+        "targetId": "Label_StyleDot",
+        "text": ""
+      },
+      {
+        "examEffectType": "ProduceExamEffectType_ExamLessonBuffReduce",
+        "originProduceExamEffectId": "e_effect-exam_lesson_buff_reduce-0001",
+        "produceDescriptionType": "ProduceDescriptionType_ProduceExamEffectType",
+        "targetId": "Label_ExamLessonBuffReduce",
+        "text": "集中減少"
+      },
+      {
+        "originProduceExamEffectId": "e_effect-exam_lesson_buff_reduce-0001",
+        "produceDescriptionType": "ProduceDescriptionType_PlainText",
+        "text": "<nobr>"
+      },
+      {
+        "effectValue1": 1,
+        "examDescriptionType": "ExamDescriptionType_CustomizeEffectValue1",
+        "originProduceExamEffectId": "e_effect-exam_lesson_buff_reduce-0001",
+        "produceDescriptionType": "ProduceDescriptionType_Exam",
+        "text": "1"
+      },
+      {
+        "originProduceExamEffectId": "e_effect-exam_lesson_buff_reduce-0001",
+        "produceDescriptionType": "ProduceDescriptionType_PlainText",
+        "text": "</nobr>"
+      },
+      {
+        "originProduceExamEffectId": "e_effect-exam_lesson_buff_reduce-0001",
+        "produceDescriptionType": "ProduceDescriptionType_PlainText",
+        "text": ""
+      }
+    ],
+    "id": "pitem_01-3-115-1",
+    "image": "img_general_pitem_3-115.webp",
+    "isUpgraded": true,
+    "name": "「Pっち」+",
+    "text": "集中 / が<nobr>3以上</nobr>の場合、スキルカードを2回使用するごとに、 / 好調 / <nobr> / 3 / ターン</nobr> / 集中減少 / <nobr> / 1 / </nobr>"
+  }
+]

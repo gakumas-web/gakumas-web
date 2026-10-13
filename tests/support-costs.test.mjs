@@ -25,7 +25,7 @@ test('普通体力与直接体力使用不同图标，强化版本保持对应�
   install();const normal=supportSkillVisual({id:'normal',upgradeCount:1}).costs[0];
   const direct=supportSkillVisual({id:'direct',upgradeCount:1}).costs[0];
   assert.equal(normal.kind,'stamina');assert.equal(direct.kind,'direct');assert.notEqual(normal.icon,direct.icon);
-  assert.match(direct.label,/无法用元气抵消/);assert.equal(direct.value,2);
+  assert.equal(direct.label,'体力');assert.equal(direct.value,2);
   assert.equal(supportSkillVisual({id:'direct',upgradeCount:0}).costs[0].value,3);
   }finally{Object.assign(imageConfig,previous);}
 });

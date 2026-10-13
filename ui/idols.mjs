@@ -44,7 +44,7 @@ function idolRewards(held,info,result){
       const reference=result.customization.cards.find(card=>card.id===row.card.id);
       if(reference)customization={...result.customization,cards:[reference]};
     }
-    const context=row.scope==='hif-final'?`${t('HIF 本战专用')} · ${row.primaStellaUpgradedTime===undefined?t('解锁状态未采集'):t('升级时间字段：{0}；解锁状态待核对',[row.primaStellaUpgradedTime])}`:row.changed?t('预览变化'):'';
+    const context=row.scope==='hif-final'?`${t('HIF 本战专用')} · ${t(({unlocked:'已解锁',locked:'未解锁'})[row.unlockState]??'解锁状态未采集')}`:row.changed?t('预览变化'):'';
     if(row.scope)cell.dataset.rewardScope=row.scope;
     cell.append(rewardHint(reward,{label:context},false,'',{chooseVersion:false,customization}));
     if(row.scope==='hif-final')cell.append(el('span',t('HIF 本战'),'idol-reward-scope'));

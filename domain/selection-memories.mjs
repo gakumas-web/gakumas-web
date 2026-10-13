@@ -1,7 +1,7 @@
 import {CAPTURE_FORMAT,CAPTURE_SCHEMA} from './snapshot-format.mjs';
 import {mergeSelectionDetails} from './selection-details.mjs';
 import {validPublicUserId} from './account.mjs';
-import {hifStarRules} from './hif-star-rules.mjs';
+import {hifStarRules} from './community-rules.mjs';
 import {InputError,digest,validCapturedAt,matchesAny,selectedValues} from './model.mjs';
 import {characterInfo,cardInfo,itemArt,idolInfo,selectionChoiceMetadata,selectionFlowDefinitions,selectionSupportRewards} from './catalog.mjs';
 import {effectSearchText} from './effect-language.mjs';
@@ -78,7 +78,7 @@ export function selectionChoiceOptions(snapshot){
   for(const memory of snapshot?.selectionMemories??[]){
     for(const card of memory.produceCards){
       const info=cardInfo(card,memory.characterId),key=selectionSkillKey(card);
-      if(info.rarity?.toUpperCase()==='N'||selectionChoiceMetadata('card',card).secondExclusive)continue;
+      if(selectionChoiceMetadata('card',card).secondExclusive)continue;
       if(!cards.has(key))cards.set(key,{key,reference:{id:card.id,upgradeCount:card.upgradeCount,customizes:[]},characterId:memory.characterId,memoryCharacterIds:[],info,metadata:selectionChoiceMetadata('card',card)});
       if(!cards.get(key).memoryCharacterIds.includes(memory.characterId))cards.get(key).memoryCharacterIds.push(memory.characterId);
     }

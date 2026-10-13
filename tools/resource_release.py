@@ -49,6 +49,13 @@ def source_file(lock, key, parent, temporary, limit):
     return file
 
 def write_config(path, config):
+    config=dict(config)
+    if 'loadingPlan' in config:
+        # 完整图片计划独立为带哈希的文件，避免阻塞应用入口模块的加载。
+        raw=json.dumps(config.pop('loadingPlan'),ensure_ascii=False,separators=(',', ':')).encode('utf-8')
+        digest=hashlib.sha256(raw).hexdigest();name='image-plan-'+digest+'.json'
+        path.with_name(name).write_bytes(raw)
+        config['loadingPlanSource']={'url':'./'+name,'sha256':digest,'bytes':len(raw)}
     path.write_text('// 构建生成的资源定位；未配置的游戏图片只使用本站占位图。\nexport const imageConfig='+json.dumps(config, ensure_ascii=False, separators=(',', ':'))+';\n', encoding='utf-8')
 
 def prepare(lock_path, staging, requirements, mirror_images=False, image_cache=None, cache_report=None, image_groups=None):
@@ -66,16 +73,17 @@ def prepare(lock_path, staging, requirements, mirror_images=False, image_cache=N
     needed={'images/'+name for name in requirements['images']}|{'ui-icons/'+name for name in requirements['ui_icons']}
     if not needed<=index['files'].keys():raise ValueError('图片索引未覆盖内容需求')
     if mirror_images:
-        # 只生成传输地址映射，不改写已被内容清单固定哈希的图片索引。
+        # 基础包由构建端获取；CDN 增量保留给浏览器按需下载，不改写发布索引。
+        from image_plan import baseline_index, baseline_cache_hash
+        source_index=index;index=baseline_index(index)
+        image_groups={name:group for name,group in (image_groups or {}).items() if name in index['files']}
         transfers=[(pack['url'],pack,pack['sha256']+'.tar.gz') for pack in index['baseline']['packages']]
-        rows={row['sha256']+Path(name).suffix:row for name,row in index['files'].items()}
-        transfers.extend((index['cdn_base_url']+'objects/'+key,rows[key],key) for key in index['cdn_objects'])
         folder=staging/'image-files';folder.mkdir()
         mapping={url:'./image-files/'+name for url,_,name in transfers}
         plan=None;cache_state='disabled';identity=None
         if image_cache is not None:
             from image_cache import cache_identity,cache_key,restore,save
-            identity=cache_identity(lock['sha256'],image_groups);plan,cache_state=restore(image_cache,identity,index,transfers,folder,image_groups)
+            identity=cache_identity(baseline_cache_hash(index),image_groups);plan,cache_state=restore(image_cache,identity,index,transfers,folder,image_groups)
         if plan is None:
             for url,row,name in transfers:
                 target=folder/name
@@ -89,7 +97,8 @@ def prepare(lock_path, staging, requirements, mirror_images=False, image_cache=N
                 except OSError:cache_state='write-failed'
         if cache_report is not None:
             cache_report.update({'status':cache_state,'key':cache_key(identity) if identity else None,'saved':identity is not None and cache_state in ('miss','invalid')})
-        return {**empty,'mode':'managed','version':index['version'],'allowedOrigins':[],'downloadURLs':mapping,'loadingPlan':plan}, {'mode':'managed','version':index['version'],'baseline_version':index['baseline']['version'],'files':len(index['files']),'mirrored_downloads':len(mapping)}, []
+        origins=[source_origin(source_index['cdn_base_url'])]
+        return {**empty,'mode':'managed','version':source_index['version'],'allowedOrigins':origins,'downloadURLs':mapping,'loadingPlan':plan}, {'mode':'managed','version':source_index['version'],'baseline_version':index['baseline']['version'],'files':len(source_index['files']),'mirrored_downloads':len(mapping),'cdn_objects':len(source_index['cdn_objects'])}, origins
     origins={source_origin(url) for url in [index['cdn_base_url'],*[pack['url'] for pack in index['baseline']['packages']]]}
     for origin in lock.get('download_origins',[]):
         url=public_url(origin)

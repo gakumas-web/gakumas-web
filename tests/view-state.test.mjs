@@ -119,3 +119,9 @@ test('旧支援效果分类不作为隐藏条件恢复',()=>{
   const view=createView({supportEffect:['GrowthRate'],supportEffectAttribute:['Vocal'],supportTrigger:'StartRefresh'});
   assert.deepEqual(view.supportSkills,[]);assert.equal(view.supportEffect,undefined);assert.equal(view.supportEffectAttribute,undefined);assert.equal(view.supportTrigger,undefined);
 });
+
+test('赛季模拟页签可恢复，库存筛选保持独立',async()=>{
+  const {parsePreferences}=await import('../application/view-state.mjs');
+  const restored=parsePreferences(JSON.stringify({tab:'seasonSimulation',views:{memories:{query:'保留'}}}));
+  assert.equal(restored.tab,'seasonSimulation');assert.equal(restored.recovered,false);assert.equal(restored.views.memories.query,'保留');assert.deepEqual(activeFilterKeys('seasonSimulation',restored.views.seasonSimulation),[]);
+});

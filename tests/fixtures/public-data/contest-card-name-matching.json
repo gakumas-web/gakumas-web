@@ -1,0 +1,756 @@
+{
+  "cards": [
+    {
+      "assetId": "img_general_skillcard_sup-3_155",
+      "category": "ProduceCardCategory_MentalSkill",
+      "definition": {
+        "assetId": "img_general_skillcard_sup-3_155",
+        "category": "ProduceCardCategory_MentalSkill",
+        "costType": "ExamCostType_Unknown",
+        "costValue": 0,
+        "effectGroupIds": [
+          "effect_group-visible-exam_stamina_consumption_down_fix-000",
+          "effect_group-visible-exam_playable_value_add-000"
+        ],
+        "evaluation": 32,
+        "forceStamina": 0,
+        "id": "p_card-00-sup-3_155",
+        "isCharacterAsset": false,
+        "isConversion": false,
+        "isEndTurnLost": false,
+        "isInitial": true,
+        "isInitialDeckProduceCard": false,
+        "isLimited": false,
+        "isRestrict": false,
+        "isReward": false,
+        "libraryHidden": false,
+        "maxCustomizeCount": 0,
+        "moveEffectTriggerType": "ProduceCardMoveEffectTriggerType_Unknown",
+        "moveProduceExamEffectIds": [],
+        "moveProduceExamTriggerIds": [],
+        "name": "月明かりに包まれて",
+        "noDeckDuplication": true,
+        "order": "49000010490155",
+        "originCharacterId": "",
+        "originIdolCardId": "",
+        "originPrimaStellaIdolCardId": "",
+        "originSupportCardId": "s_card-3-0033",
+        "planType": "ProducePlanType_Common",
+        "playEffects": [
+          {
+            "hideIcon": false,
+            "isOncePlayEffect": false,
+            "produceExamEffectId": "e_effect-exam_stamina_consumption_down_fix-0001-inf",
+            "produceExamTriggerId": ""
+          },
+          {
+            "hideIcon": false,
+            "isOncePlayEffect": false,
+            "produceExamEffectId": "e_effect-exam_playable_value_add-01",
+            "produceExamTriggerId": ""
+          }
+        ],
+        "playMovePositionType": "ProduceCardMovePositionType_Lost",
+        "playProduceExamTriggerId": "",
+        "produceCardCustomizeIds": [],
+        "produceCardStatusEnchantId": "",
+        "rarity": "ProduceCardRarity_Ssr",
+        "rentalUnlockProducerLevel": 0,
+        "searchTag": "",
+        "stamina": 5,
+        "unlockProducerLevel": 0,
+        "upgradeCount": 0,
+        "viewStartTime": "0",
+        "voiceAssetId": ""
+      },
+      "descriptions": [
+        {
+          "produceDescriptionType": "ProduceDescriptionType_ProduceDescriptionName",
+          "targetId": "Convert_002",
+          "text": "レッスン"
+        },
+        {
+          "produceDescriptionType": "ProduceDescriptionType_PlainText",
+          "text": "開始時手札に入る"
+        },
+        {
+          "examDescriptionType": "ExamDescriptionType_CustomizeInitialAdd",
+          "produceDescriptionType": "ProduceDescriptionType_Exam",
+          "targetId": "Description_ProduceCardIsInitial",
+          "text": ""
+        },
+        {
+          "produceDescriptionType": "ProduceDescriptionType_PlainText",
+          "text": ""
+        },
+        {
+          "originProduceExamEffectId": "e_effect-exam_stamina_consumption_down_fix-0001-inf",
+          "produceDescriptionType": "ProduceDescriptionType_ProduceDescriptionName",
+          "targetId": "Label_StyleDot",
+          "text": ""
+        },
+        {
+          "examEffectType": "ProduceExamEffectType_ExamStaminaConsumptionDownFix",
+          "originProduceExamEffectId": "e_effect-exam_stamina_consumption_down_fix-0001-inf",
+          "produceDescriptionType": "ProduceDescriptionType_ProduceExamEffectType",
+          "targetId": "Label_ExamStaminaConsumptionDownFix",
+          "text": "消費体力削減"
+        },
+        {
+          "originProduceExamEffectId": "e_effect-exam_stamina_consumption_down_fix-0001-inf",
+          "produceDescriptionType": "ProduceDescriptionType_PlainText",
+          "text": "<nobr>"
+        },
+        {
+          "effectValue1": 1,
+          "examDescriptionType": "ExamDescriptionType_CustomizeEffectValue1",
+          "originProduceExamEffectId": "e_effect-exam_stamina_consumption_down_fix-0001-inf",
+          "produceDescriptionType": "ProduceDescriptionType_Exam",
+          "text": "1"
+        },
+        {
+          "originProduceExamEffectId": "e_effect-exam_stamina_consumption_down_fix-0001-inf",
+          "produceDescriptionType": "ProduceDescriptionType_PlainText",
+          "text": "</nobr>"
+        },
+        {
+          "originProduceExamEffectId": "e_effect-exam_stamina_consumption_down_fix-0001-inf",
+          "produceDescriptionType": "ProduceDescriptionType_PlainText",
+          "text": ""
+        },
+        {
+          "originProduceExamEffectId": "e_effect-exam_playable_value_add-01",
+          "produceDescriptionType": "ProduceDescriptionType_ProduceDescriptionName",
+          "targetId": "Label_StyleDot",
+          "text": ""
+        },
+        {
+          "examEffectType": "ProduceExamEffectType_ExamPlayableValueAdd",
+          "originProduceExamEffectId": "e_effect-exam_playable_value_add-01",
+          "produceDescriptionType": "ProduceDescriptionType_ProduceExamEffectType",
+          "targetId": "Label_ExamPlayableValueAdd_Produce",
+          "text": "スキルカード使用数追加"
+        },
+        {
+          "originProduceExamEffectId": "e_effect-exam_playable_value_add-01",
+          "produceDescriptionType": "ProduceDescriptionType_PlainText",
+          "text": "<nobr>+"
+        },
+        {
+          "effectCount": 1,
+          "examDescriptionType": "ExamDescriptionType_CustomizeEffectCount",
+          "originProduceExamEffectId": "e_effect-exam_playable_value_add-01",
+          "produceDescriptionType": "ProduceDescriptionType_Exam",
+          "text": "1"
+        },
+        {
+          "originProduceExamEffectId": "e_effect-exam_playable_value_add-01",
+          "produceDescriptionType": "ProduceDescriptionType_PlainText",
+          "text": "</nobr>"
+        },
+        {
+          "originProduceExamEffectId": "e_effect-exam_playable_value_add-01",
+          "produceDescriptionType": "ProduceDescriptionType_PlainText",
+          "text": ""
+        },
+        {
+          "examDescriptionType": "ExamDescriptionType_CustomizeEffectAdd",
+          "produceDescriptionType": "ProduceDescriptionType_Exam",
+          "text": ""
+        },
+        {
+          "isOnlyOutGame": true,
+          "produceDescriptionType": "ProduceDescriptionType_PlainText",
+          "text": "<nobr>"
+        },
+        {
+          "isOnlyOutGame": true,
+          "produceDescriptionType": "ProduceDescriptionType_ProduceDescription",
+          "targetId": "Label_NoDeckDuplication",
+          "text": "重複不可"
+        },
+        {
+          "isOnlyOutGame": true,
+          "produceDescriptionType": "ProduceDescriptionType_PlainText",
+          "text": " </nobr>"
+        },
+        {
+          "produceCardMovePositionType": "ProduceCardMovePositionType_Lost",
+          "produceDescriptionType": "ProduceDescriptionType_ProduceDescription",
+          "targetId": "Label_ProduceCardMovePositionType_Lost",
+          "text": "レッスン中1回"
+        },
+        {
+          "examDescriptionType": "ExamDescriptionType_CustomizePlayMovePositionLost",
+          "produceDescriptionType": "ProduceDescriptionType_Exam",
+          "text": ""
+        }
+      ],
+      "id": "p_card-00-sup-3_155",
+      "images": {
+        "common": "img_general_skillcard_sup-3_155.webp"
+      },
+      "isCharacterAsset": false,
+      "name": "月明かりに包まれて",
+      "originCharacterId": "",
+      "playEffects": [
+        {
+          "hideIcon": false,
+          "isOncePlayEffect": false,
+          "produceExamEffectId": "e_effect-exam_stamina_consumption_down_fix-0001-inf",
+          "produceExamTriggerId": ""
+        },
+        {
+          "hideIcon": false,
+          "isOncePlayEffect": false,
+          "produceExamEffectId": "e_effect-exam_playable_value_add-01",
+          "produceExamTriggerId": ""
+        }
+      ],
+      "rarity": "ProduceCardRarity_Ssr",
+      "text": "レッスン / 開始時手札に入る / 消費体力削減 / <nobr> / 1 / </nobr> / スキルカード使用数追加 / <nobr>+ / 1 / </nobr> / <nobr> / 重複不可 /  </nobr> / レッスン中1回",
+      "upgradeCount": 0
+    },
+    {
+      "assetId": "img_general_skillcard_sup-3_155",
+      "category": "ProduceCardCategory_MentalSkill",
+      "definition": {
+        "assetId": "img_general_skillcard_sup-3_155",
+        "category": "ProduceCardCategory_MentalSkill",
+        "costType": "ExamCostType_Unknown",
+        "costValue": 0,
+        "effectGroupIds": [
+          "effect_group-visible-exam_stamina_consumption_down_fix-000",
+          "effect_group-visible-exam_playable_value_add-000"
+        ],
+        "evaluation": 42,
+        "forceStamina": 0,
+        "id": "p_card-00-sup-3_155",
+        "isCharacterAsset": false,
+        "isConversion": false,
+        "isEndTurnLost": false,
+        "isInitial": true,
+        "isInitialDeckProduceCard": false,
+        "isLimited": false,
+        "isRestrict": false,
+        "isReward": false,
+        "libraryHidden": false,
+        "maxCustomizeCount": 1,
+        "moveEffectTriggerType": "ProduceCardMoveEffectTriggerType_Unknown",
+        "moveProduceExamEffectIds": [],
+        "moveProduceExamTriggerIds": [],
+        "name": "月明かりに包まれて+",
+        "noDeckDuplication": true,
+        "order": "49000010490155",
+        "originCharacterId": "",
+        "originIdolCardId": "",
+        "originPrimaStellaIdolCardId": "",
+        "originSupportCardId": "s_card-3-0033",
+        "planType": "ProducePlanType_Common",
+        "playEffects": [
+          {
+            "hideIcon": false,
+            "isOncePlayEffect": false,
+            "produceExamEffectId": "e_effect-exam_stamina_consumption_down_fix-0001-inf",
+            "produceExamTriggerId": ""
+          },
+          {
+            "hideIcon": false,
+            "isOncePlayEffect": false,
+            "produceExamEffectId": "e_effect-exam_playable_value_add-01",
+            "produceExamTriggerId": ""
+          }
+        ],
+        "playMovePositionType": "ProduceCardMovePositionType_Lost",
+        "playProduceExamTriggerId": "",
+        "produceCardCustomizeIds": [
+          "p_card_custom-020-g_effect-cost_reduce-2",
+          "p_card_custom-070-g_effect-effect_add-e_effect-exam_block-0004"
+        ],
+        "produceCardStatusEnchantId": "",
+        "rarity": "ProduceCardRarity_Ssr",
+        "rentalUnlockProducerLevel": 0,
+        "searchTag": "",
+        "stamina": 2,
+        "unlockProducerLevel": 0,
+        "upgradeCount": 1,
+        "viewStartTime": "0",
+        "voiceAssetId": ""
+      },
+      "descriptions": [
+        {
+          "produceDescriptionType": "ProduceDescriptionType_ProduceDescriptionName",
+          "targetId": "Convert_002",
+          "text": "レッスン"
+        },
+        {
+          "produceDescriptionType": "ProduceDescriptionType_PlainText",
+          "text": "開始時手札に入る"
+        },
+        {
+          "examDescriptionType": "ExamDescriptionType_CustomizeInitialAdd",
+          "produceDescriptionType": "ProduceDescriptionType_Exam",
+          "targetId": "Description_ProduceCardIsInitial",
+          "text": ""
+        },
+        {
+          "produceDescriptionType": "ProduceDescriptionType_PlainText",
+          "text": ""
+        },
+        {
+          "originProduceExamEffectId": "e_effect-exam_stamina_consumption_down_fix-0001-inf",
+          "produceDescriptionType": "ProduceDescriptionType_ProduceDescriptionName",
+          "targetId": "Label_StyleDot",
+          "text": ""
+        },
+        {
+          "examEffectType": "ProduceExamEffectType_ExamStaminaConsumptionDownFix",
+          "originProduceExamEffectId": "e_effect-exam_stamina_consumption_down_fix-0001-inf",
+          "produceDescriptionType": "ProduceDescriptionType_ProduceExamEffectType",
+          "targetId": "Label_ExamStaminaConsumptionDownFix",
+          "text": "消費体力削減"
+        },
+        {
+          "originProduceExamEffectId": "e_effect-exam_stamina_consumption_down_fix-0001-inf",
+          "produceDescriptionType": "ProduceDescriptionType_PlainText",
+          "text": "<nobr>"
+        },
+        {
+          "effectValue1": 1,
+          "examDescriptionType": "ExamDescriptionType_CustomizeEffectValue1",
+          "originProduceExamEffectId": "e_effect-exam_stamina_consumption_down_fix-0001-inf",
+          "produceDescriptionType": "ProduceDescriptionType_Exam",
+          "text": "1"
+        },
+        {
+          "originProduceExamEffectId": "e_effect-exam_stamina_consumption_down_fix-0001-inf",
+          "produceDescriptionType": "ProduceDescriptionType_PlainText",
+          "text": "</nobr>"
+        },
+        {
+          "originProduceExamEffectId": "e_effect-exam_stamina_consumption_down_fix-0001-inf",
+          "produceDescriptionType": "ProduceDescriptionType_PlainText",
+          "text": ""
+        },
+        {
+          "originProduceExamEffectId": "e_effect-exam_playable_value_add-01",
+          "produceDescriptionType": "ProduceDescriptionType_ProduceDescriptionName",
+          "targetId": "Label_StyleDot",
+          "text": ""
+        },
+        {
+          "examEffectType": "ProduceExamEffectType_ExamPlayableValueAdd",
+          "originProduceExamEffectId": "e_effect-exam_playable_value_add-01",
+          "produceDescriptionType": "ProduceDescriptionType_ProduceExamEffectType",
+          "targetId": "Label_ExamPlayableValueAdd_Produce",
+          "text": "スキルカード使用数追加"
+        },
+        {
+          "originProduceExamEffectId": "e_effect-exam_playable_value_add-01",
+          "produceDescriptionType": "ProduceDescriptionType_PlainText",
+          "text": "<nobr>+"
+        },
+        {
+          "effectCount": 1,
+          "examDescriptionType": "ExamDescriptionType_CustomizeEffectCount",
+          "originProduceExamEffectId": "e_effect-exam_playable_value_add-01",
+          "produceDescriptionType": "ProduceDescriptionType_Exam",
+          "text": "1"
+        },
+        {
+          "originProduceExamEffectId": "e_effect-exam_playable_value_add-01",
+          "produceDescriptionType": "ProduceDescriptionType_PlainText",
+          "text": "</nobr>"
+        },
+        {
+          "originProduceExamEffectId": "e_effect-exam_playable_value_add-01",
+          "produceDescriptionType": "ProduceDescriptionType_PlainText",
+          "text": ""
+        },
+        {
+          "examDescriptionType": "ExamDescriptionType_CustomizeEffectAdd",
+          "produceDescriptionType": "ProduceDescriptionType_Exam",
+          "text": ""
+        },
+        {
+          "isOnlyOutGame": true,
+          "produceDescriptionType": "ProduceDescriptionType_PlainText",
+          "text": "<nobr>"
+        },
+        {
+          "isOnlyOutGame": true,
+          "produceDescriptionType": "ProduceDescriptionType_ProduceDescription",
+          "targetId": "Label_NoDeckDuplication",
+          "text": "重複不可"
+        },
+        {
+          "isOnlyOutGame": true,
+          "produceDescriptionType": "ProduceDescriptionType_PlainText",
+          "text": " </nobr>"
+        },
+        {
+          "produceCardMovePositionType": "ProduceCardMovePositionType_Lost",
+          "produceDescriptionType": "ProduceDescriptionType_ProduceDescription",
+          "targetId": "Label_ProduceCardMovePositionType_Lost",
+          "text": "レッスン中1回"
+        },
+        {
+          "examDescriptionType": "ExamDescriptionType_CustomizePlayMovePositionLost",
+          "produceDescriptionType": "ProduceDescriptionType_Exam",
+          "text": ""
+        }
+      ],
+      "id": "p_card-00-sup-3_155",
+      "images": {
+        "common": "img_general_skillcard_sup-3_155.webp"
+      },
+      "isCharacterAsset": false,
+      "name": "月明かりに包まれて+",
+      "originCharacterId": "",
+      "playEffects": [
+        {
+          "hideIcon": false,
+          "isOncePlayEffect": false,
+          "produceExamEffectId": "e_effect-exam_stamina_consumption_down_fix-0001-inf",
+          "produceExamTriggerId": ""
+        },
+        {
+          "hideIcon": false,
+          "isOncePlayEffect": false,
+          "produceExamEffectId": "e_effect-exam_playable_value_add-01",
+          "produceExamTriggerId": ""
+        }
+      ],
+      "rarity": "ProduceCardRarity_Ssr",
+      "text": "レッスン / 開始時手札に入る / 消費体力削減 / <nobr> / 1 / </nobr> / スキルカード使用数追加 / <nobr>+ / 1 / </nobr> / <nobr> / 重複不可 /  </nobr> / レッスン中1回",
+      "upgradeCount": 1
+    }
+  ],
+  "effects": [
+    {
+      "definition": {
+        "chainProduceExamEffectId": "",
+        "chainProduceExamEffectIds": [],
+        "effectCount": 0,
+        "effectGroupIds": [
+          "effect_group-visible-exam_block-000"
+        ],
+        "effectTurn": 0,
+        "effectType": "ProduceExamEffectType_ExamBlock",
+        "effectValue1": 4,
+        "effectValue2": 0,
+        "id": "e_effect-exam_block-0004",
+        "movePositionType": "ProduceCardMovePositionType_Unknown",
+        "pickCountMax": 0,
+        "pickCountMax2": 0,
+        "pickCountMin": 0,
+        "pickCountMin2": 0,
+        "pickCountReferenceProduceCardSearchId": "",
+        "pickCountReferenceProduceCardSearchId2": "",
+        "pickCountType": "ProducePickCountType_Unknown",
+        "pickCountType2": "ProducePickCountType_Unknown",
+        "pickRangeType": "ProducePickRangeType_Unknown",
+        "pickRangeType2": "ProducePickRangeType_Unknown",
+        "produceCardGrowEffectIds": [],
+        "produceCardSearchId": "",
+        "produceCardSearchId2": "",
+        "produceCardStatusEnchantId": "",
+        "produceExamStatusEnchantId": "",
+        "targetExamEffectType": "ProduceExamEffectType_Unknown",
+        "targetProduceCardId": "",
+        "targetUpgradeCount": 0
+      },
+      "descriptions": [
+        {
+          "examEffectType": "ProduceExamEffectType_ExamBlock",
+          "originProduceExamEffectId": "e_effect-exam_block-0004",
+          "produceDescriptionType": "ProduceDescriptionType_ProduceExamEffectType",
+          "targetId": "Label_ExamBlock",
+          "text": "元気"
+        },
+        {
+          "originProduceExamEffectId": "e_effect-exam_block-0004",
+          "produceDescriptionType": "ProduceDescriptionType_PlainText",
+          "text": "<nobr>+"
+        },
+        {
+          "effectValue1": 4,
+          "examDescriptionType": "ExamDescriptionType_CustomizeEffectValue1",
+          "originProduceExamEffectId": "e_effect-exam_block-0004",
+          "produceDescriptionType": "ProduceDescriptionType_Exam",
+          "text": "4"
+        },
+        {
+          "originProduceExamEffectId": "e_effect-exam_block-0004",
+          "produceDescriptionType": "ProduceDescriptionType_PlainText",
+          "text": "</nobr>"
+        }
+      ],
+      "effectCount": 0,
+      "effectTurn": 0,
+      "effectType": "ProduceExamEffectType_ExamBlock",
+      "effectValue1": 4,
+      "effectValue2": 0,
+      "id": "e_effect-exam_block-0004",
+      "text": "元気 / <nobr>+ / 4 / </nobr>"
+    },
+    {
+      "definition": {
+        "chainProduceExamEffectId": "",
+        "chainProduceExamEffectIds": [],
+        "effectCount": 1,
+        "effectGroupIds": [
+          "effect_group-visible-exam_playable_value_add-000"
+        ],
+        "effectTurn": 0,
+        "effectType": "ProduceExamEffectType_ExamPlayableValueAdd",
+        "effectValue1": 0,
+        "effectValue2": 0,
+        "id": "e_effect-exam_playable_value_add-01",
+        "movePositionType": "ProduceCardMovePositionType_Unknown",
+        "pickCountMax": 0,
+        "pickCountMax2": 0,
+        "pickCountMin": 0,
+        "pickCountMin2": 0,
+        "pickCountReferenceProduceCardSearchId": "",
+        "pickCountReferenceProduceCardSearchId2": "",
+        "pickCountType": "ProducePickCountType_Unknown",
+        "pickCountType2": "ProducePickCountType_Unknown",
+        "pickRangeType": "ProducePickRangeType_Unknown",
+        "pickRangeType2": "ProducePickRangeType_Unknown",
+        "produceCardGrowEffectIds": [],
+        "produceCardSearchId": "",
+        "produceCardSearchId2": "",
+        "produceCardStatusEnchantId": "",
+        "produceExamStatusEnchantId": "",
+        "targetExamEffectType": "ProduceExamEffectType_Unknown",
+        "targetProduceCardId": "",
+        "targetUpgradeCount": 0
+      },
+      "descriptions": [
+        {
+          "examEffectType": "ProduceExamEffectType_ExamPlayableValueAdd",
+          "originProduceExamEffectId": "e_effect-exam_playable_value_add-01",
+          "produceDescriptionType": "ProduceDescriptionType_ProduceExamEffectType",
+          "targetId": "Label_ExamPlayableValueAdd_Produce",
+          "text": "スキルカード使用数追加"
+        },
+        {
+          "originProduceExamEffectId": "e_effect-exam_playable_value_add-01",
+          "produceDescriptionType": "ProduceDescriptionType_PlainText",
+          "text": "<nobr>+"
+        },
+        {
+          "effectCount": 1,
+          "examDescriptionType": "ExamDescriptionType_CustomizeEffectCount",
+          "originProduceExamEffectId": "e_effect-exam_playable_value_add-01",
+          "produceDescriptionType": "ProduceDescriptionType_Exam",
+          "text": "1"
+        },
+        {
+          "originProduceExamEffectId": "e_effect-exam_playable_value_add-01",
+          "produceDescriptionType": "ProduceDescriptionType_PlainText",
+          "text": "</nobr>"
+        }
+      ],
+      "effectCount": 1,
+      "effectTurn": 0,
+      "effectType": "ProduceExamEffectType_ExamPlayableValueAdd",
+      "effectValue1": 0,
+      "effectValue2": 0,
+      "id": "e_effect-exam_playable_value_add-01",
+      "text": "スキルカード使用数追加 / <nobr>+ / 1 / </nobr>"
+    },
+    {
+      "definition": {
+        "chainProduceExamEffectId": "",
+        "chainProduceExamEffectIds": [],
+        "effectCount": 0,
+        "effectGroupIds": [
+          "effect_group-visible-exam_stamina_consumption_down_fix-000"
+        ],
+        "effectTurn": -1,
+        "effectType": "ProduceExamEffectType_ExamStaminaConsumptionDownFix",
+        "effectValue1": 1,
+        "effectValue2": 0,
+        "id": "e_effect-exam_stamina_consumption_down_fix-0001-inf",
+        "movePositionType": "ProduceCardMovePositionType_Unknown",
+        "pickCountMax": 0,
+        "pickCountMax2": 0,
+        "pickCountMin": 0,
+        "pickCountMin2": 0,
+        "pickCountReferenceProduceCardSearchId": "",
+        "pickCountReferenceProduceCardSearchId2": "",
+        "pickCountType": "ProducePickCountType_Unknown",
+        "pickCountType2": "ProducePickCountType_Unknown",
+        "pickRangeType": "ProducePickRangeType_Unknown",
+        "pickRangeType2": "ProducePickRangeType_Unknown",
+        "produceCardGrowEffectIds": [],
+        "produceCardSearchId": "",
+        "produceCardSearchId2": "",
+        "produceCardStatusEnchantId": "",
+        "produceExamStatusEnchantId": "",
+        "targetExamEffectType": "ProduceExamEffectType_Unknown",
+        "targetProduceCardId": "",
+        "targetUpgradeCount": 0
+      },
+      "descriptions": [
+        {
+          "examEffectType": "ProduceExamEffectType_ExamStaminaConsumptionDownFix",
+          "originProduceExamEffectId": "e_effect-exam_stamina_consumption_down_fix-0001-inf",
+          "produceDescriptionType": "ProduceDescriptionType_ProduceExamEffectType",
+          "targetId": "Label_ExamStaminaConsumptionDownFix",
+          "text": "消費体力削減"
+        },
+        {
+          "originProduceExamEffectId": "e_effect-exam_stamina_consumption_down_fix-0001-inf",
+          "produceDescriptionType": "ProduceDescriptionType_PlainText",
+          "text": "<nobr>"
+        },
+        {
+          "effectValue1": 1,
+          "examDescriptionType": "ExamDescriptionType_CustomizeEffectValue1",
+          "originProduceExamEffectId": "e_effect-exam_stamina_consumption_down_fix-0001-inf",
+          "produceDescriptionType": "ProduceDescriptionType_Exam",
+          "text": "1"
+        },
+        {
+          "originProduceExamEffectId": "e_effect-exam_stamina_consumption_down_fix-0001-inf",
+          "produceDescriptionType": "ProduceDescriptionType_PlainText",
+          "text": "</nobr>"
+        }
+      ],
+      "effectCount": 0,
+      "effectTurn": -1,
+      "effectType": "ProduceExamEffectType_ExamStaminaConsumptionDownFix",
+      "effectValue1": 1,
+      "effectValue2": 0,
+      "id": "e_effect-exam_stamina_consumption_down_fix-0001-inf",
+      "text": "消費体力削減 / <nobr> / 1 / </nobr>"
+    }
+  ],
+  "customizations": [
+    {
+      "customizeCount": 1,
+      "description": "",
+      "id": "p_card_custom-020-g_effect-cost_reduce-2",
+      "overwriteProduceCardGrowEffectType": "ProduceCardGrowEffectType_Unknown",
+      "produceCardGrowEffectIds": [
+        "g_effect-cost_reduce-2"
+      ],
+      "producePoint": 20
+    },
+    {
+      "customizeCount": 1,
+      "description": "元気追加",
+      "id": "p_card_custom-070-g_effect-effect_add-e_effect-exam_block-0004",
+      "overwriteProduceCardGrowEffectType": "ProduceCardGrowEffectType_BlockAdd",
+      "produceCardGrowEffectIds": [
+        "g_effect-effect_add-e_effect-exam_block-0004"
+      ],
+      "producePoint": 70
+    }
+  ],
+  "grows": [
+    {
+      "costType": "ExamCostType_Unknown",
+      "effectGroupIds": [],
+      "effectType": "ProduceCardGrowEffectType_CostReduce",
+      "id": "g_effect-cost_reduce-2",
+      "playEffectProduceExamTriggerId": "",
+      "playMovePositionType": "ProduceCardMovePositionType_Unknown",
+      "playProduceExamEffectId": "",
+      "playProduceExamTriggerId": "",
+      "produceCardStatusEnchantId": "",
+      "targetPlayEffectProduceExamTriggerIds": [],
+      "targetPlayProduceExamEffectIds": [],
+      "value": 2
+    },
+    {
+      "costType": "ExamCostType_Unknown",
+      "effectGroupIds": [
+        "effect_group-visible-exam_block-000"
+      ],
+      "effectType": "ProduceCardGrowEffectType_EffectAdd",
+      "id": "g_effect-effect_add-e_effect-exam_block-0004",
+      "playEffectProduceExamTriggerId": "",
+      "playMovePositionType": "ProduceCardMovePositionType_Unknown",
+      "playProduceExamEffectId": "e_effect-exam_block-0004",
+      "playProduceExamTriggerId": "",
+      "produceCardStatusEnchantId": "",
+      "targetPlayEffectProduceExamTriggerIds": [],
+      "targetPlayProduceExamEffectIds": [],
+      "value": 0
+    }
+  ],
+  "engineCards": [
+    {
+      "id": 586,
+      "name": "月明りに包まれて",
+      "availableCustomizations": "",
+      "rarity": "SSR",
+      "type": "mental",
+      "plan": "free",
+      "unlockPlv": 1,
+      "upgraded": false,
+      "unique": true,
+      "sourceType": "support",
+      "pIdolId": "",
+      "forceInitialHand": true,
+      "conditions": "",
+      "cost": "cost-=5",
+      "actions": "costReduction+=1; cardUsesRemaining+=1",
+      "limit": 1,
+      "effects": ""
+    },
+    {
+      "id": 587,
+      "name": "月明りに包まれて+",
+      "availableCustomizations": "29,27",
+      "rarity": "SSR",
+      "type": "mental",
+      "plan": "free",
+      "unlockPlv": 1,
+      "upgraded": true,
+      "unique": true,
+      "sourceType": "support",
+      "pIdolId": "",
+      "forceInitialHand": true,
+      "conditions": "",
+      "cost": "cost-=2",
+      "actions": "costReduction+=1; cardUsesRemaining+=1",
+      "limit": 1,
+      "effects": ""
+    }
+  ],
+  "engineCustomizations": [
+    {
+      "id": 29,
+      "alias": "cost1",
+      "name": "コスト値-",
+      "type": "cost",
+      "price": 20,
+      "max": 1,
+      "forceInitialHand": "",
+      "conditions": "",
+      "cost": "",
+      "actions": "",
+      "limit": "",
+      "effects": "at:prestage { target:this { g.cost+=2 } }"
+    },
+    {
+      "id": 27,
+      "alias": "genkiAdd1_4",
+      "name": "元気追加",
+      "type": "genki",
+      "price": 70,
+      "max": 1,
+      "forceInitialHand": "",
+      "conditions": "",
+      "cost": "",
+      "actions": "genki+=4",
+      "limit": "",
+      "effects": ""
+    }
+  ]
+}

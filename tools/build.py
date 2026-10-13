@@ -17,7 +17,7 @@ from resource_release import prepare, write_config, public_url
 from install_content import read_release, requirements_for, install_release
 from content_contract import require_web_version, validate_manifest, validate_part, sha256
 
-def build(output, asset_lock=None, content_lock=None, mirror_images=False, image_cache=None, cache_report=None):
+def build(output, asset_lock=None, content_lock=None, mirror_images=False, image_cache=None, cache_report=None, preview_account=False):
     if output.is_symlink():
         raise ValueError('输出目录不能是符号链接')
     output = output.resolve()
@@ -52,6 +52,10 @@ def build(output, asset_lock=None, content_lock=None, mirror_images=False, image
         (staging / directory).mkdir()
         for source in (ROOT / directory).glob('*.mjs'):
             shutil.copyfile(source, staging / directory / source.name)
+    (staging/'application/features.mjs').write_text('// 部署时生成的功能开关。\nexport const features='+json.dumps({'previewAccount': bool(preview_account)})+';\n')
+    if preview_account:
+        (staging/'resources').mkdir(exist_ok=True)
+        shutil.copyfile(ROOT/'resources/preview-account.json', staging/'resources/preview-account.json')
     content_data = None
     if content_lock:
         (ROOT/'local').mkdir(exist_ok=True)
@@ -93,7 +97,7 @@ def build(output, asset_lock=None, content_lock=None, mirror_images=False, image
         url = public_url(channel);data_hosts = [url.scheme+'://'+url.netloc]
     elif channel != './content/channel.json':
         raise ValueError('本地内容频道必须为 ./content/channel.json')
-    (staging/'content-config.mjs').write_text('// 构建时确定内容频道，更新资料无需重新构建程序。\nexport const contentConfig='+json.dumps({'channelURL': channel})+';\n')
+    (staging/'content-config.mjs').write_text('// 构建时确定内容频道，更新资料无需重新构建程序。\nexport const contentConfig='+json.dumps({'channelURL': channel,**({'bootstrapChannelURL':'./content/channel.json'} if data_hosts else {})})+';\n')
     html = (staging / 'index.html').read_text(encoding='utf-8')
     # 版本随当前程序构建写入，旧页面不会读取新部署的身份。
     version = json.loads((ROOT/'package.json').read_text())['version']
@@ -119,7 +123,7 @@ def build(output, asset_lock=None, content_lock=None, mirror_images=False, image
             path.with_name(path.name+'.gz').write_bytes(gzip.compress(content, mtime=0))
     (staging / 'release.json').write_text(json.dumps({'project': 'gakumas-web', 'format': 1, 'version': version, **identity,
         'image_policy': {'mode': config['mode'], 'hosts': image_hosts, 'download_origins': config.get('allowedOrigins', [])},
-        'content_channel': channel, 'files': records}, ensure_ascii=False, indent=2)+'\n', encoding='utf-8')
+        'content_channel': channel, 'features': {'preview_account': bool(preview_account)}, 'files': records}, ensure_ascii=False, indent=2)+'\n', encoding='utf-8')
     for path in output.iterdir():
         if path != staging:
             shutil.rmtree(path) if path.is_dir() else path.unlink()
@@ -136,5 +140,6 @@ if __name__ == '__main__':
     parser.add_argument('--content-lock', type=Path, help='可选初始内容版本；后续更新使用 install_content.py，无需重建程序')
     parser.add_argument('--mirror-images', action='store_true', help='下载并校验图片分段和增量，随站点同源发布；资源更新须重新构建')
     parser.add_argument('--image-cache', type=Path, help='可选图片构建缓存目录；仅用于同源图片构建')
+    parser.add_argument('--preview-account', action=argparse.BooleanOptionalAction, default=False, help='是否提供内置预览账号，默认关闭')
     args = parser.parse_args()
-    print(f'静态程序构建完成：{build(args.output, args.asset_lock, args.content_lock, args.mirror_images, args.image_cache)} 个程序文件；内容独立发布。')
+    print(f'静态程序构建完成：{build(args.output, args.asset_lock, args.content_lock, args.mirror_images, args.image_cache, preview_account=args.preview_account)} 个程序文件；内容独立发布。')

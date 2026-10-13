@@ -1,3 +1,7 @@
+import {createMemoryPowerRules,calculateMemoryPower} from './memory-power.mjs';
+import {producerLevelFromExp,producerLevelCap} from './producer-level.mjs';
+import {installCommunityRules} from './community-rules.mjs';
+import {createContestCatalog} from './contest-simulation.mjs';
 import {assetURL,uiIconURL} from '../resources.mjs';
 import {createAchievementCatalog,achievementDetailScope} from './achievements.mjs';
 import {endingBonusReference} from './ending-bonuses.mjs';
@@ -10,10 +14,10 @@ import {plainText,descriptionText} from './semantic-text.mjs';
 import {summarizeAbility,abilityGroupInfo,abilityChoiceGroups} from './ability-summary.mjs';
 import {createSemantics} from './semantic-model.mjs';
 export {plainText} from './semantic-text.mjs';
-// 偶像印象色取自 https://gkms.idolism.org/colors（2026-09-30 核对）；根緒亜紗里使用用户指定色，未列出的角色不猜色。
-const characterColors={amao:'#C45DC8',atbm:'#8874FF',fktn:'#FFD203',hmsz:'#6EA3FC',hrnm:'#FD7EC2',
-  hski:'#FF4F64',hume:'#F74C2C',jsna:'#FFAC28',kcna:'#FE8A22',kllj:'#D2E3E4',shro:'#00BED8',ssmk:'#92DE5A',ttmr:'#27B4EB',nasr:'#92debb'};
+let characterColors={},skinReleaseMetadata={};
 let tables = null;
+let contests=createContestCatalog();
+export const contestCatalog=()=>contests;
 const supportCatalogCache=new Map();
 let endingBonuses={};
 let achievements=createAchievementCatalog();
@@ -32,6 +36,13 @@ export const endingBonusInfo=(characterId,capturedCharacter)=>endingBonusReferen
 let customizeCards=createCardCustomizations();
 export const cardCustomizations=reference=>customizeCards.available(reference);
 let progression = createProgression();
+let memoryPowerRules=null;
+export const memoryPower=memory=>calculateMemoryPower(memory,memoryPowerRules,contestSimulationReference);
+let producerLevels;
+let cardConversions=[];
+export const contestCardConversions=()=>cardConversions;
+export function accountProducerLevel(exp){return producerLevelFromExp(exp,producerLevels);}
+export function accountProducerLevelCap(){return producerLevelCap(producerLevels);}
 export function progressionInfo(kind, held, target, potential) { return progression[kind](held,target,potential); }
 let abilityIcons = {};
 let semantics = createSemantics({});
@@ -45,28 +56,12 @@ function index(rows, secondary) {
   }
   return map;
 }
-// 补充时间仅供排序；不改写公开目录的 viewStartTime。
-// 初期夏装按同期报道核对批次，日期精度为天：
-// https://ascii.jp/elem/000/004/207/4207337/
-const summerReleaseDays=new Map([
-  ...['amao-3-001','ssmk-3-001','hski-3-003','ttmr-3-003','fktn-3-003','kllj-3-002'].map(id=>['i_card-skin-'+id,'2024-07-01']),
-  ...['hrnm-3-001','hume-3-001','kcna-3-003','shro-3-003'].map(id=>['i_card-skin-'+id,'2024-07-12']),
-]);
-export function skinSortTimes(skins){
+// 原始发行时间优先，补充时间与依据由 catalog 内容分包提供，不在客户端推断批次。
+export function skinSortTimes(skins,supplements=skinReleaseMetadata){
   const result=new Map();
-  const valid=value=>Number.isFinite(Number(value))&&Number(value)>0;
   for(const skin of skins){
-    if(valid(skin.viewStartTime)){result.set(skin.id,{time:Number(skin.viewStartTime),source:'catalog'});continue;}
-    const day=summerReleaseDays.get(skin.id);
-    if(day&&skin.theme==='夏 · キミとセミブルー'){
-      result.set(skin.id,{time:Date.parse(day+'T00:00:00+09:00'),source:'reported-batch',precision:'day',url:'https://ascii.jp/elem/000/004/207/4207337/'});continue;
-    }
-    // 仅对已核对的同批次条目推定，禁止从跨年份合并主题自动借用日期。
-    if(skin.id==='i_card-skin-jsna-3-016'&&skin.theme==='ENDLESS DANCE'){
-      const peers=skins.filter(row=>row.id!==skin.id&&row.theme===skin.theme&&valid(row.viewStartTime));
-      const times=new Set(peers.map(row=>Number(row.viewStartTime)));
-      if(peers.length&&times.size===1)result.set(skin.id,{time:Number(peers[0].viewStartTime),source:'same-batch',referenceIds:peers.map(row=>row.id)});
-    }
+    if(Number.isFinite(Number(skin.viewStartTime))&&Number(skin.viewStartTime)>0)result.set(skin.id,{time:Number(skin.viewStartTime),source:'catalog'});
+    else if(supplements[skin.id])result.set(skin.id,supplements[skin.id]);
   }
   return result;
 }
@@ -77,6 +72,9 @@ let abilityChoiceAliases=new Map(),abilityChoiceDefinitions=new Map(),abilityFil
 let customizeItemParents=new Map();
 let customizeItemImages={};
 export function installMaster(input) {
+  characterColors=input.catalogMetadata?.characterColors??{};skinReleaseMetadata=input.catalogMetadata?.skinReleaseTimes??{};
+  installCommunityRules(input.communityRules);
+  contests=createContestCatalog(input.contests?.tables,input.contests?.stagePresets);
   supportCatalogCache.clear();
   endingBonuses=input.endingBonuses??{};
   achievements=createAchievementCatalog(input.achievements??{},endingBonuses,input.characters??{});
@@ -105,7 +103,10 @@ export function installMaster(input) {
   abilityIcons = input.abilityIcons ?? {};
   semantics = createSemantics(t,input.semantics?.tables ?? {});
   progression = createProgression(input.progression?.tables,t,semantics);
-  tables = {memoryTags:index(input.memoryTags??[]),cardCustomizes:index(input.semantics?.tables?.ProduceCardCustomize??[],'customizeCount'),cardGrows:index(input.semantics?.tables?.ProduceCardGrowEffect??[]),customizeItems:index(input.semantics?.tables?.ProduceCustomizeItem??[]),cards: index(t.ProduceCard, 'upgradeCount'), items: index(t.ProduceItem),
+  memoryPowerRules=createMemoryPowerRules(input.progression?.tables);
+  producerLevels=input.progression?.tables?.ProducerLevel;
+  cardConversions=input.progression?.tables?.ProduceCardConversion??[];
+  tables = {cardTriggers:index(input.semantics?.tables?.ProduceExamTrigger??[]),memoryTags:index(input.memoryTags??[]),cardCustomizes:index(input.semantics?.tables?.ProduceCardCustomize??[],'customizeCount'),cardGrows:index(input.semantics?.tables?.ProduceCardGrowEffect??[]),customizeItems:index(input.semantics?.tables?.ProduceCustomizeItem??[]),cards: index(t.ProduceCard, 'upgradeCount'), items: index(t.ProduceItem),
     abilities: index(t.MemoryAbility, 'level'), skills: index(t.ProduceSkill, 'level'),
     effects: index(t.ProduceEffect), exam: index(t.ProduceExamEffect), characters: new Map(Object.entries(input.characters ?? {})),
     triggers:index(input.semantics?.tables?.ProduceTrigger??[]), supports: index(input.supports?.cards ?? []), idols: index(input.idols?.cards ?? []), skins: index(input.idols?.skins ?? [])};
@@ -144,7 +145,7 @@ export const selectionFlowDefinitions=[
   {id:'lesson',label:'集中',prefixes:['ExamLessonBuff']},
   {id:'aggressive',label:'干劲',prefixes:['ExamCardPlayAggressive','ExamAggressive']},
   {id:'review',label:'好印象',prefixes:['ExamReview']},
-  {id:'concentration',label:'强气／温存',prefixes:['ExamConcentration']},
+  {id:'concentration',label:'强气',prefixes:['ExamConcentration']},
   {id:'fullPower',label:'全力',prefixes:['ExamFullPower']},
 ];
 export function selectionChoiceMetadata(kind,reference){
@@ -193,6 +194,7 @@ export function idolInfo(held) {
   const info = {name: plainText(card.name), character: characterInfo(card.characterId).name,
     characterResolved: tables.characters.has(card.characterId),
     characterId: card.characterId, plan: card.planType?.replace('ProducePlanType_',''), rarity: card.rarity.replace(/^IdolCardRarity_/, '').toUpperCase(),
+    sortReleaseTime:skinReleaseTimes.get(card.originalIdolCardSkinId)?.time,
     examEffectType:card.examEffectType, rarityEnum: card.rarity, cardResolved: true, skinResolved: true};
   const skin = held.idolCardSkinId ? tables.skins.get(held.idolCardSkinId) : null;
   if (held.idolCardSkinId && (!skin || skin.idolCardId !== card.id)) {
@@ -270,15 +272,16 @@ export function supportSkillVisual(reference){
   const statusType=definition.costType?.replace('ExamCostType_','');
   if(definition.costValue>0){values.set(statusType,definition.costValue);present.add(statusType);}
   const targets={Cost:'stamina',CostPenetrate:'direct',CostAggressive:'ExamCardPlayAggressive',CostFullPowerPoint:'ExamFullPowerPoint',CostLessonBuff:'ExamLessonBuff',CostParameterBuff:'ExamParameterBuff',CostParameterBuffMultiplePerTurn:'ExamParameterBuffMultiplePerTurn',CostReview:'ExamReview'};
-  let costsKnown=true;
+  let costsKnown=true,growsKnown=true;const appliedGrows=[];
   // 选定附魔等级的增减已经是累计值，不再乘以附魔次数；仅合并使用消耗。
   for(const custom of reference.customizes??[]){
     if(!custom.customizeCount)continue;
     const selected=tables.cardCustomizes.get(pair(custom.id,custom.customizeCount));
-    if(!selected){costsKnown=false;continue;}
+    if(!selected){costsKnown=false;growsKnown=false;continue;}
     for(const id of selected.produceCardGrowEffectIds??[]){
       const grow=tables.cardGrows.get(id);
-      if(!grow){costsKnown=false;continue;}
+      if(!grow){costsKnown=false;growsKnown=false;continue;}
+      appliedGrows.push(grow);
       const type=grow.effectType.replace('ProduceCardGrowEffectType_','');
       if(!type.startsWith('Cost'))continue;
       const match=type.match(/^(.*)(Add|Reduce)$/),target=match&&targets[match[1]];
@@ -288,7 +291,7 @@ export function supportSkillVisual(reference){
   }
   const addCost=(label,value,icon,kind='stamina')=>costs.push({label,value:Math.max(0,value),icon,kind});
   if(present.has('stamina'))addCost(t('体力'),values.get('stamina'),uiIconURL('skill-stamina.webp'));
-  if(present.has('direct'))addCost(t('直接消耗体力（无法用元气抵消）'),values.get('direct'),uiIconURL('skill-stamina-direct.webp'),'direct');
+  if(present.has('direct'))addCost(t('体力'),values.get('direct'),uiIconURL('skill-stamina-direct.webp'),'direct');
   for(const type of present){
     if(type==='stamina'||type==='direct')continue;
     const icon=abilityIcons.examIcons?.[type];
@@ -296,18 +299,48 @@ export function supportSkillVisual(reference){
     addCost(label,values.get(type),icon?assetURL(icon):null,'status');
   }
   if(!costs.length)addCost(t('体力'),0,uiIconURL('skill-stamina.webp'));
-  // 使用条件不等于效果触发条件；只显示使用后直接生效的定值参数提升与元气。
-  const fixedEffects=(row.playEffects??[]).filter(play=>!play.produceExamTriggerId&&!play.hideIcon)
-    .map(play=>tables.exam.get(play.produceExamEffectId));
+  // 先合并直接效果与效果条件；新增无关效果不应隐藏原有固定数值。
+  let plays=(row.playEffects??[]).map(play=>({...play,originalId:play.produceExamEffectId}));
+  for(const grow of appliedGrows){
+    const kind=grow.effectType.replace('ProduceCardGrowEffectType_','');
+    if(kind==='EffectAdd'){
+      if(!tables.exam.has(grow.playProduceExamEffectId)){growsKnown=false;continue;}
+      plays.push({produceExamEffectId:grow.playProduceExamEffectId,originalId:grow.playProduceExamEffectId,produceExamTriggerId:grow.playEffectProduceExamTriggerId??'',hideIcon:false});
+    }else if(kind==='EffectChange'){
+      const targets=new Set(grow.targetPlayProduceExamEffectIds??[]);
+      if(!targets.size||!tables.exam.has(grow.playProduceExamEffectId)){growsKnown=false;continue;}
+      plays=plays.map(play=>targets.has(play.produceExamEffectId)||targets.has(play.originalId)?{...play,produceExamEffectId:grow.playProduceExamEffectId}:play);
+    }else if(kind==='PlayEffectTriggerChange'){
+      const targets=new Set(grow.targetPlayEffectProduceExamTriggerIds??[]);
+      if(!targets.size){growsKnown=false;continue;}
+      plays=plays.map(play=>targets.has(play.produceExamTriggerId)?{...play,produceExamTriggerId:grow.playEffectProduceExamTriggerId??''}:play);
+    }
+    // PlayTriggerChange 改的是使用条件；CardStatusEnchantChange 改的是后续触发，不抹掉初始直接效果。
+  }
   const fixedValue=type=>{
-    const effects=fixedEffects.filter(effect=>effect?.effectType===type&&effect.effectValue1>0);
-    const fixed=effects.length===1&&!reference.customizes?.some(custom=>custom.customizeCount>0)?effects[0]:null;
-    return fixed?{value:fixed.effectValue1,count:fixed.effectCount}:undefined;
+    if(!growsKnown)return undefined;
+    const parts=[];
+    for(const play of plays){
+      const fixed=tables.exam.get(play.produceExamEffectId);
+      if(play.produceExamTriggerId||play.hideIcon||fixed?.effectType!==type||!(fixed.effectValue1>0))continue;
+      let value=fixed.effectValue1,count=fixed.effectCount??0;
+      for(const grow of appliedGrows){
+        if(grow.targetPlayProduceExamEffectIds?.length&&!grow.targetPlayProduceExamEffectIds.some(id=>id===fixed.id||id===play.originalId))continue;
+        const kind=grow.effectType.replace('ProduceCardGrowEffectType_',''),prefix=type==='ProduceExamEffectType_ExamLesson'?'Lesson':'Block';
+        if(kind===prefix+'Add')value+=grow.value;
+        if(kind===prefix+'Reduce')value-=grow.value;
+        if(prefix==='Lesson'&&kind==='LessonCountAdd')count+=grow.value;
+        if(prefix==='Lesson'&&kind==='LessonCountReduce')count-=grow.value;
+      }
+      parts.push({value:Math.max(0,value),count:Math.max(0,count)});
+    }
+    // 多段固定效果分别展示，避免合成单次伤害后误解集中、干劲等逐次加成。
+    return parts.length===1?parts[0]:parts.length?{parts}:undefined;
   };
   const damage=fixedValue('ProduceExamEffectType_ExamLesson'),block=fixedValue('ProduceExamEffectType_ExamBlock');
-  const visible=new Set((row.playEffects??[]).filter(effect=>!effect.hideIcon).map(effect=>effect.produceExamEffectId));
-  const icons=new Map();
-  for(const part of row.descriptions??[]){
+  const visible=new Set(plays.filter(effect=>!effect.hideIcon).map(effect=>effect.produceExamEffectId)),icons=new Map();
+  const descriptions=[...(row.descriptions??[]),...plays.flatMap(play=>tables.exam.get(play.produceExamEffectId)?.descriptions??[])];
+  for(const part of descriptions){
     const icon=abilityIcons.examIcons?.[descriptionIconType(part)];
     if(icon&&visible.has(part.originProduceExamEffectId)&&!icons.has(icon))icons.set(icon,{image:icon,label:plainText(part.text)});
   }
@@ -455,4 +488,64 @@ export function recordedProduceSkillInfo(reference){
   const row=tables?.skills.get(pair(reference.id,reference.level));
   if(!row)return {text:t('效果说明未收录'),descriptionParts:[],effectIds:[]};
   return {text:descriptionText(row.descriptions).text,descriptionParts:row.descriptions,effectIds:[1,2,3].map(index=>row[`produceEffectId${index}`]).filter(Boolean)};
+}
+
+// 比赛编组候选来自公开目录，包含未持有项；不暴露内部主数据 Map。
+export function contestCustomizationCatalog(){
+  const cards=new Map();
+  for(const row of tables?.cards.values()??[]){
+    if(!row||row.upgradeCount>1||row.definition?.libraryHidden||row.category==='ProduceCardCategory_Trouble'||row.rarity==='ProduceCardRarity_Legend')continue;
+    const reference={id:row.id,upgradeCount:row.upgradeCount,customizes:[]};
+    if(!cards.has(row.id))cards.set(row.id,{id:row.id,name:plainText(row.name),unlockProducerLevel:row.definition?.unlockProducerLevel,idolCardId:row.definition?.originIdolCardId||row.definition?.originPrimaStellaIdolCardId||'',supportCardId:row.definition?.originSupportCardId||'',metadata:selectionChoiceMetadata('card',reference),previewCharacterId:row.originCharacterId||Object.keys(row.images??{}).find(id=>id!=='common'),versions:[]});
+    if(row.upgradeCount===0)cards.get(row.id).unlockProducerLevel=row.definition?.unlockProducerLevel;
+    cards.get(row.id).versions.push(reference);
+  }
+  const conversionById=new Map(cardConversions.flatMap(row=>[[row.beforeProduceCardId,row],[row.afterProduceCardId,row]]));
+  for(const card of cards.values()){
+    card.versions.sort((a,b)=>a.upgradeCount-b.upgradeCount);
+    card.conversion=conversionById.get(card.id);
+    card.isConversion=tables.cards.get(pair(card.id,0))?.definition?.isConversion===true;
+    if(card.isConversion)card.unlockProducerLevel=card.conversion?.unlockProducerLevel;
+  }
+  const items=[];
+  for(const row of tables?.items.values()??[]){
+    if(!row||row.definition?.libraryHidden||row.definition?.isExamEffect!==true)continue;
+    items.push({id:row.id,name:plainText(row.name),metadata:selectionChoiceMetadata('item',{id:row.id})});
+  }
+  return {cards:[...cards.values()],items};
+}
+
+export function contestFixedItemIds(memory){
+  return new Set((memory.examBattleProduceItemIds??[]).filter(id=>{
+    const definition=tables?.items.get(id)?.definition;
+    return Boolean(definition)&&(definition.originIdolCardId||definition.originPrimaStellaIdolCardId)===memory.idolCardId;
+  }));
+}
+
+// 搜索候选只使用当前支援等级已解锁的事件奖励，不把持有卡片等同于全部奖励已开放。
+export function contestOwnedSupportRewards(supportCards=[]){
+  const cards=new Set(),items=new Set();
+  for(const held of supportCards){
+    for(const event of tables?.supports.get(held.supportCardId)?.events??[]){
+      if(!Number.isFinite(held.level)||!Number.isFinite(event.unlockLevel)||held.level<event.unlockLevel)continue;
+      for(const id of event.effectIds??[])for(const reward of tables.effects.get(id)?.definition?.produceRewards??[]){
+        if(reward.resourceType==='ProduceResourceType_ProduceCard')cards.add(reward.resourceId);
+        if(reward.resourceType==='ProduceResourceType_ProduceItem')items.add(reward.resourceId);
+      }
+    }
+  }
+  return {cards,items};
+}
+
+export const contestCardNoDeckDuplication=reference=>tables?.cards.get(pair(reference.id,reference.upgradeCount))?.definition.noDeckDuplication===true;
+
+// 模拟只接收所选卡片及其公开定义，不传递账号标识或整份库存。
+export function contestSimulationReference(kind,reference){
+  if(kind==='item')return {id:reference,record:tables?.items.get(reference)??null};
+  return {reference:{id:reference.id,upgradeCount:reference.upgradeCount,customizes:(reference.customizes??[]).map(value=>({...value}))},record:tables?.cards.get(pair(reference.id,reference.upgradeCount))??null,customizations:(reference.customizes??[]).map(value=>{
+    const record=tables?.cardCustomizes.get(pair(value.id,value.customizeCount));
+    const grows=(record?.produceCardGrowEffectIds??[]).map(id=>tables?.cardGrows.get(id)??null);
+    const triggerIds=[...new Set(grows.filter(grow=>['ProduceCardGrowEffectType_PlayTriggerChange','ProduceCardGrowEffectType_PlayEffectTriggerChange'].includes(grow?.effectType)).flatMap(grow=>[grow.playProduceExamTriggerId,grow.playEffectProduceExamTriggerId,...(grow.targetPlayEffectProduceExamTriggerIds??[])])).values()].filter(Boolean).sort();
+    return {record:record??null,grows,effects:grows.filter(grow=>grow?.playProduceExamEffectId).map(grow=>tables?.exam.get(grow.playProduceExamEffectId)??null),...(triggerIds.length?{triggers:triggerIds.map(id=>tables?.cardTriggers.get(id)??null)}:{})};
+  })};
 }

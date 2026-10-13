@@ -1,23 +1,23 @@
+import {appendMemorySkillBadges} from './memory-skill-badges.mjs';
 import {tagControls,favoriteButton} from './personal-library.mjs';
 import {$,el} from './dom.mjs';
 import {stats,protectionBadge,memoryTagBadge,shareLinkButton} from './shared.mjs';
 import {foldTitle,sortedMemoryBattleCards,canCompareMemory} from '../domain/memories.mjs';
 import {t} from '../i18n.mjs';
 import {selectionGrades} from '../domain/selection-memories.mjs';
-import {shown,title,shotDate,memoryUse} from '../domain/model.mjs';
-import {cardInfo,characterInfo,semanticGroup,abilitySummaries,cardRewardInfo,itemRewardInfo,planLabel,memoryExclusiveSkill} from '../domain/catalog.mjs';
+import {shown,title,shotDate,memoryUse,memoryShortId} from '../domain/model.mjs';
+import {cardInfo,characterInfo,idolInfo,semanticGroup,abilitySummaries,cardRewardInfo,itemRewardInfo,planLabel,memoryExclusiveSkill} from '../domain/catalog.mjs';
 import {characterAccent,characterArt,skillArt,deckArt,skillThumbnailFor,filterSymbol} from './illustrations.mjs';
 import {rewardHint} from './card-rewards.mjs';
 import {abilityChips} from './ability-view.mjs';
 import {semanticSection} from './semantic-view.mjs';
-function recordedSkill(card,characterId,phase){
+export function recordedSkill(card,characterId,phase){
   const reward=cardRewardInfo(card,characterId,{previewVersions:true});
   const hint=reward.versions.length?rewardHint(reward,{label:''},false,'',{recorded:true}):skillThumbnailFor(card,characterId);
   if(reward.versions.length){hint.classList.add('support-art-event','memory-skill-hint');hint.dataset.cardId=card.id;hint.dataset.upgrade=String(card.upgradeCount);}
-  const target=hint.querySelector('button')??hint,labels=[];
+  const target=hint.querySelector('button')??hint;
   const count=(card.customizes??[]).reduce((sum,value)=>sum+value.customizeCount,0);
-  if(count){const badge=el('span',String(count),'selection-custom-count');badge.title=t('附魔次数：{0}',[count]);target.append(badge);labels.push(badge.title);}
-  if(phase===1){const badge=el('span',t('开局标识'),'memory-start-inherit');badge.title=t('开局继承');badge.setAttribute('role','img');badge.setAttribute('aria-label',badge.title);target.append(badge);labels.push(badge.title);}
+  const labels=appendMemorySkillBadges(target,count,phase);
   if(labels.length)target.setAttribute('aria-label',`${target.getAttribute('aria-label')??cardInfo(card,characterId).name} · ${labels.join(' · ')}`);
   return hint;
 }
@@ -70,8 +70,9 @@ export function memoryEntry(m, context) {
   const check=el('input');check.type='checkbox';check.checked=context.selected;check.setAttribute('aria-label',t('选择{0}进行比较',[title(m)]));check.onchange=()=>context.select(m,check);
   const pick=el('label','','pick');pick.append(check,el('span',t('比较')));
   const date=el('time',shotDate(m),'entry-date');date.title=t('回忆拍摄日期');
-  const tools=el('div','','memory-card-tools'),social=el('div','','card-social-actions');social.append(shareLinkButton(m.key,'memory'),favoriteButton(context.favorite??false,context.onFavorite??(()=>{}),context.favoriteDisabled??false));tools.append(date,social);top.append(identity,tools);
+  const tools=el('div','','memory-card-tools'),social=el('div','','card-social-actions');social.append(shareLinkButton(m.key,'memory'),favoriteButton(context.favorite??false,context.onFavorite??(()=>{}),context.favoriteDisabled??false));const detail=el('button',t('详情'),'memory-detail-open');detail.onclick=()=>context.open(m);tools.append(detail,date,social);top.append(identity,tools);
   const status=el('div','','memory-card-status');if(m.isProtected)status.append(protectionBadge());
+  if(hasDeck&&m.inheritCount===0)status.append(el('span',t('可合成'),'badge memory-can-inherit'));
   const gameTag=memoryTagBadge(m);if(gameTag)status.append(gameTag);
   status.append(tagControls(context.tags,context.editTags,context.tagsDisabled,true,context.removeTag));
   const hero=memoryInheritance(m,status);
@@ -88,10 +89,31 @@ export function memoryEntry(m, context) {
   }
 
   const footer=el('footer','','memory-card-footer');
-  if(hasDeck)footer.append(pick);
+  if(hasDeck){footer.append(pick);if(context.simulate){const simulate=el('button',t('用于赛季模拟'),'memory-simulation-action');simulate.onclick=()=>context.simulate(m);footer.append(simulate);}}
   row.append(top,hero);if(hasDeck)row.append(attributes);
   if(context.purpose!=='inheritance'&&(m.examBattleProduceCards?.length||m.examBattleProduceItemIds?.length))row.append(battleLoadout(m));
   if(hasDeck)row.append(footer);return row;
+}
+// 比赛选择复用回忆卡片的属性、道具和技能展示，不生成继承卡及培养能力区。
+export function memoryContestCard(memory,multipliers){
+  const card=characterAccent(el('article','','contest-memory-option memory-card'),memory.characterId),head=el('div','','memory-card-topline'),name=el('div','','contest-memory-card-name');
+  name.append(el('strong',characterInfo(memory.characterId).name));head.append(name);card.append(head);
+  const attributes=stats(memory);attributes.classList.add('memory-card-stats');
+  ['vocal','dance','visual'].forEach((key,index)=>{const cell=attributes.children[index];cell.classList.add('season-attribute-value');cell.dataset.attribute=key;cell.append(el('small',multipliers[key]===null?'—':`${Number((multipliers[key]*100).toFixed(1))}%`,'season-candidate-multiplier'));});
+  const itemRow=el('div','','contest-memory-item-row'),items=el('div','','memory-item-strip');items.setAttribute('aria-label',t('P 道具'));
+  for(const id of memory.examBattleProduceItemIds??[]){const hint=rewardHint(itemRewardInfo(id),{label:''},false,'');hint.classList.add('support-art-event');items.append(hint);}
+  if(!items.childElementCount)items.append(el('small',t(memory.examBattleProduceItemIds?'无':'未记录'),'muted'));
+  const score=el('div','','contest-memory-score');score.append(el('strong',selectionGrades[memory.grade]??'—','memory-card-grade'),el('span',t(memory.powerSource==='calculated'?'综合值（计算值）':'综合值')),el('strong',shown(memory.power)));head.append(score);itemRow.append(items);card.append(itemRow);
+  const strip=el('div','','memory-skill-strip');strip.setAttribute('aria-label',t('考试技能卡'));
+  const exclusive=memoryExclusiveSkill(memory),cards=memory.examBattleProduceCards??[],first=cards.findIndex(value=>value===exclusive?.reference);
+  const ordered=first>=0?[cards[first],...sortedMemoryBattleCards(cards.filter((_,index)=>index!==first))]:sortedMemoryBattleCards(cards);
+  for(const value of ordered){const hint=recordedSkill(value,memory.characterId);hint.dataset.cardId=value.id;strip.append(hint);}card.append(strip);
+  const values=[memory.vocal,memory.dance,memory.visual],total=values.reduce((sum,value)=>sum+value,0);
+  if(values.every(Number.isFinite)&&total>0){
+    const ratio=el('div','','memory-attribute-ratio');ratio.setAttribute('role','img');const labels=[];
+    values.forEach((value,index)=>{const percent=value/total*100,label=`${['Vo','Da','Vi'][index]} ${percent.toFixed(1)}%`,segment=el('span','','memory-attribute-segment');segment.style.width=`${percent}%`;segment.title=label;labels.push(label);ratio.append(segment);});ratio.setAttribute('aria-label',labels.join(' · '));card.append(ratio);
+  }
+  card.append(attributes);return card;
 }
 export function showDetail(m, context) {
   const content = characterAccent($('detail-content'),m.characterId); content.replaceChildren(); $('detail-title').textContent = title(m);
@@ -101,6 +123,7 @@ export function showDetail(m, context) {
   if(use!=='unknown')overview.append(el('span',t(use==='training'?'培养专用':'含比赛配置'),'memory-use '+use));
   overview.append(el('span',hasDeck?t('{0} · 综合 {1} · 等级 {2}',[shotDate(m),shown(m.power),shown(m.grade)]):`${shotDate(m)} · ${t('等级')} ${shown(m.grade)}`,'small muted'));
   if(m.isProtected)overview.append(protectionBadge());
+  if(hasDeck&&m.inheritCount===0)overview.append(el('span',t('可合成'),'badge memory-can-inherit'));
   const gameTag=memoryTagBadge(m);if(gameTag)overview.append(gameTag);
   content.append(hero,...(hasDeck?[stats(m)]:[]),overview,
     semanticSection(t('继承卡'),semanticGroup(m,'produceCard'),true),
@@ -108,9 +131,15 @@ export function showDetail(m, context) {
   if(use==='training')content.append(el('p',t('活动培养专用回忆，可用于后续培养，不用于 Contest / Tower。'),'memory-use-note'));
   else if(m.examBattleProduceCards?.length||m.examBattleProduceItemIds?.length){
     const battleMemory={...m,examBattleProduceCards:m.examBattleProduceCards===undefined?undefined:sortedMemoryBattleCards(m.examBattleProduceCards)};
-    const gallery=el('section','','deck-gallery');gallery.append(el('h3',t('考试配置')),deckArt(battleMemory));content.append(gallery,
+    const gallery=el('section','','deck-gallery');gallery.append(el('h3',t('考试配置')),deckArt(battleMemory,false,{renderItem:id=>rewardHint(itemRewardInfo(id),{label:''},false,'')}));content.append(gallery,
       semanticSection(foldTitle(t('考试卡组'),m.examBattleProduceCards),semanticGroup(battleMemory,'examBattleProduceCards')),
       semanticSection(foldTitle(t('考试P道具'),m.examBattleProduceItemIds),semanticGroup(m,'examBattleProduceItemIds')));
+  }
+  if(memoryShortId(m)){
+    const identifier=el('details','','memory-identifier'),value=el('code',m.key),copy=el('button',t('复制完整标识')),feedback=el('span','','small muted');
+    identifier.append(el('summary',t('固定标识')),value,copy,feedback);feedback.setAttribute('role','status');
+    copy.onclick=async()=>{try{await navigator.clipboard.writeText(m.key);feedback.textContent=t('唯一标识已复制，可粘贴到搜索框');}catch{feedback.textContent=t('复制失败，请手动选择标识复制。');}};
+    content.append(identifier);
   }
   content.append(tagControls(context.tags,context.editTags,context.tagsDisabled,false,context.removeTag)); $('detail-dialog').hidden=false;
 }

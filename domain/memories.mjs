@@ -43,6 +43,18 @@ export function summaryText(m, purpose = 'inheritance') {
   return group.entries.map(e=>e.lines.filter(Boolean).join(' · ') || e.heading).join(' / ');
 }
 // 普通回忆按实际记录列出考试卡组，不套用选拔回忆的稀有度或专属卡排除规则。
+export const inheritanceCustomizeCount=card=>(card.customizes??[]).reduce((sum,value)=>sum+value.customizeCount,0);
+export const inheritanceSkillKey=memory=>JSON.stringify([memory.produceCard.id,memory.produceCard.upgradeCount,memory.produceCardPhaseType??null,inheritanceCustomizeCount(memory.produceCard)]);
+export function inheritanceCardChoices(memories){
+  const cards=new Map();
+  for(const memory of memories){
+    if(!memory.produceCard)continue;
+    const key=inheritanceSkillKey(memory);if(cards.has(key))continue;
+    const reference={...memory.produceCard,customizes:[]};
+    cards.set(key,{key,reference,phase:memory.produceCardPhaseType,customizeCount:inheritanceCustomizeCount(memory.produceCard),characterId:memory.characterId,memoryCharacterIds:[],info:cardInfo(reference,memory.characterId),metadata:selectionChoiceMetadata('card',reference)});
+  }
+  return [...cards.values()];
+}
 export function memoryExamChoices(memories){
   const cards=new Map(),items=new Map();
   for(const memory of memories){
@@ -103,7 +115,7 @@ export function filterMemories(snapshot,v,groups,tagFor=()=>[]){
     if(v.purpose==='inheritance'&&hasDeck||v.purpose==='with-deck'&&!hasDeck)return false;
     if(v.memoryGrade&&String(m.grade)!==v.memoryGrade)return false;
     if(v.plan&&String(m.planType)!==v.plan)return false;
-    if(!matchesExamChoices(v.skill,m.produceCard?[m.produceCard.id]:[],false))return false;
+    if(!matchesExamChoices(v.skill,m.produceCard?[m.produceCard.id,inheritanceSkillKey(m)]:[],false))return false;
     const heldAbilities=new Set((m.abilities??[]).map(ability=>abilityChoiceKey(ability.id)));
     if(!abilityGroups.every(group=>group.some(id=>heldAbilities.has(id))))return false;
     if(!matchesExamChoices(v.memoryExamSkill,(m.examBattleProduceCards??[]).map(selectionSkillKey),v.memoryExamSkillAll)||!matchesExamChoices(v.memoryExamItem,m.examBattleProduceItemIds??[],v.memoryExamItemAll))return false;

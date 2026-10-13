@@ -3,7 +3,10 @@ import {installEffectPresentation} from '../ui/effect-view.mjs';
 import {takeMaster} from './master-prefetch.mjs';
 
 export const masterDependencies={
+  account:['progression'],
   catalog:['catalog'],
+  contests:['catalog','effects','abilities','progression'],
+  seasonSimulation:['catalog','effects','abilities','progression'],
   achievements:['catalog','achievements'],
   idolCardSkins:['catalog'],
   memories:['catalog','effects','abilities'],

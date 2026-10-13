@@ -1,7 +1,7 @@
 import {supportEffectClauses} from '../domain/support-effect-choices.mjs';
 import {resetSupportEffectChoices} from './support-effect-picker.mjs';
 import {$,el} from './dom.mjs';
-import {memoryExamChoices} from '../domain/memories.mjs';
+import {memoryExamChoices,inheritanceCardChoices} from '../domain/memories.mjs';
 import {selectionGrades} from '../domain/selection-memories.mjs';
 import {descriptionIconType} from '../domain/effect-icons.mjs';
 import {t,locale,localizeSource} from '../i18n.mjs';
@@ -41,11 +41,8 @@ export function syncMemoryFilterOptions(snapshot,view){
   const characters=JSON.stringify(selectedValues(view.character).sort()),language=locale();
   if(!memoryOptionCache||memoryOptionCache.snapshot!==snapshot||memoryOptionCache.characters!==characters||memoryOptionCache.language!==language){
     const memories=(snapshot?.memories??[]).filter(memory=>matchesAny(view.character,[memory.characterId]));
-    const cards=new Map();
-    for(const memory of memories)if(memory.produceCard&&!cards.has(memory.produceCard.id)){
-      const reference={...memory.produceCard,customizes:[]};cards.set(reference.id,{key:reference.id,reference,characterId:memory.characterId,memoryCharacterIds:[],info:cardInfo(reference,memory.characterId),metadata:selectionChoiceMetadata('card',reference)});
-    }
-    $('skill').replaceChildren(new Option(t('全部'),''),...[...cards.values()].map(value=>new Option(value.info.name,value.key)));
+    const cards=inheritanceCardChoices(memories);
+    $('skill').replaceChildren(new Option(t('全部'),''),...cards.map(value=>new Option(value.info.name,value.key)));
     const abilities=new Map();
     for(const memory of memories)for(const ability of memory.abilities??[]){
       const key=abilityChoiceKey(ability.id);if(abilities.has(key))continue;
@@ -57,10 +54,11 @@ export function syncMemoryFilterOptions(snapshot,view){
       abilities.set(key,{key,summary,name:summaryAbility(ability),text:summary.description.sourceText||summaryAbility(ability),hifSort:{plan:metadata.plan,rarity:metadata.rarity,effects:[...new Set(effects)].sort().join('|')}});
     }
     $('ability').replaceChildren(new Option(t('全部能力'),''),...[...abilities.values()].map(value=>new Option(value.name,value.key)));
-    const choices={...memoryExamChoices(memories),inheritanceCards:[...cards.values()],abilities:[...abilities.values()]};
+    const choices={...memoryExamChoices(memories),inheritanceCards:cards,abilities:[...abilities.values()]};
     for(const [id,values,isCard] of [['memory-skill',choices.cards,true],['memory-item',choices.items,false]])$(id).replaceChildren(new Option(t('全部'),''),...values.map(value=>new Option(isCard?`${value.info.name} · ${t('强化')} +${value.reference.upgradeCount}`:value.info.name,value.key)));
     memoryOptionCache={snapshot,characters,language,choices};
   }
+  if(view.skill)view.skill=[...new Set(selectedValues(view.skill).flatMap(key=>memoryOptionCache.choices.inheritanceCards.filter(value=>value.key===key||value.reference.id===key).map(value=>value.key)))];
   if(view.ability)view.ability=[...new Set(selectedValues(view.ability).map(abilityChoiceKey))];
   // 角色切换后清除已离开候选范围的条件，避免残留条件把列表筛空。
   for(const [key,id] of [['skill','skill'],['ability','ability'],['memoryExamSkill','memory-skill'],['memoryExamItem','memory-item']]){

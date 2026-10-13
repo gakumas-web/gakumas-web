@@ -8,6 +8,10 @@
 
 首次部署前在仓库 Settings → Pages 中选择 GitHub Actions。工作流使用平台提供的临时令牌，不需要个人 PAT Secret。Pages 的发布目录含完整内容和图片副本，须保持在 1 GB 内；每月 100 GB 为平台软流量限制。
 
+## Windows 便携版与制品复用
+
+同一工作流将站点存入 GitHub Actions Artifacts，并在 Windows 上生成、启动验证便携 exe。`publish` 控制 Pages 发布；另行勾选 `publish_portable` 才在 Pages 部署成功后公开便携版 Release，默认仅保留便携制品供复用。支持填写 `reuse_run_id` 复用同提交、同配置的既有运行。详细保留期限和操作见[便携版说明](portable-release.md)。
+
 ## 更新
 
 先生成并发布通过当前合同校验的内容包，然后更新 `resources/pages-source.json` 中固定的版本、下载 URL、字节数和 SHA-256，再重新运行工作流。不得使用 `latest` 地址。上游图片分段也必须已发布且能由 Actions 下载。
@@ -19,10 +23,10 @@
 ```sh
 python3 -m pip install -r requirements-build.txt
 python3 -B tools/build_pages.py --output local/pages-test/dist
-python3 -B -m http.server 8080 --bind 127.0.0.1 --directory local/pages-test
+python3 -B -m http.server 18765 --bind 127.0.0.1 --directory local/pages-test
 ```
 
-打开 `http://127.0.0.1:8080/dist/`，可验证子目录下的内容与图片下载。库存仍由浏览器本地处理，不进入 Pages、Release 或部署流程。
+打开 `http://127.0.0.1:18765/dist/`，可验证子目录下的内容与图片下载。库存仍由浏览器本地处理，不进入 Pages、Release 或部署流程。
 
 ## 加载与兼容
 

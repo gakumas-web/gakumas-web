@@ -3,16 +3,18 @@ import {t} from '../i18n.mjs';
 import {skillThumbnail,itemThumbnail} from './illustrations.mjs';
 import {skillCardDetails} from './skill-card-details.mjs';
 import {semanticContent} from './semantic-view.mjs';
-let activeRewardPopover=null,activeRewardAnchor=null,activeRewardBounds=null,rewardPopoverId=0;
-export function closeRewardPopover(){if(activeRewardPopover?.matches(':popover-open'))activeRewardPopover.hidePopover();activeRewardPopover=null;activeRewardAnchor=null;activeRewardBounds=null;}
+let activeRewardPopover=null,activeRewardAnchor=null,activeRewardBounds=null,rewardPopoverId=0,pendingRewardHover=null;
+const hoverDelay=550;
+export function closeRewardPopover(){pendingRewardHover?.();if(activeRewardPopover?.matches(':popover-open'))activeRewardPopover.hidePopover();activeRewardPopover=null;activeRewardAnchor=null;activeRewardBounds=null;}
 // 焦点滚动的通知可能晚于打开；只有入口位置实际变化才关闭浮层。
 document.addEventListener('scroll',event=>{
+  pendingRewardHover?.();
   if(!activeRewardPopover||activeRewardPopover.contains(event.target))return;
   const bounds=activeRewardAnchor?.getBoundingClientRect();
   if(!bounds||bounds.top!==activeRewardBounds?.top||bounds.left!==activeRewardBounds?.left)closeRewardPopover();
 },true);
 window.addEventListener('resize',closeRewardPopover);
-document.addEventListener('keydown',event=>{if(event.key==='Escape'&&activeRewardPopover?.matches(':popover-open')){event.preventDefault();event.stopPropagation();activeRewardPopover.dispatchEvent(new Event('reward-dismiss'));}},true);
+document.addEventListener('keydown',event=>{if(event.key==='Escape')pendingRewardHover?.();if(event.key==='Escape'&&activeRewardPopover?.matches(':popover-open')){event.preventDefault();event.stopPropagation();activeRewardPopover.dispatchEvent(new Event('reward-dismiss'));}},true);
 // 模态关闭时归还焦点，不把这次程序性聚焦当作再次请求说明。
 export function suppressRewardHintFocus(button){button?.dispatchEvent(new Event('reward-suppress-focus'));return button;}
 export function supportHint(button,body,{container,followPointer=false,hoverOnly=false}={}){
@@ -24,10 +26,16 @@ export function supportHint(button,body,{container,followPointer=false,hoverOnly
   if(!build)popup.append(body);
   button.setAttribute('aria-controls',popup.id);button.setAttribute('aria-expanded','false');
   if(followPointer)popup.classList.add('support-pointer-popover');
-  let pinned=false,timer,focusSuppressed=false,focusReturnSuppressed=false;
-  button.addEventListener('reward-suppress-focus',()=>{focusSuppressed=true;focusReturnSuppressed=true;if(popup.matches(':popover-open'))popup.hidePopover();});
+  let pinned=false,timer,hoverTimer,hoverPointer,focusSuppressed=false,focusReturnSuppressed=false;
+  function cancelHover(){clearTimeout(hoverTimer);hoverTimer=null;if(pendingRewardHover===cancelHover)pendingRewardHover=null;}
+  function scheduleHover(pointer){
+    hoverPointer=pointer;clearTimeout(timer);if(hoverTimer||popup.matches(':popover-open'))return;
+    pendingRewardHover?.();pendingRewardHover=cancelHover;
+    hoverTimer=setTimeout(()=>{cancelHover();if(button.isConnected&&button.matches(':hover')&&!focusReturnSuppressed)show(hoverPointer);},hoverDelay);
+  }
+  button.addEventListener('reward-suppress-focus',()=>{cancelHover();focusSuppressed=true;focusReturnSuppressed=true;if(popup.matches(':popover-open'))popup.hidePopover();});
   // Escape 后抑制迟到的焦点及指针事件，直到离开入口或再次明确点击。
-  popup.addEventListener('reward-dismiss',()=>{focusSuppressed=true;focusReturnSuppressed=true;pinned=false;popup.hidePopover();button.setAttribute('aria-expanded','false');});
+  popup.addEventListener('reward-dismiss',()=>{cancelHover();focusSuppressed=true;focusReturnSuppressed=true;pinned=false;popup.hidePopover();button.setAttribute('aria-expanded','false');});
   function positionAtPointer(event){
     const bounds=popup.getBoundingClientRect();
     const left=event.clientX+12,top=event.clientY+14;
@@ -56,19 +64,19 @@ export function supportHint(button,body,{container,followPointer=false,hoverOnly
   popup.addEventListener('click',queuePosition);
   popup.addEventListener('toggle',event=>{if(event.target!==popup)queuePosition();},true);
   function show(pointer){
-    clearTimeout(timer);if(popup.matches(':popover-open')){if(pointer&&!pinned)positionAtPointer(pointer);return;}
+    cancelHover();clearTimeout(timer);if(popup.matches(':popover-open')){if(pointer&&!pinned)positionAtPointer(pointer);return;}
     if(build){popup.append(build());build=null;}
     closeRewardPopover();popup.showPopover();activeRewardPopover=popup;button.setAttribute('aria-expanded','true');
     positionPopup(pointer);activeRewardAnchor=button;activeRewardBounds=button.getBoundingClientRect();
   }
   function leave(){
-    clearTimeout(timer);timer=setTimeout(()=>{
+    cancelHover();clearTimeout(timer);timer=setTimeout(()=>{
       if(!pinned&&!button.matches(':hover')&&!popup.matches(':hover')&&!wrapper.contains(document.activeElement)&&popup.matches(':popover-open'))popup.hidePopover();
     },150);
   }
-  button.onpointerenter=event=>{if(focusReturnSuppressed)return;focusSuppressed=false;if(event.pointerType==='mouse')show(followPointer?event:undefined);};button.onpointerleave=()=>{focusReturnSuppressed=false;leave();};
+  button.onpointerenter=event=>{if(focusReturnSuppressed)return;focusSuppressed=false;if(event.pointerType==='mouse')scheduleHover(followPointer?event:undefined);};button.onpointerleave=()=>{focusReturnSuppressed=false;leave();};
   // 滚动会关闭浮层；鼠标仍在入口内移动时恢复说明，无需先移出再进入。
-  if(followPointer)button.onpointermove=event=>{if(event.pointerType!=='mouse'||pinned)return;if(popup.matches(':popover-open'))positionAtPointer(event);else if(!focusSuppressed&&!focusReturnSuppressed)show(event);};
+  if(followPointer)button.onpointermove=event=>{if(event.pointerType!=='mouse'||pinned)return;if(popup.matches(':popover-open'))positionAtPointer(event);else if(!focusSuppressed&&!focusReturnSuppressed)scheduleHover(event);};
   popup.onpointerenter=()=>clearTimeout(timer);popup.onpointerleave=leave;
   button.onfocus=()=>{
     // 等浏览器把键盘焦点滚入视口，再显示浮层，避免被这次自动滚动立即关闭。
@@ -80,9 +88,13 @@ export function supportHint(button,body,{container,followPointer=false,hoverOnly
   popup.addEventListener('toggle',()=>{const open=popup.matches(':popover-open');button.setAttribute('aria-expanded',String(open));if(!open){focusSuppressed=focusReturnSuppressed||document.activeElement===button;pinned=false;if(activeRewardPopover===popup){activeRewardPopover=null;activeRewardAnchor=null;activeRewardBounds=null;}}});
   if(!container)wrapper.append(button);wrapper.append(popup);return wrapper;
 }
+export function itemRewardUseLabel(reward){return t(reward.use==='battle'?'可继承至比赛':reward.use==='training'?'仅用于培养':'用途待确认');}
+export function itemRewardSummary(reward){
+  const summary=el('div','','support-item-summary');summary.append(el('strong',reward.name),el('p',itemRewardUseLabel(reward),'small muted'));return summary;
+}
 export function itemRewardDetails(reward,{effectContent}={}){
   const body=el('div','','support-reward-body reward-description'),header=el('header','','support-item-header'),identity=el('div');
-  const use=t(reward.use==='battle'?'可继承至比赛':reward.use==='training'?'仅用于培养':'用途待确认');
+  const use=itemRewardUseLabel(reward);
   identity.append(el('h4',reward.name),el('p',use,'small muted'));header.append(itemThumbnail(reward),identity);
   const effect=el('div','','support-item-description');
   if(effectContent)effect.append(effectContent);
@@ -94,7 +106,7 @@ export function rewardHint(reward,event,locked,lockedLabel,{chooseVersion=true,c
   const button=el('button','','support-reward-trigger');button.dataset.rewardKind=reward.kind;
   const art=el('span','','support-reward-art');
   button.append(art);
-  const use=reward.kind==='item'?t(reward.use==='battle'?'可继承至比赛':reward.use==='training'?'仅用于培养':'用途待确认'):t('技能卡');
+  const use=reward.kind==='item'?itemRewardUseLabel(reward):t('技能卡');
   const eventLabel=event.label??t('事件 {0} · Lv.{1} 解锁',[event.number,event.unlockLevel]);
   button.setAttribute('aria-label',[reward.name,use,eventLabel,locked?lockedLabel:''].filter(Boolean).join(' · '));
   const isCard=reward.kind==='card'&&reward.versions.length;

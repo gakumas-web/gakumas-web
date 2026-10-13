@@ -1,6 +1,6 @@
 import {markLoading} from './loading-metrics.mjs';
 import {contentConfig} from '../content-config.mjs';
-import {appURL,installContentResources} from '../resources.mjs';
+import {appURL,installContentResources,validateContentResources} from '../resources.mjs';
 import {WEB_VERSION} from './version.mjs';
 import {readContentCache,writeContentCache} from './content-store.mjs';
 import {contentScopes,contentLimits,ContentError,contentHash,validateContentManifest,validateContentChannel,validateContentPart,validateContentBundle} from '../domain/content-contract.mjs';
@@ -13,7 +13,7 @@ export async function readBounded(response,limit,onProgress=()=>{}){
   const bytes=new Uint8Array(size);let offset=0;for(const chunk of chunks){bytes.set(chunk,offset);offset+=chunk.byteLength;}return bytes;
 }
 const decode=bytes=>new TextDecoder('utf-8',{fatal:true}).decode(bytes);
-export function createContentManager({channelURL,webVersion=WEB_VERSION,fetcher=(...args)=>fetch(...args),store={read:readContentCache,write:writeContentCache},install=installContentResources}={}){
+export function createContentManager({channelURL,bootstrapChannelURL,webVersion=WEB_VERSION,fetcher=(...args)=>fetch(...args),store={read:readContentCache,write:writeContentCache},install=installContentResources,validateResources=validateContentResources}={}){
   let current,startup,updating,controller,generation=0;
   const parsed=new Map(),listeners=new Set();
   let state={phase:'idle',version:null,availableVersion:null,cached:false,error:null,local:false,bytes:0,totalBytes:0};
@@ -28,7 +28,8 @@ export function createContentManager({channelURL,webVersion=WEB_VERSION,fetcher=
     current={bundle,manifest};parsed.clear();markLoading('content-ready');
     notify({phase:'ready',version:manifest.version,availableVersion:null,cached,error:null,local:bundle.origin==='local'});
   }
-  async function refresh(){
+  const refresh=()=>refreshFrom(channelURL);
+  async function refreshFrom(sourceURL){
     if(updating)return updating;
     const epoch=generation;
     controller=new AbortController();const refreshController=controller;
@@ -36,9 +37,9 @@ export function createContentManager({channelURL,webVersion=WEB_VERSION,fetcher=
     // 同轮失败中止后，已收到正文的并行任务也失去发布进度的权限。
     const canPublishProgress=()=>epoch===generation&&updating===task&&!refreshController.signal.aborted;
     const task=(async()=>{
-      const channel=validateContentChannel(JSON.parse(decode(await request(channelURL,contentLimits.manifest,'no-store'))));
+      const channel=validateContentChannel(JSON.parse(decode(await request(sourceURL,contentLimits.manifest,'no-store'))));
       if(current?.bundle.manifest_sha256===channel.sha256){notify({phase:'ready'});return state;}
-      const manifestURL=new URL(channel.manifest,channelURL).href;
+      const manifestURL=new URL(channel.manifest,sourceURL).href;
       const manifestBytes=await request(manifestURL,contentLimits.manifest,'no-store');
       if(await contentHash(manifestBytes)!==channel.sha256)throw new ContentError('content_hash_mismatch');
       const text=decode(manifestBytes),manifest=validateContentManifest(JSON.parse(text),webVersion);
@@ -58,6 +59,8 @@ export function createContentManager({channelURL,webVersion=WEB_VERSION,fetcher=
       }
       if(epoch!==generation)return state;
       const bundle={format:'gakumas-content-bundle',schema_version:1,manifest:text,manifest_sha256:channel.sha256,files,origin:'online'};
+      await checkResources(bundle);
+      if(epoch!==generation)return state;
       notify({phase:'saving'});
       let cached=true;try{await store.write(bundle);}catch{cached=false;}
       if(epoch!==generation)return state;
@@ -66,6 +69,10 @@ export function createContentManager({channelURL,webVersion=WEB_VERSION,fetcher=
       notify({phase:'update-ready',availableVersion:manifest.version,cached:true,error:null});return state;
     })().catch(error=>{refreshController.abort();if(epoch===generation)notify({phase:current?'ready':'unavailable',error:error instanceof ContentError?error.message:'content_unavailable'});throw error;}).finally(()=>{if(updating===task)updating=null;});
     updating=task;return task;
+  }
+  async function checkResources(bundle){
+    try{await validateResources(JSON.parse(bundle.files['assets-index.json']));}
+    catch(error){throw new ContentError(error.message==='image_program_update_required'?'content_web_too_old':'content_assets_invalid');}
   }
   async function initialize(){
     if(current)return current;
@@ -78,6 +85,10 @@ export function createContentManager({channelURL,webVersion=WEB_VERSION,fetcher=
           try{const manifest=await validateContentBundle(cached,webVersion);if(epoch===generation&&!current)await activate(cached,manifest,true,epoch);}catch{}
         }
         if(current){if(!state.local)void refresh().catch(()=>{});return current;}
+        if(bootstrapChannelURL&&bootstrapChannelURL!==channelURL){
+          try{await refreshFrom(bootstrapChannelURL);}catch{}
+          if(current){void refresh().catch(()=>{});return current;}
+        }
         await refresh();return current;
       })().finally(()=>{if(startup===task)startup=null;});
       startup=task;
@@ -87,6 +98,7 @@ export function createContentManager({channelURL,webVersion=WEB_VERSION,fetcher=
   async function importBundle(bytes){
     if(bytes.byteLength>contentLimits.bundle)throw new ContentError('content_too_large');
     const bundle=JSON.parse(decode(bytes)),manifest=await validateContentBundle(bundle,webVersion);
+    await checkResources(bundle);
     generation++;controller?.abort();bundle.origin='local';
     try{await store.write(bundle);}catch{
       notify({phase:current?'ready':'unavailable',error:'content_cache_failed'});throw new ContentError('content_cache_failed');
@@ -100,4 +112,5 @@ export function createContentManager({channelURL,webVersion=WEB_VERSION,fetcher=
     status:()=>({...state}),subscribe(listener){listeners.add(listener);listener({...state});return()=>listeners.delete(listener);}};
 }
 const channelURL=new URL(contentConfig.channelURL,appURL('')).href;
-export const contentManager=createContentManager({channelURL});
+const bootstrapChannelURL=contentConfig.bootstrapChannelURL?new URL(contentConfig.bootstrapChannelURL,appURL('')).href:undefined;
+export const contentManager=createContentManager({channelURL,bootstrapChannelURL});

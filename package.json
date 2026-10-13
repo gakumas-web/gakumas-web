@@ -1,15 +1,17 @@
 {
   "name": "gakumas-web",
-  "version": "0.6.4-preview",
+  "version": "0.6.5-preview",
   "private": true,
   "type": "module",
   "license": "AGPL-3.0-only",
   "scripts": {
     "test": "node --test tests/*.test.mjs",
     "build": "python3 -B tools/build.py",
-    "preview": "python3 -B -m http.server 8080 --bind 127.0.0.1 --directory dist",
+    "preview": "python3 -B tools/preview.py 18765 --bind 127.0.0.1 --directory dist",
     "build:local": "python3 -B tools/build.py --asset-lock local/asset-lock.json --content-lock local/content-lock.json",
-    "content:local": "python3 -B tools/install_content.py --lock local/content-lock.json --asset-lock local/asset-lock.json --output dist"
+    "content:local": "python3 -B tools/install_content.py --lock local/content-lock.json --asset-lock local/asset-lock.json --output dist",
+    "preview:local": "python3 -B tools/preview.py 18765 --bind 127.0.0.1 --directory local/ui-visual-refinement/dist",
+    "audit:engine": "node tools/audit_contest_engine.mjs"
   },
   "engines": {
     "node": ">=22"

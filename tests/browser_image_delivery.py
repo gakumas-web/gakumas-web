@@ -126,20 +126,43 @@ def check(browser_path=None):
                 before=len(requested);same_origin=[]
                 mirrored=browser.new_context();mirrored.on('request',lambda request:same_origin.append((request.url,request.method,request.post_data)))
                 mirror_page=mirrored.new_page();mirror_page.on('pageerror',lambda error:errors.append(str(error)))
-                mirror_page.goto(f'http://127.0.0.1:{site_server.server_port}/mirror/dist/',wait_until='networkidle')
+                # 延迟完整图片计划时，账号导入入口仍应先就绪。
+                plan_checks=[]
+                def delayed_plan(route):
+                    expect(mirror_page.locator('#startup-status')).to_be_hidden()
+                    expect(mirror_page.locator('#empty-import-account')).to_be_enabled()
+                    assert not any('/image-files/' in address for address,_,_ in same_origin)
+                    plan_checks.append(True);route.continue_()
+                mirrored.route('**/image-plan-*.json',delayed_plan)
+                mirror_url=f'http://127.0.0.1:{site_server.server_port}/mirror/dist/'
+                mirror_page.goto(mirror_url,wait_until='networkidle')
+                assert plan_checks
+                mirrored.unroute('**/image-plan-*.json')
                 mirror_page.locator('#resources-open').click();ready(mirror_page)
                 assert show_image(mirror_page,'second.png')['width']==1
-                assert len(requested)==before
+                incremental='/cdn/objects/'+index('two')['files']['ui-icons/second.png']['sha256']+'.png'
+                assert requested[before:]==[incremental]
                 downloads=[address for address,_,_ in same_origin if '/image-files/' in address]
                 assert len(downloads)==1 and all('/mirror/dist/image-files/' in address for address in downloads)
-                assert all((address.startswith('blob:') or urlsplit(address).netloc==f'127.0.0.1:{site_server.server_port}') and method in ('GET','HEAD') and not body for address,method,body in same_origin),same_origin
+                assert all((address.startswith('blob:') or urlsplit(address).netloc==f'127.0.0.1:{site_server.server_port}' or address==image_origin+incremental) and method in ('GET','HEAD') and not body for address,method,body in same_origin),same_origin
                 mirror_page.reload(wait_until='networkidle');mirror_page.locator('#resources-open').click();ready(mirror_page)
                 assert len([address for address,_,_ in same_origin if '/image-files/' in address])==1
+                assert requested[before:]==[incremental]
                 mirror_page.locator('#close-resources').click();mirror_page.set_viewport_size({'width':375,'height':812})
                 mirror_page.locator('#language').select_option('ja')
                 expect(mirror_page.locator('#image-notice')).to_contain_text('画像')
                 assert mirror_page.evaluate('document.documentElement.scrollWidth<=innerWidth'), '移动端资源状态溢出'
                 mirrored.close()
+                # 损坏计划不能安装或开始图片下载；重新载入有效计划后可恢复。
+                corrupt=browser.new_context();corrupt_requests=[]
+                corrupt.on('request',lambda request:corrupt_requests.append(request.url))
+                corrupt.route('**/image-plan-*.json',lambda route:route.fulfill(status=200,body='{}',content_type='application/json'))
+                corrupt_page=corrupt.new_page();corrupt_page.goto(mirror_url,wait_until='networkidle')
+                corrupt_page.wait_for_function("async()=>{const {contentManager}=await import('./application/content-manager.mjs');return contentManager.status().phase==='unavailable'}")
+                expect(corrupt_page.locator('#empty-import-account')).to_be_enabled()
+                assert not any('/image-files/' in address for address in corrupt_requests)
+                corrupt.unroute('**/image-plan-*.json');corrupt_page.reload(wait_until='networkidle');corrupt_page.locator('#resources-open').click();ready(corrupt_page)
+                corrupt.close()
                 failed=browser.new_context();failed.route('**/app.mjs',lambda route:route.abort())
                 failed_page=failed.new_page();failed_page.goto(url,wait_until='networkidle')
                 expect(failed_page.locator('#startup-status')).to_contain_text('启动失败')
@@ -157,7 +180,7 @@ def check(browser_path=None):
                 browser.close()
             return {'initial_release_only':True,'reload_offline_images':True,'incremental_cdn_only':True,
                     'existing_client_skips_new_baseline':True,'new_client_uses_latest_baseline':True,
-                    'segment_resume':True,'cross_origin':True,'same_origin_subpath':True,'content_before_images':True,'boot_failure':True,'mobile_japanese':True,'mirror_hash_failure_preserves_site':True,'decoded_images':True,'page_errors':len(errors)}
+                    'segment_resume':True,'cross_origin':True,'same_origin_subpath':True,'deferred_plan_entry_ready':True,'corrupt_plan_rejected':True,'content_before_images':True,'boot_failure':True,'mobile_japanese':True,'mirror_hash_failure_preserves_site':True,'decoded_images':True,'page_errors':len(errors)}
     finally:
         if site_server:site_server.shutdown();site_server.server_close();site_thread.join()
         images.shutdown();images.server_close();image_thread.join()

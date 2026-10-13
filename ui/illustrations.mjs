@@ -56,7 +56,7 @@ export function skillArt(card, characterId, compact = false, showRarity = false)
   frame.title = t("{0} · {1} · 强化 +{2} · 自定义 {3}",[info.name,info.category || t('类别未解析'),info.upgrade ?? t('未记录'),info.customizes ?? t('未记录')]);
   return frame;
 }
-export function deckArt(memory, compact = false) {
+export function deckArt(memory, compact = false, {renderItem} = {}) {
   const groups=node('div','','deck-groups');
   const group=(label,values,kind)=>{
     const section=node('div','',`deck-group ${kind}`);
@@ -69,7 +69,7 @@ export function deckArt(memory, compact = false) {
   const items=group(t('P 道具'),memory.examBattleProduceItemIds,'deck-item-group');
   for(const id of memory.examBattleProduceItemIds??[]){
     const info=itemArt(id),tile=node('div','','item-tile');
-    tile.append(itemThumbnail(info));
+    tile.append(renderItem?renderItem(id):itemThumbnail(info));
     if(!compact)tile.append(node('span',info.name,'art-name'));
     if(info.upgraded)tile.append(node('span',t('强化'),'badge'));
     items.append(tile);
@@ -77,14 +77,14 @@ export function deckArt(memory, compact = false) {
   return groups;
 }
 export function filterSymbol(value){
-  const icons={Plan1:'plan1',Plan2:'plan2',Plan3:'plan3',
+  const icons={Common:'plan-common',Plan1:'plan1',Plan2:'plan2',Plan3:'plan3',
     Vocal:'vocal',Dance:'dance',Visual:'visual',Assist:'assist',vocal:'vocal',dance:'dance',visual:'visual',
     ProduceExamEffectType_ExamParameterBuff:'examparameterbuff',ProduceExamEffectType_ExamReview:'examreview',
     ProduceExamEffectType_ExamLessonBuff:'examlessonbuff',ProduceExamEffectType_ExamConcentration:'examconcentration',
     ProduceExamEffectType_ExamFullPower:'examfullpower',ProduceExamEffectType_ExamCardPlayAggressive:'examcardplayaggressive'};
   const name=icons[value];if(!name)return null;
   const frame=node('span','','filter-symbol'+(name.startsWith('exam')?' exam-symbol':''));frame.setAttribute('aria-hidden','true');
-  const image=document.createElement('img');image.alt='';image.src=uiIconURL(`${name}.webp`);image.width=24;image.height=24;
+  const image=document.createElement('img');image.alt='';image.src=uiIconURL(name==='plan-common'?'plan-common.png':`${name}.webp`);image.width=24;image.height=24;
   watchImage(image);frame.append(image);return frame;
 }
 
@@ -107,31 +107,29 @@ function skillImage(src,className,label=''){
 function skillCosts(visual){
   const costs=el('span','','support-skill-costs');
   for(const cost of visual.costs){
-    const chip=el('span','','support-skill-cost');chip.title=`${cost.label} ${cost.value}`;chip.dataset.costKind=cost.kind;
-    chip.setAttribute('aria-label',chip.title);
+    const chip=el('span','','support-skill-cost');chip.dataset.costKind=cost.kind;
+    chip.setAttribute('aria-label',`${cost.label} ${cost.value}`);
     if(cost.kind==='status')chip.append(skillImage(uiIconURL('skill-cost-status-bg.webp'),'cost-background'));
     if(cost.icon)chip.append(skillImage(cost.icon,'cost-symbol')); 
     chip.append(el('b',cost.value?`−${cost.value}`:'0'));costs.append(chip);
   }
   return costs;
 }
-export function skillThumbnail(version,{compact=false}={}){
+export function skillThumbnail(version,{compact=false,showValues=true}={}){
   const tile=el('span','','support-skill-thumbnail');tile.classList.toggle('thumbnail-compact',compact);tile.setAttribute('aria-hidden','true');
-  tile.append(illustration(version.image,version.name,'reward-art'));
+  const artwork=illustration(version.image,version.name,'reward-art');artwork.removeAttribute('title');tile.append(artwork);
   if(version.visual.frame)tile.append(skillImage(uiIconURL(`${version.visual.frame}.webp`),'support-skill-frame'));
   const icons=el('span','','support-skill-symbols');
   for(const icon of compact?[]:version.visual.icons.slice(0,3))icons.append(skillImage(assetURL(icon.image),'',icon.label));
-  const applied=version.reference.customizes?.some(entry=>entry.customizeCount>0);
   const costs=skillCosts(compact||version.visual.costsKnown===false?{costs:[]}:version.visual);
   if(version.reference.upgradeCount)tile.append(skillImage(uiIconURL('skill-enhanced.webp'),'support-skill-enhanced'));
   tile.append(icons,costs);
-  if(!compact&&!applied&&version.visual.damage){
-    const {value,count}=version.visual.damage;
-    tile.append(el('b',`${value}${count>1?`×${count}`:''}`,'support-skill-damage'));
+  const amountText=amount=>(amount.parts??[amount]).map(({value,count})=>`${value}${count>1?`×${count}`:''}`).join('+');
+  if(showValues&&version.visual.damage){
+    const amount=el('b',amountText(version.visual.damage),'support-skill-damage');amount.title=t('固定伤害：{0}',[amount.textContent]);amount.style.setProperty('--skill-value-font',`${Math.min(16,76/amount.textContent.length)}cqw`);tile.append(amount);
   }
-  if(!compact&&!applied&&version.visual.block){
-    const {value,count}=version.visual.block;
-    const amount=el('span','','support-skill-block'),number=el('b',`${value}${count>1?`×${count}`:''}`);amount.title=`${t('元气')} ${number.textContent}`;amount.append(skillImage(uiIconURL('skill-block.webp'),''),number);tile.append(amount);
+  if(showValues&&version.visual.block){
+    const amount=el('span','','support-skill-block'),number=el('b',amountText(version.visual.block));amount.setAttribute('aria-label',`${t('元气')} ${number.textContent}`);amount.title=t('固定元气：{0}',[number.textContent]);amount.style.setProperty('--skill-value-width',`${Math.min(46,Math.max(27,number.textContent.length*8))}%`);amount.style.setProperty('--skill-value-font',`${Math.min(14,76/number.textContent.length)}cqw`);amount.append(skillImage(uiIconURL('skill-block.webp'),''),number);tile.append(amount);
   }
   return tile;
 }
@@ -145,5 +143,5 @@ export function itemThumbnail(reward){
 
 export function skillThumbnailFor(reference,characterId,options){
   const info=cardInfo(reference,characterId);
-  return skillThumbnail({reference:reference??{},...info,visual:reference?supportSkillVisual(reference):{costs:[],icons:[]}},options);
+  return skillThumbnail({reference:reference??{},...info,visual:reference?supportSkillVisual(reference):{costs:[],icons:[]}},{...options,showValues:reference?.customizationsKnown!==false&&options?.showValues!==false});
 }

@@ -1,6 +1,7 @@
 """独立安装已校验内容，不重建或改写 Web 程序；最后原子切换频道。"""
 import argparse
 import gzip
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -83,6 +84,34 @@ def install_release(output, raw, manifest, files):
     return {'version': manifest['version'], 'manifest_sha256': sha256(raw), 'files': len(files)}
 
 
+def required_download_origins(output, release, index):
+    """已构建的同源基础包按映射与文件哈希复用，未镜像来源仍须在策略内。"""
+    origins = {source_origin(index['cdn_base_url'])}
+    allowed = set(release['image_policy'].get('download_origins', []))
+    mappings = None
+    for pack in index['baseline']['packages']:
+        origin = source_origin(pack['url'])
+        if origin not in allowed:
+            if mappings is None:
+                raw = (output/'image-config.mjs').read_bytes()
+                if sha256(raw) != release['files'].get('image-config.mjs'):
+                    raise ValueError('已构建图片配置哈希不匹配')
+                config = json.loads(raw.decode().split('export const imageConfig=', 1)[1].strip().removesuffix(';'))
+                mappings = config.get('downloadURLs', {})
+            relative = 'image-files/'+pack['sha256']+'.tar.gz'
+            if mappings.get(pack['url']) == './'+relative:
+                path = output/relative
+                if not path.is_file() or path.stat().st_size != pack['bytes']:
+                    raise ValueError('已镜像基础图片包缺失或大小不匹配')
+                with path.open('rb') as stream:
+                    digest = hashlib.file_digest(stream, 'sha256').hexdigest()
+                if digest != pack['sha256']:
+                    raise ValueError('已镜像基础图片包哈希不匹配')
+                continue
+        origins.add(origin)
+    return origins
+
+
 def install(output, lock_path=None, bundle_path=None, asset_lock=None):
     output = Path(output)
     release = json.loads((output/'release.json').read_text())
@@ -96,7 +125,7 @@ def install(output, lock_path=None, bundle_path=None, asset_lock=None):
         index=json.loads(files['assets-index.json'])
         if mode not in ('none','managed'):raise ValueError('旧图片模式已退役，需要重新构建程序')
         if mode=='managed':
-            origins={source_origin(url) for url in [index['cdn_base_url'],*[pack['url'] for pack in index['baseline']['packages']]]}
+            origins=required_download_origins(output, release, index)
             if not origins <= set(release['image_policy'].get('download_origins',[])):raise ValueError('图片来源未被当前程序允许，需要重新构建')
         if asset_lock:
             asset = json.loads(Path(asset_lock).read_text())

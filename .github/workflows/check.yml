@@ -15,6 +15,13 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.13'
+      - uses: actions/setup-go@v6
+        with:
+          go-version: '1.26.8'
+          cache: false
+      - name: 验证便携启动器
+        working-directory: tools/portable-server
+        run: go test ./...
       - run: node --test tests/*.test.mjs
       - run: python -B tools/check_public.py
       - run: python -B tools/build.py

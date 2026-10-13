@@ -1,0 +1,302 @@
+{
+  "reference": {
+    "id": "p_card-01-men-2_099",
+    "upgradeCount": 1,
+    "customizes": []
+  },
+  "record": {
+    "assetId": "img_general_skillcard_men-2_099",
+    "category": "ProduceCardCategory_MentalSkill",
+    "definition": {
+      "assetId": "img_general_skillcard_men-2_099",
+      "category": "ProduceCardCategory_MentalSkill",
+      "costType": "ExamCostType_Unknown",
+      "costValue": 0,
+      "effectGroupIds": [
+        "effect_group-visible-exam_card_draw-000",
+        "effect_group-visible-exam_playable_value_add-000",
+        "effect_group-visible-exam_lesson_buff-000"
+      ],
+      "evaluation": 47,
+      "forceStamina": 0,
+      "id": "p_card-01-men-2_099",
+      "isCharacterAsset": true,
+      "isConversion": true,
+      "isEndTurnLost": false,
+      "isInitial": false,
+      "isInitialDeckProduceCard": false,
+      "isLimited": false,
+      "isRestrict": false,
+      "isReward": false,
+      "libraryHidden": false,
+      "maxCustomizeCount": 1,
+      "moveEffectTriggerType": "ProduceCardMoveEffectTriggerType_Unknown",
+      "moveProduceExamEffectIds": [],
+      "moveProduceExamTriggerIds": [],
+      "name": "一発勝負+",
+      "noDeckDuplication": true,
+      "order": "32010530680099",
+      "originCharacterId": "",
+      "originIdolCardId": "",
+      "originPrimaStellaIdolCardId": "",
+      "originSupportCardId": "",
+      "planType": "ProducePlanType_Plan1",
+      "playEffects": [
+        {
+          "hideIcon": false,
+          "isOncePlayEffect": false,
+          "produceExamEffectId": "e_effect-exam_lesson_buff-0008",
+          "produceExamTriggerId": ""
+        },
+        {
+          "hideIcon": false,
+          "isOncePlayEffect": false,
+          "produceExamEffectId": "e_effect-exam_playable_value_add-01",
+          "produceExamTriggerId": ""
+        },
+        {
+          "hideIcon": false,
+          "isOncePlayEffect": false,
+          "produceExamEffectId": "e_effect-exam_card_draw-0001",
+          "produceExamTriggerId": ""
+        },
+        {
+          "hideIcon": false,
+          "isOncePlayEffect": false,
+          "produceExamEffectId": "e_effect-exam_card_create_id-p_card-00-acc-0_002-0-deck_random-1_1",
+          "produceExamTriggerId": ""
+        }
+      ],
+      "playMovePositionType": "ProduceCardMovePositionType_Lost",
+      "playProduceExamTriggerId": "",
+      "produceCardCustomizeIds": [
+        "p_card_custom-wrapper-p_card-01-men-2_099-a-01",
+        "p_card_custom-wrapper-p_card-01-men-2_099-b-01"
+      ],
+      "produceCardStatusEnchantId": "",
+      "rarity": "ProduceCardRarity_Sr",
+      "rentalUnlockProducerLevel": 0,
+      "searchTag": "",
+      "stamina": 4,
+      "unlockProducerLevel": 0,
+      "upgradeCount": 1,
+      "viewStartTime": "0",
+      "voiceAssetId": ""
+    },
+    "descriptions": [
+      {
+        "examDescriptionType": "ExamDescriptionType_CustomizeInitialAdd",
+        "produceDescriptionType": "ProduceDescriptionType_Exam",
+        "targetId": "Description_ProduceCardIsInitial",
+        "text": ""
+      },
+      {
+        "originProduceExamEffectId": "e_effect-exam_lesson_buff-0008",
+        "produceDescriptionType": "ProduceDescriptionType_ProduceDescriptionName",
+        "targetId": "Label_StyleDot",
+        "text": ""
+      },
+      {
+        "examEffectType": "ProduceExamEffectType_ExamLessonBuff",
+        "originProduceExamEffectId": "e_effect-exam_lesson_buff-0008",
+        "produceDescriptionType": "ProduceDescriptionType_ProduceExamEffectType",
+        "targetId": "Label_ExamLessonBuff_Produce",
+        "text": "集中"
+      },
+      {
+        "originProduceExamEffectId": "e_effect-exam_lesson_buff-0008",
+        "produceDescriptionType": "ProduceDescriptionType_PlainText",
+        "text": "<nobr>+"
+      },
+      {
+        "effectValue1": 8,
+        "examDescriptionType": "ExamDescriptionType_CustomizeEffectValue1",
+        "originProduceExamEffectId": "e_effect-exam_lesson_buff-0008",
+        "produceDescriptionType": "ProduceDescriptionType_Exam",
+        "text": "8"
+      },
+      {
+        "originProduceExamEffectId": "e_effect-exam_lesson_buff-0008",
+        "produceDescriptionType": "ProduceDescriptionType_PlainText",
+        "text": "</nobr>"
+      },
+      {
+        "originProduceExamEffectId": "e_effect-exam_lesson_buff-0008",
+        "produceDescriptionType": "ProduceDescriptionType_PlainText",
+        "text": ""
+      },
+      {
+        "originProduceExamEffectId": "e_effect-exam_playable_value_add-01",
+        "produceDescriptionType": "ProduceDescriptionType_ProduceDescriptionName",
+        "targetId": "Label_StyleDot",
+        "text": ""
+      },
+      {
+        "examEffectType": "ProduceExamEffectType_ExamPlayableValueAdd",
+        "originProduceExamEffectId": "e_effect-exam_playable_value_add-01",
+        "produceDescriptionType": "ProduceDescriptionType_ProduceExamEffectType",
+        "targetId": "Label_ExamPlayableValueAdd_Produce",
+        "text": "スキルカード使用数追加"
+      },
+      {
+        "originProduceExamEffectId": "e_effect-exam_playable_value_add-01",
+        "produceDescriptionType": "ProduceDescriptionType_PlainText",
+        "text": "<nobr>+"
+      },
+      {
+        "effectCount": 1,
+        "examDescriptionType": "ExamDescriptionType_CustomizeEffectCount",
+        "originProduceExamEffectId": "e_effect-exam_playable_value_add-01",
+        "produceDescriptionType": "ProduceDescriptionType_Exam",
+        "text": "1"
+      },
+      {
+        "originProduceExamEffectId": "e_effect-exam_playable_value_add-01",
+        "produceDescriptionType": "ProduceDescriptionType_PlainText",
+        "text": "</nobr>"
+      },
+      {
+        "originProduceExamEffectId": "e_effect-exam_playable_value_add-01",
+        "produceDescriptionType": "ProduceDescriptionType_PlainText",
+        "text": ""
+      },
+      {
+        "originProduceExamEffectId": "e_effect-exam_card_draw-0001",
+        "produceDescriptionType": "ProduceDescriptionType_ProduceDescriptionName",
+        "targetId": "Label_StyleDot",
+        "text": ""
+      },
+      {
+        "originProduceExamEffectId": "e_effect-exam_card_draw-0001",
+        "produceDescriptionType": "ProduceDescriptionType_PlainText",
+        "text": "スキルカードを引く"
+      },
+      {
+        "originProduceExamEffectId": "e_effect-exam_card_draw-0001",
+        "produceDescriptionType": "ProduceDescriptionType_PlainText",
+        "text": ""
+      },
+      {
+        "originProduceExamEffectId": "e_effect-exam_card_create_id-p_card-00-acc-0_002-0-deck_random-1_1",
+        "produceDescriptionType": "ProduceDescriptionType_ProduceDescriptionName",
+        "targetId": "Label_StyleDot",
+        "text": ""
+      },
+      {
+        "originProduceExamEffectId": "e_effect-exam_card_create_id-p_card-00-acc-0_002-0-deck_random-1_1",
+        "produceDescriptionType": "ProduceDescriptionType_ProduceCard",
+        "targetId": "p_card-00-acc-0_002",
+        "text": "眠気"
+      },
+      {
+        "originProduceExamEffectId": "e_effect-exam_card_create_id-p_card-00-acc-0_002-0-deck_random-1_1",
+        "produceDescriptionType": "ProduceDescriptionType_PlainText",
+        "text": "を"
+      },
+      {
+        "originProduceExamEffectId": "e_effect-exam_card_create_id-p_card-00-acc-0_002-0-deck_random-1_1",
+        "produceDescriptionType": "ProduceDescriptionType_ProduceDescriptionName",
+        "targetId": "Label_ProduceCardPositionType_DeckRandom",
+        "text": "山札のランダムな位置"
+      },
+      {
+        "originProduceExamEffectId": "e_effect-exam_card_create_id-p_card-00-acc-0_002-0-deck_random-1_1",
+        "produceDescriptionType": "ProduceDescriptionType_PlainText",
+        "text": "に"
+      },
+      {
+        "examEffectType": "ProduceExamEffectType_ExamCardCreateId",
+        "originProduceExamEffectId": "e_effect-exam_card_create_id-p_card-00-acc-0_002-0-deck_random-1_1",
+        "produceDescriptionType": "ProduceDescriptionType_ProduceExamEffectType",
+        "targetId": "Label_ExamCardCreateId",
+        "text": "生成"
+      },
+      {
+        "originProduceExamEffectId": "e_effect-exam_card_create_id-p_card-00-acc-0_002-0-deck_random-1_1",
+        "produceDescriptionType": "ProduceDescriptionType_PlainText",
+        "text": ""
+      },
+      {
+        "examDescriptionType": "ExamDescriptionType_CustomizeEffectAdd",
+        "produceDescriptionType": "ProduceDescriptionType_Exam",
+        "text": ""
+      },
+      {
+        "isOnlyOutGame": true,
+        "produceDescriptionType": "ProduceDescriptionType_PlainText",
+        "text": "<nobr>"
+      },
+      {
+        "isOnlyOutGame": true,
+        "produceDescriptionType": "ProduceDescriptionType_ProduceDescription",
+        "targetId": "Label_NoDeckDuplication",
+        "text": "重複不可"
+      },
+      {
+        "isOnlyOutGame": true,
+        "produceDescriptionType": "ProduceDescriptionType_PlainText",
+        "text": " </nobr>"
+      },
+      {
+        "produceCardMovePositionType": "ProduceCardMovePositionType_Lost",
+        "produceDescriptionType": "ProduceDescriptionType_ProduceDescription",
+        "targetId": "Label_ProduceCardMovePositionType_Lost",
+        "text": "レッスン中1回"
+      },
+      {
+        "examDescriptionType": "ExamDescriptionType_CustomizePlayMovePositionLost",
+        "produceDescriptionType": "ProduceDescriptionType_Exam",
+        "text": ""
+      }
+    ],
+    "id": "p_card-01-men-2_099",
+    "images": {
+      "amao": "img_general_skillcard_men-2_099-amao.webp",
+      "atbm": "img_general_skillcard_men-2_099-atbm.webp",
+      "fktn": "img_general_skillcard_men-2_099-fktn.webp",
+      "hmsz": "img_general_skillcard_men-2_099-hmsz.webp",
+      "hrnm": "img_general_skillcard_men-2_099-hrnm.webp",
+      "hski": "img_general_skillcard_men-2_099-hski.webp",
+      "hume": "img_general_skillcard_men-2_099-hume.webp",
+      "jsna": "img_general_skillcard_men-2_099-jsna.webp",
+      "kcna": "img_general_skillcard_men-2_099-kcna.webp",
+      "kllj": "img_general_skillcard_men-2_099-kllj.webp",
+      "shro": "img_general_skillcard_men-2_099-shro.webp",
+      "ssmk": "img_general_skillcard_men-2_099-ssmk.webp",
+      "ttmr": "img_general_skillcard_men-2_099-ttmr.webp"
+    },
+    "isCharacterAsset": true,
+    "name": "一発勝負+",
+    "originCharacterId": "",
+    "playEffects": [
+      {
+        "hideIcon": false,
+        "isOncePlayEffect": false,
+        "produceExamEffectId": "e_effect-exam_lesson_buff-0008",
+        "produceExamTriggerId": ""
+      },
+      {
+        "hideIcon": false,
+        "isOncePlayEffect": false,
+        "produceExamEffectId": "e_effect-exam_playable_value_add-01",
+        "produceExamTriggerId": ""
+      },
+      {
+        "hideIcon": false,
+        "isOncePlayEffect": false,
+        "produceExamEffectId": "e_effect-exam_card_draw-0001",
+        "produceExamTriggerId": ""
+      },
+      {
+        "hideIcon": false,
+        "isOncePlayEffect": false,
+        "produceExamEffectId": "e_effect-exam_card_create_id-p_card-00-acc-0_002-0-deck_random-1_1",
+        "produceExamTriggerId": ""
+      }
+    ],
+    "rarity": "ProduceCardRarity_Sr",
+    "text": "集中 / <nobr>+ / 8 / </nobr> / スキルカード使用数追加 / <nobr>+ / 1 / </nobr> / スキルカードを引く / 眠気 / を / 山札のランダムな位置 / に / 生成 / <nobr> / 重複不可 /  </nobr> / レッスン中1回",
+    "upgradeCount": 1
+  },
+  "customizations": []
+}

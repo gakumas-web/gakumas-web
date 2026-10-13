@@ -1,8 +1,11 @@
 services:
   web:
-    build: .
+    build:
+      context: .
+      args:
+        ENABLE_PREVIEW_ACCOUNT: ${ENABLE_PREVIEW_ACCOUNT:-false}
     ports:
-      - "127.0.0.1:8080:8080"
+      - "127.0.0.1:18765:8080"
     read_only: true
     tmpfs:
       - /tmp

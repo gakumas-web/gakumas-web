@@ -64,7 +64,7 @@ export function createView(saved={}){
 }
 export function createViews(saved={}){
   if(!object(saved))saved={};
-  return Object.fromEntries(['memories','selectionMemories','idolCards','supportCards','idolCardSkins','achievements'].map(tab=>{
+  return Object.fromEntries(['memories','selectionMemories','seasonSimulation','idolCards','supportCards','idolCardSkins','achievements'].map(tab=>{
     const view=createView(saved[tab]);
     return [tab,view];
   }));
@@ -72,6 +72,7 @@ export function createViews(saved={}){
 
 // 已选标签与清空操作共用字段范围；持有范围、稀有度和排序独立保留。
 const FILTER_FIELDS={
+  seasonSimulation:[],
   achievements:['achievementCategory','achievementState','achievementReward'],
   memories:['character','memoryGrade','customTag','plan','skill','ability','memoryExamSkill','memoryExamItem','memoryExamSkillAll','memoryExamItemAll'],
   selectionMemories:['customTag','selectionCharacter','selectionPlan','selectionGrade','selectionSkill','selectionItem','selectionSkillAll','selectionItemAll'],

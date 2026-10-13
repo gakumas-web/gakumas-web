@@ -13,7 +13,7 @@ from prepare_locks import prepare
 from resource_release import ROOT, download
 
 
-def build_pages(source, output, image_cache=None, key_only=False):
+def build_pages(source, output, image_cache=None, key_only=False, preview_account=False):
     started=time.monotonic();cache_report={}
     source=json.loads(Path(source).read_text())
     size=source['bytes']
@@ -29,20 +29,23 @@ def build_pages(source, output, image_cache=None, key_only=False):
         if manifest['version']!=source['version']:raise ValueError('Pages 内容版本不匹配')
         if key_only:
             from image_cache import cache_identity,cache_key
-            from image_plan import catalog_groups
-            return cache_key(cache_identity(hashlib.sha256(files['assets-index.json']).hexdigest(),catalog_groups(json.loads(files['catalog.json']))))
+            from image_plan import catalog_groups,baseline_index,baseline_cache_hash
+            index=json.loads(files['assets-index.json']);base=baseline_index(index)
+            groups={name:group for name,group in catalog_groups(json.loads(files['catalog.json'])).items() if name in base['files']}
+            return cache_key(cache_identity(baseline_cache_hash(index),groups))
         content=root/'content';content.mkdir()
         for name,data in {**files,'manifest.json':raw}.items():(content/name).write_bytes(data)
         locks=root/'locks';prepare(content,locks)
-        count=build(Path(output),locks/'asset-lock.json',locks/'content-lock.json',mirror_images=True,image_cache=image_cache,cache_report=cache_report)
+        count=build(Path(output),locks/'asset-lock.json',locks/'content-lock.json',mirror_images=True,image_cache=image_cache,cache_report=cache_report,preview_account=preview_account)
     total=sum(path.stat().st_size for path in Path(output).rglob('*') if path.is_file())
     if total>1_000_000_000:raise ValueError('Pages 站点超过 1 GB，停止发布')
     config=json.loads((Path(output)/'image-config.mjs').read_text().split('export const imageConfig=',1)[1].strip().removesuffix(';'))
-    groups=config['loadingPlan']['groups']
+    plan=json.loads((Path(output)/config['loadingPlanSource']['url']).read_text())
+    groups=plan['groups']
     program=sum(path.stat().st_size for path in Path(output).rglob('*') if path.is_file() and path.relative_to(output).parts[0] not in ('content','image-files'))
     content=sum(path.stat().st_size for path in (Path(output)/'content').rglob('*') if path.is_file())
-    report={'image_cache':cache_report,'build_seconds':round(time.monotonic()-started,3),'version':source['version'],'program_files':count,'program_bytes':program,'content_bytes':content,'site_bytes':total,
-            'image_delivery':'same-origin-on-demand','groups':groups,'initial_image_bytes':sum(row['bytes'] for row in groups if row['group']=='core'),
+    report={'image_cache':cache_report,'build_seconds':round(time.monotonic()-started,3),'version':source['version'],'preview_account':preview_account,'program_files':count,'program_bytes':program,'content_bytes':content,'site_bytes':total,
+            'image_delivery':'same-origin-baseline-and-cdn-incremental','groups':groups,'initial_image_bytes':sum(row['bytes'] for row in groups if row['group']=='core'),
             'complete_image_bytes':sum(row['bytes'] for row in groups),'compatibility_archives':'保留当前源版本的原始分段，供此前已打开的页面完成下载；新页面只请求用途包。'}
     report_path=Path(output)/'build-report.json'
     while True:
@@ -71,6 +74,7 @@ if __name__=='__main__':
     parser.add_argument('--output',type=Path,default=ROOT/'dist')
     parser.add_argument('--image-cache',type=Path,help='可选图片构建缓存目录')
     parser.add_argument('--cache-key',action='store_true',help='只校验内容包并输出图片构建缓存键')
+    parser.add_argument('--preview-account',action=argparse.BooleanOptionalAction,default=False,help='是否提供内置预览账号，默认关闭')
     args=parser.parse_args()
-    result=build_pages(args.source,args.output,args.image_cache,args.cache_key)
+    result=build_pages(args.source,args.output,args.image_cache,args.cache_key,args.preview_account)
     print(result if args.cache_key else json.dumps(result,ensure_ascii=False))

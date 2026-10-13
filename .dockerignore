@@ -18,11 +18,13 @@
 !resources/
 !resources/content-source.json
 !resources/asset-lock.json
+!resources/preview-account.json
 !tools/
 !tools/build.py
 !tools/resource_release.py
 !tools/image_delivery.py
 !tools/content_contract.py
+!tools/reference_contract.py
 !tools/install_content.py
 !deploy/
 !deploy/nginx.conf
