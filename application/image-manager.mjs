@@ -1,7 +1,7 @@
 import {startLoading,finishLoading} from './loading-metrics.mjs';
 import {validateImageDelivery,imageObjectKey,imageSourceURL} from '../domain/image-delivery.mjs';
 import {contentHash} from '../domain/content-contract.mjs';
-import {unpackImageBase} from '../domain/image-archive.mjs';
+import {unpackImageBaseAsync} from './image-unpacker.mjs';
 import {createImageStore} from './image-store.mjs';
 
 // 下载槽同时约束待处理包；最多两个包在途，一次只解包、保存一个包。
@@ -94,7 +94,7 @@ export function createImageManager({store=createImageStore(),fetcher=(...args)=>
       try{
         if(job.controller.signal.aborted||generation!==epoch)throw new DOMException('stopped','AbortError');
         let entries;const unpackAt=clock();
-        if(job.row.objects){job.phase='unpacking';notify();entries=await unpackImageBase(bytes,job.row,processed=>{job.processed=processed;notify();});}
+        if(job.row.objects){job.phase='unpacking';notify();entries=await unpackImageBaseAsync(bytes,job.row,processed=>{job.processed=processed;notify();});}
         else entries=new Map([[job.id,new Blob([bytes],{type:job.id.endsWith('.png')?'image/png':'image/webp'})]]);
         job.times.unpack=clock()-unpackAt;job.phase='saving';notify();const savingAt=clock();
         if(job.row.objects)await store.pack(job.id,entries);else await store.put(job.id,entries.get(job.id));
@@ -149,7 +149,7 @@ export function createImageManager({store=createImageStore(),fetcher=(...args)=>
   function settleTiming(){
     const state=status();if(['ready','error','cancelled'].includes(state.phase))finishLoading(timing,state.phase,{total:state.total});
   }
-  async function request(names,{priority=1,complete=false}={}){
+  async function request(names,{priority=1,complete=false,includeURLs=true}={}){
     if(!index)return {};
     const generation=epoch;
     if(!timing||timing.endedAt!==undefined||timing.view!==currentView||complete&&timing.mode!=='complete'){
@@ -158,7 +158,7 @@ export function createImageManager({store=createImageStore(),fetcher=(...args)=>
     if(complete)full=true;
     await Promise.all(names.filter(name=>index.files[name]).map(name=>need(imageObjectKey(name,index.files[name]),priority)));
     if(generation!==epoch)return {};
-    settleTiming();notify(!pending.size);return expose();
+    settleTiming();notify(!pending.size);return includeURLs?expose():undefined;
   }
   function cancel(){
     paused=true;releaseQueued();flush();for(const job of jobs.values()){

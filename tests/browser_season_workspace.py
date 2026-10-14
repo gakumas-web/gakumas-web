@@ -1,4 +1,5 @@
 """验证独立模拟页签的快捷带入、状态保留、账号隔离和单层选择器。"""
+from browser_artifacts import artifact_path
 import json
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -23,7 +24,7 @@ def check(url):
             page.locator(f'[data-tab="{tab}"]').click();expect(page.locator('#season-simulation-view')).not_to_be_visible();page.locator('[data-tab="seasonSimulation"]').click();expect(page.locator('#season-simulation-view')).to_be_visible();assert page.locator('.season-stage-tab[aria-selected="true"]').get_attribute('data-stage-id')==stage;assert board.locator('[data-config-id]').evaluate_all('(nodes)=>nodes.map(e=>[e.dataset.configId,e.textContent])')==state;expect(page.locator('#contest-simulation-runs')).to_have_value('300')
         page.locator('#language').select_option('ja');expect(page.locator('#season-simulation-page')).to_have_attribute('aria-label','シーズンシミュレーション');expect(board.locator('.season-memory-board')).to_have_attribute('data-memory-key',key);expect(board.locator(f'[data-config-id="{candidate["id"]}"] .selection-custom-count').last).to_have_text('1');expect(page.locator('#contest-simulation-runs')).to_have_value('300');page.locator('#language').select_option('zh-CN');expect(page.locator('#season-simulation-page')).to_have_attribute('aria-label','赛季模拟')
         for width in [1280,375,320]:
-            page.set_viewport_size({'width':width,'height':1000});page.locator('#season-select').scroll_into_view_if_needed();assert page.evaluate('document.documentElement.scrollWidth<=innerWidth');page.screenshot(path=str(ROOT/f'local/ui-visual-refinement/season-workspace-{width}.png'),full_page=True)
+            page.set_viewport_size({'width':width,'height':1000});page.locator('#season-select').scroll_into_view_if_needed();assert page.evaluate('document.documentElement.scrollWidth<=innerWidth');page.screenshot(path=artifact_path(str(ROOT/f'local/ui-visual-refinement/season-workspace-{width}.png')),full_page=True)
         # 新账号的模拟区从空编组开始，不能复用上一账号的卡片或结果。
         documents=fixtures();folder=Path(temp)/'account'
         for name,document in documents.items():

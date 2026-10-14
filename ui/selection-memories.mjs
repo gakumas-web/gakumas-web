@@ -1,3 +1,4 @@
+import {createDeferredPicker} from './deferred-picker.mjs';
 import {appendMemorySkillBadges} from './memory-skill-badges.mjs';
 import {choiceFilterIcons} from './choice-filter-icons.mjs';
 import {createPickerAvailabilityUpdater} from './selection-picker-status.mjs';
@@ -12,13 +13,12 @@ import {nextChoice} from '../application/view-state.mjs';
 import {hifStarRules} from '../domain/community-rules.mjs';
 import {$,el,openDialog} from './dom.mjs';
 import {t,locale} from '../i18n.mjs';
-import {characterInfo,compareCharacterFilters,planLabel,cardInfo,itemArt,cardRewardInfo,itemRewardInfo,semanticGroup,selectionChoiceMetadata,selectionFlowDefinitions,customizeItemInfo} from '../domain/catalog.mjs';
+import {catalogGeneration,characterInfo,compareCharacterFilters,planLabel,cardInfo,itemArt,cardRewardInfo,itemRewardInfo,semanticGroup,selectionChoiceMetadata,selectionFlowDefinitions,customizeItemInfo} from '../domain/catalog.mjs';
 import {missingSelectionRewards,selectionGrades,selectionItemTriggerStatus,sortedSelectionCards,sortedSelectionItems,selectionStarPotential,selectionChoiceOptions,filterSelectionChoices,selectionChoicesForCharacters} from '../domain/selection-memories.mjs';
 import {illustration,characterAccent,skillThumbnailFor,itemThumbnail,filterSymbol,idolStyleSymbol} from './illustrations.mjs';
 import {protectionBadge,memoryTagBadge,shareLinkButton} from './shared.mjs';
 import {supportHint,rewardHint,itemRewardDetails,itemRewardSummary,closeRewardPopover} from './card-rewards.mjs';
 import {effectReading} from './effect-view.mjs';
-import {semanticContent} from './semantic-view.mjs';
 const dateFormats=new Map();
 const date=value=>{
   if(!value)return t('未记录');
@@ -43,8 +43,11 @@ function copySelectionKey(target,m,name){
     copyNoticeTimer=setTimeout(()=>{copyNotice.hidden=true;},3000);
   });
 }
-let selectionChoices={cards:[],items:[]};
+let selectionChoices={cards:[],items:[]},selectionSetup;
 export function setupSelectionOptions(snapshot){
+  const generation=catalogGeneration(),language=locale();
+  if(selectionSetup?.snapshot===snapshot&&selectionSetup.generation===generation&&selectionSetup.language===language)return;
+  selectionSetup={snapshot,generation,language};
   const rows=snapshot?.selectionMemories??[];
   $('selection-character').replaceChildren(new Option(t('全部角色'),''),...[...new Set(rows.map(m=>m.characterId))].sort(compareCharacterFilters).map(id=>new Option(characterInfo(id).name,id)));
   $('selection-plan').replaceChildren(new Option(t('全部'),''),...[...new Set(rows.map(m=>m.planType))].sort().map(id=>new Option(planLabel(id),String(id))));
@@ -72,7 +75,7 @@ function choiceCardHint(node,value,container){
 }
 
 export function openSelectionPicker(view,key,values,isCard,onChange,createAvailability){
-  const dialog=$('selection-picker'),list=$('selection-picker-list');
+  const dialog=$('selection-picker'),list=$('selection-picker-list'),visuals=createDeferredPicker(list);
   $('support-effect-picker-filters').hidden=true;dialog.classList.remove('ability-picker','support-effect-picker');dialog.querySelector('.selection-picker-filters').hidden=false;
   const hasNControl=isCard&&key!=='skill',filterPanel=dialog.querySelector('.selection-picker-filters');
   filterPanel.querySelector('.selection-choice-icon-filters')?.remove();
@@ -92,7 +95,7 @@ export function openSelectionPicker(view,key,values,isCard,onChange,createAvaila
   const showN=el('input'),iconGroups=[];showN.type='checkbox';showN.id='selection-picker-show-n';showN.checked=false;
   {
     const icons=el('div','','selection-choice-icon-filters contest-memory-plan-flows contest-item-filters');
-    for(const [kind,label] of key==='skill'?[['rarity','稀有度']]:[['plan','计划'],['flow','流派'],['rarity','稀有度']]){
+    for(const [kind,label] of [['plan','计划'],['flow','流派'],['rarity','稀有度']]){
       const input=$('selection-picker-'+kind),group=choiceFilterIcons(input,kind,label,()=>{syncIcons();draw();},{id:input.id+'-icons'});iconGroups.push(group);icons.append(group.group);
     }
     if(hasNControl){const label=el('label','','selection-show-n');label.append(showN,el('span',t('显示 N 稀有度')));icons.append(label);showN.onchange=()=>{if(!showN.checked&&$('selection-picker-rarity').value==='N')$('selection-picker-rarity').value='';syncIcons();draw();};}
@@ -105,7 +108,7 @@ export function openSelectionPicker(view,key,values,isCard,onChange,createAvaila
     for(const {input,buttons} of iconGroups)for(const button of buttons){const id=button.dataset.value,selected=id===input.value;button.hidden=input===flow&&!hasFlow(id)||hasNControl&&input.id==='selection-picker-rarity'&&id==='N'&&!showN.checked;button.setAttribute('aria-checked',String(selected));button.tabIndex=selected?0:-1;}
   }
   function draw(){
-    closeRewardPopover();inputs.clear();list.replaceChildren();
+    closeRewardPopover();visuals.reset();inputs.clear();list.replaceChildren();
     const filtered=filterSelectionChoices(values,{plan:$('selection-picker-plan').value,flow:$('selection-picker-flow').value,rarity:$('selection-picker-rarity').value}).filter(value=>!hasNControl||showN.checked||value.metadata.rarity!=='N'||draft.includes(value.key));
     const groups=isCard?{idol:'角色专属',support:'支援卡',common:'通用',unknown:'未分类'}:{idol:'角色专属','support-battle':'支援卡 · 比赛继承','support-training':'支援卡 · 仅培养','support-unknown':'支援卡 · 用途待确认',common:'通用',unknown:'未分类'};
     if(key==='memoryExamItem'){delete groups['support-training'];delete groups.common;}
@@ -122,13 +125,10 @@ export function openSelectionPicker(view,key,values,isCard,onChange,createAvaila
       heading.append(el('span',String(matches.length),'selection-source-count'));column.append(heading,options);
       for(const value of matches){
         const label=el('label','','selection-filter-choice'),input=el('input');input.type='checkbox';input.checked=draft.includes(value.key);input.value=value.key;
-        label.dataset.value=value.key;appendChoiceVisual(label,value,isCard);input.setAttribute('aria-label',label.title);label.append(input);
+        label.dataset.value=value.key;label.dataset.choiceKind=isCard?'cards':'items';input.setAttribute('aria-label',value.info.name);label.append(input);
+        visuals.add(label,()=>{appendChoiceVisual(label,value,isCard);if(isCard)choiceCardHint(label,value,options);else{label.removeAttribute('title');supportHint(label,()=>itemRewardDetails(itemRewardInfo(value.key)),{container:options,hoverOnly:true});}});
         inputs.set(value.key,input);input.onchange=()=>{draft=nextChoice(draft,value.key);updateAvailability();};options.append(label);
-        if(isCard)choiceCardHint(label,value,options);
-        else{
-          // 浮层放在标签外，查看说明不会误触勾选；图片仍保留原有多选行为。
-          label.removeAttribute('title');supportHint(label,()=>itemRewardDetails(itemRewardInfo(value.key)),{container:options,hoverOnly:true});
-        }
+
       }
       if(!matches.length)options.append(el('p',t('没有匹配选项'),'selection-picker-empty'));
       list.append(column);
@@ -352,20 +352,45 @@ function abilityVisual(target,value){
   const image=el('span','','ability-choice-preview');image.append(abilityIconPreview(value.summary));target.append(image);target.title=value.text;
 }
 function openAbilityPicker(view,values,onChange,createAvailability){
-  const dialog=$('selection-picker'),list=$('selection-picker-list');let draft=[...view.ability];const inputs=new Map(),updateAvailability=createPickerAvailabilityUpdater(createAvailability('ability'),()=>draft,inputs);
-  $('support-effect-picker-filters').hidden=true;dialog.classList.remove('support-effect-picker');dialog.classList.add('ability-picker');dialog.querySelector('.selection-picker-filters').hidden=true;
-  $('selection-picker-title').textContent=t('选择培养能力');$('selection-picker-hint').textContent=t('同组任一满足，不同组同时满足')+'。'+t('灰色选项与其他分组或当前筛选条件不匹配；已选项仍可取消。');list.replaceChildren();
-  for(const group of groupedAbilityChoices(values,locale())){
-    const section=el('section','','selection-source-column ability-picker-group'),heading=el('h3',t(group.label)),options=el('div','','ability-picker-options');section.dataset.abilityGroup=group.id;
-    heading.append(el('span',String(group.values.length),'selection-source-count'));section.append(heading,options);
-    for(const value of group.values){
-      const label=el('label','','ability-picker-choice'),input=el('input');input.type='checkbox';input.value=value.key;input.checked=draft.includes(value.key);input.setAttribute('aria-label',value.text);
-      abilityVisual(label,value);label.append(input);inputs.set(value.key,input);input.onchange=()=>{draft=nextChoice(draft,value.key);updateAvailability();};options.append(label);
-    }
-    list.append(section);
+  const dialog=$('selection-picker'),list=$('selection-picker-list'),visuals=createDeferredPicker(list);let draft=[...view.ability];const inputs=new Map(),updateAvailability=createPickerAvailabilityUpdater(createAvailability('ability'),()=>draft,inputs);
+  const filterPanel=dialog.querySelector('.selection-picker-filters'),groups=groupedAbilityChoices(values,locale()),hif=groups.find(group=>group.id==='hif')?.values??[];
+  $('support-effect-picker-filters').hidden=true;dialog.classList.remove('support-effect-picker');dialog.classList.add('ability-picker');filterPanel.hidden=false;
+  filterPanel.querySelector('.selection-choice-icon-filters')?.remove();
+  for(const id of ['selection-picker-plan','selection-picker-flow','selection-picker-rarity'])$(id).closest('label').hidden=true;
+  $('selection-picker-title').textContent=t('选择培养能力');$('selection-picker-hint').textContent=t('同组任一满足，不同组同时满足')+'。'+t('计划和流派筛选仅作用于 HIF 技能卡。')+' '+t('灰色选项与其他分组或当前筛选条件不匹配；已选项仍可取消。');
+  const plan=$('selection-picker-plan'),flow=$('selection-picker-flow');
+  plan.replaceChildren(new Option(t('全部'),''),...['Plan1','Plan2','Plan3','Common'].filter(id=>hif.some(value=>value.metadata.plan===id)).map(id=>new Option(id==='Common'?t('通用'):planLabel(id),id)));
+  flow.replaceChildren(new Option(t('全部'),''),...selectionFlowDefinitions.filter(item=>hif.some(value=>value.metadata.flows.includes(item.id))).map(item=>new Option(t(item.label),item.id)));
+  if(hif.some(value=>!value.metadata.flows.length))flow.append(new Option(t('未分类'),'unclassified'));
+  const icons=el('div','','selection-choice-icon-filters contest-memory-plan-flows contest-item-filters'),iconGroups=[];
+  for(const [input,kind,label] of [[plan,'plan','计划'],[flow,'flow','流派']]){
+    const group=choiceFilterIcons(input,kind,label,()=>{syncIcons();draw();},{id:input.id+'-icons'});iconGroups.push(group);icons.append(group.group);input.onchange=()=>{syncIcons();draw();};
   }
-  updateAvailability();
-  if(!values.length)list.append(el('p',t('没有匹配选项'),'selection-picker-empty'));
+  filterPanel.append(icons);
+  function syncIcons(){
+    const eligible=filterSelectionChoices(hif,{plan:plan.value}),hasFlow=id=>!id||eligible.some(value=>id==='unclassified'?!value.metadata.flows.length:value.metadata.flows.includes(id));
+    if(!hasFlow(flow.value))flow.value='';
+    for(const {input,buttons} of iconGroups)for(const button of buttons){const id=button.dataset.value,selected=id===input.value;button.hidden=input===flow&&!hasFlow(id);button.setAttribute('aria-checked',String(selected));button.tabIndex=selected?0:-1;}
+  }
+  function draw(){
+    visuals.reset();inputs.clear();list.replaceChildren();
+    for(const group of groups){
+      // 计划与流派只筛选 HIF 触发技能卡，其它能力分组及已选草稿保持不变。
+      const matches=group.id==='hif'?filterSelectionChoices(group.values,{plan:plan.value,flow:flow.value}):group.values;
+      const section=el('section','','selection-source-column ability-picker-group'),heading=el('h3',t(group.label)),options=el('div','','ability-picker-options');section.dataset.abilityGroup=group.id;
+      heading.append(el('span',String(matches.length),'selection-source-count'));section.append(heading,options);
+      for(const value of matches){
+        const label=el('label','','ability-picker-choice'),input=el('input');input.type='checkbox';input.value=value.key;input.checked=draft.includes(value.key);input.setAttribute('aria-label',value.text);
+        label.title=value.text;label.append(input);visuals.add(label,()=>abilityVisual(label,value));inputs.set(value.key,input);input.onchange=()=>{draft=nextChoice(draft,value.key);updateAvailability();};options.append(label);
+      }
+      if(!matches.length)section.append(el('p',t('没有匹配选项'),'selection-picker-empty'));
+      list.append(section);
+    }
+    updateAvailability();
+    if(!values.length)list.append(el('p',t('没有匹配选项'),'selection-picker-empty'));
+    list.scrollTop=0;
+  }
+  syncIcons();draw();
   $('selection-picker-clear').onclick=()=>{draft=[];updateAvailability();};
   $('selection-picker-cancel').onclick=()=>dialog.close();
   $('selection-picker-confirm').onclick=()=>{dialog.close();onChange('ability',draft);};

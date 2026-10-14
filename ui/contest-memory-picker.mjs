@@ -10,14 +10,11 @@ import {title,shown} from '../domain/model.mjs';
 import {characterArt,skillThumbnailFor,illustration,characterAccent,filterSymbol} from './illustrations.mjs';
 import {rewardHint,supportHint,closeRewardPopover} from './card-rewards.mjs';
 
-function memoryArt(memory){const exclusive=memoryExclusiveSkill(memory);return exclusive?skillThumbnailFor(exclusive.reference,memory.characterId):characterArt(memory.characterId);}
 function memoryFlows(memory){
   const type=idolInfo(memory).examEffectType?.replace('ProduceExamEffectType_','');
   return selectionFlowDefinitions.filter(flow=>type&&flow.prefixes.some(prefix=>type.startsWith(prefix))).map(flow=>flow.id);
 }
-function memoryIdentity(memory){
-  const identity=el('span','','season-memory-identity-text');identity.append(el('strong',characterInfo(memory.characterId).name),el('span',idolInfo(memory).name),el('small',title(memory)));return identity;
-}
+
 export function contestMemorySlot(memory,index,onChoose,onRemove,{reference,showRole=true}={}){
   const slot=el('div','','season-memory-slot'),button=el('button','','season-memory-slot-pick');slot.dataset.slot=String(index);button.setAttribute('aria-label',t('选择第 {0} 条回忆',[index+1]));
   button.title=t('选择第 {0} 条回忆',[index+1]);

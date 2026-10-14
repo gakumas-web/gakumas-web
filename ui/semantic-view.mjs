@@ -29,13 +29,3 @@ export function semanticSection(name, group, expanded = false) {
   section.open=expanded;
   section.append(textNode('summary',name),semanticContent(group)); return section;
 }
-export function semanticComparisonRow(name, groups) {
-  const row=textNode('tr'); const header=textNode('th',name);header.scope='row';row.append(header);
-  const different=new Set(groups.map(group=>group.signature)).size>1;
-  for (const group of groups) {
-    const cell=textNode('td','',different?'different semantic-cell':'semantic-cell');
-    if (different) cell.append(textNode('p',t('原始配置有差异；相同未解析文案不代表同一效果'),'semantic-caveat'));
-    cell.append(semanticContent(group));row.append(cell);
-  }
-  return row;
-}

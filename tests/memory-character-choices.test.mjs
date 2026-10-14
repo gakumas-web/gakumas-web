@@ -104,3 +104,24 @@ test('继承选项区分开局状态与附魔总次数，不区分附魔类型',
   const selected=filterMemories({memories},createView({skill:[choices[0].key]}),new Map());assert.deepEqual(selected.map(m=>m.key),['a','b']);
   assert.equal(filterMemories({memories},createView({skill:['one']}),new Map()).length,5);
 });
+
+
+test('能力解析缓存区分等级、资料版本和语言，并保留缺失记录',async()=>{
+  const {installMaster,abilitySummaries}=await import('../domain/catalog.mjs');
+  const {locale,setLocale}=await import('../i18n.mjs');
+  const original=locale(),reference={id:'cache-test',level:1};
+  const master=text=>({tables:{ProduceCard:[],ProduceItem:[],ProduceExamEffect:[],ProduceEffect:[],MemoryAbility:[{...reference,skillId:'cache-skill',definition:{}}],ProduceSkill:[{id:'cache-skill',level:1,descriptions:[{produceDescriptionType:'ProduceDescriptionType_PlainText',text}]}]}});
+  try{
+    installMaster(master('初始说明'));
+    const first=abilitySummaries({abilities:[reference]})[0];
+    assert.strictEqual(abilitySummaries({abilities:[{...reference}]})[0],first);
+    assert.notStrictEqual(abilitySummaries({abilities:[{...reference,level:2}]})[0],first);
+    assert.match(first.fullText,/初始说明/);
+    installMaster(master('更新说明'));
+    const updated=abilitySummaries({abilities:[reference]})[0];
+    assert.notStrictEqual(updated,first);assert.match(updated.fullText,/更新说明/);
+    setLocale(original==='ja'?'zh-CN':'ja');
+    assert.notStrictEqual(abilitySummaries({abilities:[reference]})[0],updated);
+    assert.equal(abilitySummaries({}).length,1);assert.deepEqual(abilitySummaries({abilities:[]}),[]);
+  }finally{setLocale(original);}
+});

@@ -38,7 +38,7 @@ test('收藏从完整目录筛选，未持有仍可收藏，两类范围刷新�
 test('装扮收藏独立于偶像卡且拒绝缺失字段与错误类型',()=>{
   const legacy=emptyLibrary(profile);delete legacy.favorites.idolCardSkins;
   assert.throws(()=>parseLibrary(legacy,profile));
-  assert.throws(()=>parseLibrary(legacy,profile));const current=emptyLibrary(profile);current.favorites.idolCardSkins=['skin-a','skin-a'];
+  const current=emptyLibrary(profile);current.favorites.idolCardSkins=['skin-a','skin-a'];
   const parsed=parseLibrary(current,profile);assert.deepEqual(parsed.favorites.idolCardSkins,['skin-a']);assert.deepEqual(parsed.favorites.idolCards,[]);
   assert.throws(()=>parseLibrary({...current,favorites:{...current.favorites,idolCardSkins:null}},profile));
   assert.deepEqual(favoriteRecords({},'idolCardSkins',{ownership:'favorites',favorites:['skin-a']},()=>[{idolCardSkinId:'skin-a'},{idolCardSkinId:'skin-b'}]),[{idolCardSkinId:'skin-a'}]);

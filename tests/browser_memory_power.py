@@ -1,4 +1,5 @@
 """通过真实导入与编辑验证综合值计算、还原、窄屏和库存隔离。"""
+from browser_artifacts import artifact_path
 from browser_simulation_helpers import select_season
 import argparse
 import copy
@@ -85,7 +86,7 @@ def check(url):
         for width in [1280,375]:
             page.set_viewport_size({'width':width,'height':1000})
             assert page.locator('#season-simulation-page').evaluate('e=>e.scrollWidth<=e.clientWidth')
-            page.locator('.season-team-preview').screenshot(path=str(ROOT/'local/memory-power'/f'calculated-{width}.png'))
+            page.locator('.season-team-preview').screenshot(path=artifact_path(str(ROOT/'local/memory-power'/f'calculated-{width}.png')))
         main.locator('.season-memory-reset').click()
         expect(page.locator('.season-board-power > span')).to_have_text('综合值合计')
         expect(page.locator('.season-board-power > strong')).to_have_text('1480')

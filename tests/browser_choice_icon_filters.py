@@ -1,4 +1,5 @@
 """通过真实账号导入验证五类选择列表的图标筛选、候选范围和多选回执。"""
+from browser_artifacts import artifact_path
 import copy
 import json
 from pathlib import Path
@@ -7,11 +8,11 @@ from playwright.sync_api import sync_playwright,expect
 from browser_static import fixtures,ROOT
 
 
-def check():
+def check(url='http://127.0.0.1:8080/'):
     with TemporaryDirectory(dir=ROOT/'local',prefix='choice-icons-') as temporary,sync_playwright() as p:
         browser=p.chromium.launch();page=browser.new_page(viewport={'width':1280,'height':1000});errors=[];uploads=[]
         page.on('pageerror',lambda error:errors.append(str(error)));page.on('request',lambda request:uploads.append(request.url) if request.post_data else None)
-        page.goto('http://127.0.0.1:8080/',wait_until='networkidle')
+        page.goto(url,wait_until='networkidle')
         data=page.evaluate('''async()=>{
           const {loadMaster}=await import('./application/master-loader.mjs');await loadMaster('contests');
           const {contestCustomizationCatalog}=await import('./domain/catalog.mjs');const catalog=contestCustomizationCatalog();
@@ -33,7 +34,7 @@ def check():
             page.locator(f'[data-tab="{tab}"]').click()
             if page.locator('#filter-toggle').get_attribute('aria-expanded')=='false':page.locator('#filter-toggle').click()
             page.locator('#'+opener).click();expect(page.locator('#selection-picker')).to_be_visible()
-            assert page.locator('.selection-choice-icon-filters [role="radiogroup"]').count()==(1 if kind=='inheritance' else 3)
+            assert page.locator('.selection-choice-icon-filters [role="radiogroup"]').count()==3
             assert page.locator('.selection-picker-filters select:visible, #contest-loadout-enhanced, #contest-loadout-owned').count()==0
             if kind=='card':
                 expect(page.locator('#selection-picker-show-n')).not_to_be_checked();expect(page.locator('#selection-picker-rarity-icons [data-value="N"]')).not_to_be_visible()
@@ -41,6 +42,15 @@ def check():
                 assert page.locator('#selection-picker-list .selection-filter-choice').count()==1
                 page.locator('#selection-picker-show-n').uncheck();expect(page.locator('#selection-picker-rarity-icons [data-value=""]')).to_have_attribute('aria-checked','true')
             else:assert page.locator('#selection-picker-show-n').count()==0
+            if kind=='inheritance':
+                page.locator('#selection-picker-plan-icons [data-value="Plan2"]').click()
+                keys=page.locator('#selection-picker-list input').evaluate_all('(nodes)=>nodes.map(e=>e.value)')
+                assert keys and all(json.loads(key)[0]==data['cards'][-1]['id'] for key in keys)
+                metadata=data['cards'][-1]['metadata'];flow=metadata['flows'][0] if metadata['flows'] else 'unclassified'
+                page.locator(f'#selection-picker-flow-icons [data-value="{flow}"]').click()
+                assert page.locator('#selection-picker-list input').count()==len(keys)
+                page.locator('#selection-picker-plan-icons [data-value=""]').click()
+                page.locator('#selection-picker-flow-icons [data-value=""]').click()
             page.locator('#selection-picker-rarity-icons [data-value="SR"]').click()
             available=page.locator('#selection-picker-list .selection-filter-choice')
             keys=available.evaluate_all('(nodes)=>nodes.map(e=>e.dataset.value)');assert keys
@@ -56,9 +66,11 @@ def check():
                 page.set_viewport_size({'width':width,'height':1000});assert page.locator('#selection-picker').evaluate('e=>e.scrollWidth<=e.clientWidth')
                 if width==390:
                     page.wait_for_function('''()=>[...document.querySelectorAll('.selection-choice-icon-filters img')].every(image=>image.complete&&image.naturalWidth>0)''')
-                    page.screenshot(path=str(ROOT/f'local/season-simulation/shared-choice-{opener}-390.png'))
+                    page.screenshot(path=artifact_path(str(ROOT/f'local/season-simulation/shared-choice-{opener}-390.png')))
             page.set_viewport_size({'width':1280,'height':1000});page.locator('#selection-picker-clear').click();page.locator('#selection-picker-confirm').click()
         assert not errors,errors;assert not uploads,uploads;browser.close()
     print('五类技能／道具选择：图标筛选、实际候选范围、N 显示、多选确认与清空、重开状态、窄屏及无上传检查通过。')
 
-if __name__=='__main__':check()
+if __name__=='__main__':
+    import argparse
+    parser=argparse.ArgumentParser();parser.add_argument('--url',default='http://127.0.0.1:8080/');check(parser.parse_args().url)

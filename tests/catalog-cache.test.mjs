@@ -24,3 +24,17 @@ test('共用公开技能说明时，实际附魔和原始记录引用仍逐条�
   assert.equal(first.technical.entry,plain);assert.equal(second.technical.entry,customized);
   assert.notDeepEqual(first.lines,second.lines);
 });
+
+
+test('支援卡计数不解析事件，展示与奖励检索仍可取得并复用完整事件',async()=>{
+  const {supportEntries}=await import('../domain/catalog-selectors.mjs');
+  const input=master('支援卡');let reads=0;
+  input.supports.cards[0].events=[{get descriptions(){reads++;return [{produceDescriptionType:'ProduceDescriptionType_PlainText',text:'测试事件'}];},effectIds:[]}];
+  installMaster(input);
+  const entries=supportEntries({supportCards:[{supportCardId:'card'}]},'','original',{});
+  assert.equal(entries.length,1);assert.equal(reads,0);
+  const events=entries[0].info.events;
+  assert.equal(events[0].text,'测试事件');assert.ok(reads>0);
+  const parsed=reads;assert.strictEqual(entries[0].info.events,events);assert.equal(reads,parsed);
+  assert.equal(supportEntries({supportCards:[{supportCardId:'card'}]},'测试事件','original',{}).length,1);
+});

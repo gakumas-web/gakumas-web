@@ -60,9 +60,9 @@ def check(url,account=None):
             if not account:
                 page.wait_for_function("async id=>{const {idolInfo}=await import('./domain/catalog.mjs');const {assetURL}=await import('./resources.mjs');const image=document.querySelector('.season-team-idol-art > img');return image.complete&&!image.hidden&&image.naturalWidth>0&&image.src===assetURL(idolInfo({idolCardId:id,levelLimitRank:3}).image,true)}",arg=docs['capture']['idolCards'][0]['idolCardId'])
         expect(page.locator('.season-common-deck')).to_be_visible();assert page.locator('.season-common-cards .support-reward-trigger').count()>=8
-        assert page.locator('.season-stage-reference > details > summary').all_text_contents()==['基础规则','属性评分曲线']
-        page.locator('.season-basic-rules summary').click();assert page.locator('.season-basic-values dd').count()==4
-        page.locator('.season-score-curve > summary').click();assert page.locator('.season-curve-values').count()==0
+        assert page.locator('.season-stage-reference > details > summary').all_text_contents()==['基础规则和属性评分曲线']
+        page.locator('.season-stage-guide summary').click();assert page.locator('.season-basic-values dd').count()==4
+        assert page.locator('.season-score-curve > summary, .season-curve-values').count()==0
         assert page.locator('.season-curve-chart polyline').count()==3
         table=page.evaluate("""async()=>{const {contestCatalog}=await import('./domain/catalog.mjs');return contestCatalog().choices.find(stage=>stage.id==='contest:pvp_rate_config-53:3').curve.slice(0,2).map(row=>[row.parameter,...['vocal','dance','visual'].map(key=>row[key+'Permil']/1000)])}""")
         for parameter in [table[1][0],round((table[0][0]+table[1][0])/2)]:
@@ -140,7 +140,7 @@ def check(url,account=None):
         assert page.locator('.season-slot-actions').count()==1
         page.locator('.season-memory-slot-pick').first.click();expect(page.locator('#contest-memory-character')).to_have_attribute('aria-disabled','false');page.keyboard.press('Escape')
         page.locator('.season-memory-slot-pick').last.click();expect(page.locator('#contest-memory-character')).to_have_attribute('aria-disabled','true');page.locator('.contest-memory-option[aria-disabled="false"]').first.locator('.contest-memory-choose').click()
-        expect(page.locator('.season-simulate')).to_have_text('模拟')
+        expect(page.locator('.season-simulate')).to_have_text('开始模拟')
         page.locator('.season-simulate').click();expect(page.locator('#contest-simulation-result')).to_be_visible()
         expect(page.locator('#season-simulation-page')).to_be_visible();assert page.locator('dialog:modal').count()==0
         select_season(page,'contest:pvp_rate_config-53');expect(page.locator('.season-simulate')).to_be_enabled()

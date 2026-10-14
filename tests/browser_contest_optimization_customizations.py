@@ -1,4 +1,5 @@
 """用公开合成预览验证专属附魔草稿、主副独立约束、评级降级及图片选择布局。"""
+from browser_artifacts import artifact_path
 from pathlib import Path
 from playwright.sync_api import sync_playwright,expect
 
@@ -25,7 +26,7 @@ def check(url,output=None):
   flow.locator('button[data-value=""]').click();enhanced=dialog.locator('#optimization-picker-enhanced');enhanced.set_checked(not (setup['upgrade']>0));expect(dialog.locator('.contest-customizer-stepper.has-customization')).to_have_count(0);enhanced.set_checked(setup['upgrade']>0);dialog.locator('.contest-customizer-stepper button[data-step="1"]:not(:disabled)').first.click()
   for width in [1280,375,320]:
    page.set_viewport_size({'width':width,'height':950});assert dialog.evaluate('e=>e.scrollWidth<=e.clientWidth+1')
-   if output:dialog.screenshot(path=str(output/f'exclusive-{width}.png'))
+   if output:dialog.screenshot(path=artifact_path(str(output/f'exclusive-{width}.png')))
   dialog.locator('.optimization-picker-confirm').click();assert_customization(0,1)
   page.locator('.optimization-role [data-slot="1"] .season-memory-slot-pick').click();dialog=page.locator('.optimization-picker');dialog.locator(f'[data-choice-id="{setup["id"]}"]').click();page.keyboard.press('Escape');dialog.locator('#optimization-picker-enhanced').set_checked(setup['upgrade']>0);dialog.locator('.optimization-picker-confirm').click();assert_customization(1,0);assert_customization(0,1)
   page.locator('.optimization-role [data-slot="1"] .season-memory-slot-pick').click();dialog=page.locator('.optimization-picker');dialog.locator('.contest-customizer-stepper button[data-step="1"]:not(:disabled)').first.click();dialog.locator('.optimization-picker-confirm').click()

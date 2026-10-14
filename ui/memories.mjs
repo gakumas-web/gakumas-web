@@ -1,3 +1,4 @@
+import {flushDeferredContent} from './deferred-content.mjs';
 import {appendMemorySkillBadges} from './memory-skill-badges.mjs';
 import {tagControls,favoriteButton} from './personal-library.mjs';
 import {$,el} from './dom.mjs';
@@ -6,7 +7,7 @@ import {foldTitle,sortedMemoryBattleCards,canCompareMemory} from '../domain/memo
 import {t} from '../i18n.mjs';
 import {selectionGrades} from '../domain/selection-memories.mjs';
 import {shown,title,shotDate,memoryUse,memoryShortId} from '../domain/model.mjs';
-import {cardInfo,characterInfo,idolInfo,semanticGroup,abilitySummaries,cardRewardInfo,itemRewardInfo,planLabel,memoryExclusiveSkill} from '../domain/catalog.mjs';
+import {cardInfo,characterInfo,semanticGroup,abilitySummaries,cardRewardInfo,itemRewardInfo,planLabel,memoryExclusiveSkill} from '../domain/catalog.mjs';
 import {characterAccent,characterArt,skillArt,deckArt,skillThumbnailFor,filterSymbol} from './illustrations.mjs';
 import {rewardHint} from './card-rewards.mjs';
 import {abilityChips} from './ability-view.mjs';
@@ -166,8 +167,9 @@ export function syncMemoryDetailFocus(){
   }
 }
 export function restoreMemoryEntryFocus(key){
-  const row=[...document.querySelectorAll('.memory-row')].find(row=>row.dataset.memoryKey===key);
-  (row?.querySelector('.entry-main')??$('filter-toggle')).focus();
+  let row=[...document.querySelectorAll('.memory-row')].find(row=>row.dataset.memoryKey===key);
+  if(row){flushDeferredContent(row);row=[...document.querySelectorAll('.memory-row')].find(row=>row.dataset.memoryKey===key);}
+  (row?.querySelector('.memory-detail-open')??$('filter-toggle')).focus();
 }
 detailMedia.addEventListener('change',syncMemoryDetailFocus);
 document.addEventListener('keydown',event=>{

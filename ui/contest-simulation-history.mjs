@@ -1,3 +1,4 @@
+import {layerSimulationMetrics} from './contest-simulation-charts.mjs';
 import {el} from './dom.mjs';
 import {t,locale} from '../i18n.mjs';
 import {simulationHistory,deleteSimulationRun,simulationStageKey,SIMULATION_HISTORY_LIMIT} from '../application/contest-simulation-history.mjs';
@@ -37,6 +38,7 @@ export function createSimulationHistoryPanel({profile,stage,onView,onRestore}){
       if(entry.characterId){const character=characterInfo(entry.characterId),face=illustration(character.face,character.name,'simulation-history-face');face.title=character.name;identity.append(face);}
       identity.append(el('span',t('{0} 次模拟',[entry.result.runs])));if(entry.id===currentId)identity.append(el('strong',t('当前查看')));if(entry.id===baselineId)identity.append(el('strong',t('比较基准'),'simulation-history-baseline-label'));heading.append(identity,comparisonScore(statistics));
       const scores=el('div','','simulation-history-scores'),values={...entry.result,deviation:statistics.deviation,p25:scoreQuantile(entry.result.scores,.25),p75:scoreQuantile(entry.result.scores,.75)};for(const [key,title] of [['mean','平均值'],['median','中位数'],['deviation','标准差'],['p25','P25'],['p75','P75']]){const cell=el('span');cell.dataset.metric=key;cell.append(el('small',t(title)),el('strong',number(values[key])));scores.append(cell);}
+      layerSimulationMetrics(scores,entry.result);
       const actions=el('div','','simulation-history-actions'),view=el('button',t('查看结果')),restore=el('button',t('载入编组至自选模拟'),'primary'),remove=el('button',t('删除')),compare=el('button',t(entry.id===baselineId?'取消基准':'设为基准'));compare.dataset.action='baseline';compare.setAttribute('aria-pressed',String(entry.id===baselineId));compare.onclick=()=>{baselineId=entry.id===baselineId?null:entry.id;draw();list.querySelector(`[data-history-id="${entry.id}"] [data-action=baseline]`)?.focus({preventScroll:true});};
       view.disabled=busy;view.onclick=()=>{if(busy)return;currentId=entry.id;onView(entry);draw();};restore.disabled=busy||!entry.loadout||!onRestore;restore.onclick=()=>{if(!busy)onRestore?.(entry);};
       remove.onclick=async()=>{
@@ -54,6 +56,7 @@ export function createSimulationHistoryPanel({profile,stage,onView,onRestore}){
         }
         comparison.append(deltas);
         if(entry.result.runs!==baseline.result.runs)comparison.append(el('p',t('模拟次数不同：本次 {0} 次，基准 {1} 次。',[number(entry.result.runs),number(baseline.result.runs)]),'simulation-history-comparison-note small muted'));
+        if(entry.result.source.commit!==baseline.result.source.commit||entry.result.source.repository!==baseline.result.source.repository)comparison.append(el('p',t('引擎版本不同，比较时请留意计算规则变化。'),'simulation-history-comparison-note small muted'));
         const different=['vocal','dance','visual'].filter(key=>entry.result.multipliers[key]!==baseline.result.multipliers[key]);
         if(different.length){
           const percent=value=>new Intl.NumberFormat(locale(),{maximumFractionDigits:2}).format(value*100)+'%',names={vocal:'Vo',dance:'Da',visual:'Vi'};

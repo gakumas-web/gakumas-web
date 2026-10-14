@@ -1,4 +1,5 @@
 """实际静态入口、合成账号与真实 Worker 的舞台模拟验收。"""
+from browser_artifacts import artifact_path
 from browser_simulation_helpers import select_season
 import argparse
 import copy
@@ -27,10 +28,10 @@ def check(url):
         page.locator('#account-directory-files').set_input_files(str(Path(temporary)/'account'));expect(page.locator('#inventory')).to_be_visible(timeout=60000)
         page.locator('#season-simulation-open').click();select_season(page,'contest:pvp_rate_config-53');page.locator('[data-stage-id="contest:pvp_rate_config-53:0"]').click()
         for width in [390,320]:
-            page.set_viewport_size({'width':width,'height':844});jump=page.get_by_role('button',name='前往模拟',exact=True);expect(jump).to_be_visible();assert page.locator('.season-group-controls').evaluate('e=>e.scrollWidth<=e.clientWidth');jump.click();title=page.locator('#contest-simulation-result-title');expect(title).to_be_focused();assert 0<=title.bounding_box()['y']<844;assert page.evaluate('scrollY')>0;expect(page.get_by_role('tab',name='推荐编组模拟',exact=True)).to_have_attribute('aria-selected','true');page.screenshot(path=str(ROOT/f'local/season-simulation/jump-{width}.png'))
+            page.set_viewport_size({'width':width,'height':844});jump=page.get_by_role('button',name='前往模拟',exact=True);expect(jump).to_be_visible();assert page.locator('.season-group-controls').evaluate('e=>e.scrollWidth<=e.clientWidth');jump.click();title=page.locator('#contest-simulation-result-title');expect(title).to_be_focused();assert 0<=title.bounding_box()['y']<844;assert page.evaluate('scrollY')>0;expect(page.get_by_role('tab',name='推荐编组模拟',exact=True)).to_have_attribute('aria-selected','true');page.screenshot(path=artifact_path(str(ROOT/f'local/season-simulation/jump-{width}.png')))
         page.set_viewport_size({'width':1280,'height':1000});expect(page.get_by_role('button',name='前往模拟',exact=True)).not_to_be_visible()
         tabs=page.locator('.simulation-mode-tabs');expect(tabs.get_by_role('tab')).to_have_count(4);page.get_by_role('tab',name='推荐编组模拟',exact=True).focus();page.keyboard.press('ArrowLeft');expect(page.get_by_role('tab',name='模拟历史',exact=True)).to_have_attribute('aria-selected','true');page.keyboard.press('ArrowLeft');expect(page.get_by_role('tab',name='自选编组模拟',exact=True)).to_have_attribute('aria-selected','true');expect(page.locator('.simulation-result-view')).not_to_be_visible();assert page.locator('.simulation-result-tabs').count()==0
-        expect(page.locator('.season-simulate')).to_have_text('模拟');expect(page.locator('.season-simulate')).to_be_disabled()
+        expect(page.locator('.season-simulate')).to_have_text('开始模拟');expect(page.locator('.season-simulate')).to_be_disabled()
         page.locator('.season-memory-slot-pick').first.click();page.locator('.contest-memory-choose').first.click();expect(page.locator('.season-simulate')).to_be_disabled()
         expect(page.locator('.contest-memory-capacity')).to_contain_text('主回忆（')
         assert page.locator('.season-card-capacity').count()==len(request['cards'])
@@ -64,7 +65,7 @@ def check(url):
         check_summary(saved_statistics['total']);skip_before=dialog.locator('.simulation-skip-chart').inner_html()
         dialog.get_by_role('combobox',name='统计范围').select_option('0');assert dialog.locator('.simulation-statistics tbody tr').count()>0;check_summary(saved_statistics['turns'][0]);assert dialog.locator('.simulation-skip-chart').inner_html()==skip_before
         dialog.get_by_role('combobox',name='统计范围').select_option('all');dialog.locator('.simulation-statistics th button').nth(1).click();expect(dialog.locator('.simulation-statistics th').nth(1)).to_have_attribute('aria-sort','descending')
-        assert dialog.locator('.simulation-skip-chart').bounding_box()['x']>=dialog.locator('.simulation-stat-summary').bounding_box()['x']+dialog.locator('.simulation-stat-summary').bounding_box()['width'];dialog.locator('.simulation-statistics').screenshot(path=str(ROOT/'local/season-simulation/result-statistics-open.png'))
+        assert dialog.locator('.simulation-skip-chart').bounding_box()['x']>=dialog.locator('.simulation-stat-summary').bounding_box()['x']+dialog.locator('.simulation-stat-summary').bounding_box()['width'];dialog.locator('.simulation-statistics').screenshot(path=artifact_path(str(ROOT/'local/season-simulation/result-statistics-open.png')))
         dialog.locator('.simulation-statistics > summary').click()
         slider=dialog.get_by_role('slider',name='模拟次数');expect(slider).to_have_value('500');expect(slider).to_have_attribute('min','100');expect(slider).to_have_attribute('max','10000');expect(slider).to_have_attribute('step','100')
         expect(dialog.locator('.simulation-records')).not_to_have_attribute('open','')
@@ -84,18 +85,18 @@ def check(url):
             sizes=[]
             for mode in ['distribution','box','turns']:
                 dialog.locator(f'[data-view="{mode}"]').click();bounds=dialog.locator('.simulation-result-chart-panel').bounding_box();sizes.append((bounds['width'],bounds['height']))
-                if mode=='box':dialog.locator('.simulation-result-chart-panel').screenshot(path=str(ROOT/f'local/season-simulation/result-box-{width}.png'))
+                if mode=='box':dialog.locator('.simulation-result-chart-panel').screenshot(path=artifact_path(str(ROOT/f'local/season-simulation/result-box-{width}.png')))
             assert all(abs(width_value-sizes[0][0])<1 and abs(height-sizes[0][1])<1 for width_value,height in sizes),sizes
             dialog.locator('[data-view="distribution"]').click()
-            result_view.screenshot(path=str(ROOT/f'local/season-simulation/result-redesign-{width}.png'))
+            result_view.screenshot(path=artifact_path(str(ROOT/f'local/season-simulation/result-redesign-{width}.png')))
             if width==768:
-                dialog.locator('.simulation-statistics>summary').click();assert dialog.locator('.simulation-skip-chart').bounding_box()['y']+dialog.locator('.simulation-skip-chart').bounding_box()['height']<=dialog.locator('.simulation-stat-selection').bounding_box()['y'];dialog.locator('.simulation-statistics').screenshot(path=str(ROOT/'local/season-simulation/result-statistics-768.png'));dialog.locator('.simulation-statistics>summary').click()
+                dialog.locator('.simulation-statistics>summary').click();assert dialog.locator('.simulation-skip-chart').bounding_box()['y']+dialog.locator('.simulation-skip-chart').bounding_box()['height']<=dialog.locator('.simulation-stat-selection').bounding_box()['y'];dialog.locator('.simulation-statistics').screenshot(path=artifact_path(str(ROOT/'local/season-simulation/result-statistics-768.png')));dialog.locator('.simulation-statistics>summary').click()
             if width==320:
                 for mode in ['box','turns']:
-                    dialog.locator(f'[data-view="{mode}"]').click();dialog.locator('.simulation-result-chart-panel').screenshot(path=str(ROOT/f'local/season-simulation/result-{mode}-320.png'))
+                    dialog.locator(f'[data-view="{mode}"]').click();dialog.locator('.simulation-result-chart-panel').screenshot(path=artifact_path(str(ROOT/f'local/season-simulation/result-{mode}-320.png')))
                 dialog.locator('[data-view="box"]').click()
                 expect(dialog.locator('.simulation-result-chart-panel .simulation-history-range')).to_be_visible();expect(dialog.locator('.simulation-result-chart-panel .simulation-history-scale>span')).to_have_count(2)
-                dialog.locator('[data-view="distribution"]').click();dialog.locator('.simulation-statistics>summary').click();assert dialog.locator('.simulation-statistics').evaluate('e=>e.scrollWidth<=e.clientWidth');assert dialog.locator('.simulation-skip-chart').bounding_box()['y']+dialog.locator('.simulation-skip-chart').bounding_box()['height']<=dialog.locator('.simulation-stat-selection').bounding_box()['y'];dialog.locator('.simulation-statistics').screenshot(path=str(ROOT/'local/season-simulation/result-statistics-320.png'));dialog.locator('.simulation-statistics>summary').click()
+                dialog.locator('[data-view="distribution"]').click();dialog.locator('.simulation-statistics>summary').click();assert dialog.locator('.simulation-statistics').evaluate('e=>e.scrollWidth<=e.clientWidth');assert dialog.locator('.simulation-skip-chart').bounding_box()['y']+dialog.locator('.simulation-skip-chart').bounding_box()['height']<=dialog.locator('.simulation-stat-selection').bounding_box()['y'];dialog.locator('.simulation-statistics').screenshot(path=artifact_path(str(ROOT/'local/season-simulation/result-statistics-320.png')));dialog.locator('.simulation-statistics>summary').click()
 
         page.set_viewport_size({'width':1280,'height':1000})
 
@@ -114,10 +115,10 @@ def check(url):
         assert images.count()==dialog.locator('.simulation-hand-card').count()
         page.wait_for_function("""()=>[...document.querySelectorAll('.simulation-turn[open] .simulation-hand-card .reward-art img')].every(image=>image.complete&&image.naturalWidth>1&&!image.hidden&&!image.src.includes('unavailable.svg'))""")
         dialog.locator('.simulation-hand-state summary').first.click();expect(dialog.locator('.simulation-hand-state-values').first).to_be_visible();assert dialog.locator('.simulation-hand-card.is-selected').count()>0;assert dialog.locator('.simulation-event-entity .simulation-event-change').count()>0
-        dialog.locator('.simulation-turn').first.screenshot(path=str(ROOT/'local/season-simulation/result-turn-open.png'))
+        dialog.locator('.simulation-turn').first.screenshot(path=artifact_path(str(ROOT/'local/season-simulation/result-turn-open.png')))
         for width in [1280,390,320]:
-            page.set_viewport_size({'width':width,'height':1000});assert dialog.evaluate('e=>e.scrollWidth<=e.clientWidth');page.screenshot(path=str(ROOT/f'local/season-simulation/simulation-result-{width}.png'))
-            if width==320:dialog.locator('.simulation-turn').first.screenshot(path=str(ROOT/'local/season-simulation/result-turn-320.png'))
+            page.set_viewport_size({'width':width,'height':1000});assert dialog.evaluate('e=>e.scrollWidth<=e.clientWidth');page.screenshot(path=artifact_path(str(ROOT/f'local/season-simulation/simulation-result-{width}.png')))
+            if width==320:dialog.locator('.simulation-turn').first.screenshot(path=artifact_path(str(ROOT/'local/season-simulation/result-turn-320.png')))
         page.set_viewport_size({'width':1280,'height':1000});slider.focus();slider.press('ArrowRight');expect(slider).to_have_value('600');expect(dialog.locator('.contest-simulation-controls output')).to_have_text('600');previous_result=dialog.locator('.contest-simulation-output').inner_html();slider.fill('10000');dialog.locator('.contest-simulation-controls .primary').click();dialog.get_by_role('button',name='停止',exact=True).click();expect(dialog.locator('.simulation-selected-panel>[role="status"]')).to_have_text('模拟已停止');expect(dialog.locator('.contest-simulation-controls .primary')).to_be_enabled();assert dialog.locator('.contest-simulation-output').inner_html()==previous_result
         slider.fill('600')
         page.locator('.season-memory-slot-pick').last.click();page.locator('.contest-memory-option[aria-disabled="false"] .contest-memory-choose').first.click();page.locator('.season-simulate').click();expect(dialog.locator('.simulation-selected-panel>[role="status"]')).to_have_text('已完成 600 次模拟',timeout=120000);expect(dialog.locator('.simulation-save-status')).to_have_text('已保存到此舞台的模拟历史。')
@@ -164,7 +165,7 @@ def check(url):
             preview=entry.locator('.loadout-library-preview').bounding_box();result=entry.locator('.simulation-history-result').bounding_box()
             if width>=700:assert result['x']>=preview['x']+preview['width']
             else:assert result['y']>=preview['y']+preview['height']
-            entry.screenshot(path=str(ROOT/f'local/season-simulation/history-card-{width}.png'))
+            entry.screenshot(path=artifact_path(str(ROOT/f'local/season-simulation/history-card-{width}.png')))
         page.set_viewport_size({'width':1280,'height':1000})
         dialog.locator('.simulation-history-entry').first.get_by_role('button',name='查看结果',exact=True).click();expect(dialog.locator('[data-score="mean"] strong')).to_be_visible()
         page.get_by_role('tab',name='模拟历史',exact=True).click();dialog.locator('.simulation-history-entry').first.get_by_role('button',name='载入编组至自选模拟',exact=True).click();expect(dialog).to_be_visible();expect(page.locator('.season-simulate')).to_be_enabled();expect(page.locator('.contest-memory-capacity')).to_have_count(2)

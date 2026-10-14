@@ -4,7 +4,6 @@ import {installCommunityRules} from './community-rules.mjs';
 import {createContestCatalog} from './contest-simulation.mjs';
 import {assetURL,uiIconURL} from '../resources.mjs';
 import {createAchievementCatalog,achievementDetailScope} from './achievements.mjs';
-import {endingBonusReference} from './ending-bonuses.mjs';
 import {descriptionIconType} from './effect-icons.mjs';
 import {createCardCustomizations} from './card-customizations.mjs';
 import {mergeCollection,selectedValues} from './model.mjs';
@@ -16,13 +15,15 @@ import {createSemantics} from './semantic-model.mjs';
 export {plainText} from './semantic-text.mjs';
 let characterColors={},skinReleaseMetadata={};
 let tables = null;
+let generation=0;
+export const catalogGeneration=()=>generation;
 let contests=createContestCatalog();
 export const contestCatalog=()=>contests;
 const supportCatalogCache=new Map();
 let endingBonuses={};
 let achievements=createAchievementCatalog();
 export const achievementCharacterIds=()=>[...achievements.characterIds].sort(compareCharacterFilters);
-export const achievementCount=()=>achievements.count;
+
 export const achievementEntries=(snapshot,view)=>achievements.entries(snapshot,view);
 export function achievementViewCounts(snapshot,view){
   if(!achievements.characterIds.includes(view.achievementCharacter))return {count:achievements.count,total:achievements.count};
@@ -32,7 +33,6 @@ export function achievementViewCounts(snapshot,view){
   return {count:sum(achievements.entries(snapshot,{...view,...options,query:'',achievementCategory:''})),total:sum(achievements.entries(snapshot,options))};
 }
 
-export const endingBonusInfo=(characterId,capturedCharacter)=>endingBonusReference(endingBonuses,characterId,capturedCharacter);
 let customizeCards=createCardCustomizations();
 export const cardCustomizations=reference=>customizeCards.available(reference);
 let progression = createProgression();
@@ -69,13 +69,16 @@ let skinReleaseTimes=new Map();
 let secondExclusiveCardIds=new Set();
 let primaryExclusiveCards=new Map();
 let abilityChoiceAliases=new Map(),abilityChoiceDefinitions=new Map(),abilityFilterGroupCache=new Map();
+const abilitySummaryCache=new Map(),choiceMetadataCache=new Map();
+let abilitySummaryLanguage;
 let customizeItemParents=new Map();
 let customizeItemImages={};
 export function installMaster(input) {
+  generation++;
   characterColors=input.catalogMetadata?.characterColors??{};skinReleaseMetadata=input.catalogMetadata?.skinReleaseTimes??{};
   installCommunityRules(input.communityRules);
   contests=createContestCatalog(input.contests?.tables,input.contests?.stagePresets);
-  supportCatalogCache.clear();
+  supportCatalogCache.clear();abilitySummaryCache.clear();choiceMetadataCache.clear();
   endingBonuses=input.endingBonuses??{};
   achievements=createAchievementCatalog(input.achievements??{},endingBonuses,input.characters??{});
   const t = input.tables;
@@ -107,7 +110,6 @@ export function installMaster(input) {
   producerLevels=input.progression?.tables?.ProducerLevel;
   cardConversions=input.progression?.tables?.ProduceCardConversion??[];
   tables = {cardTriggers:index(input.semantics?.tables?.ProduceExamTrigger??[]),memoryTags:index(input.memoryTags??[]),cardCustomizes:index(input.semantics?.tables?.ProduceCardCustomize??[],'customizeCount'),cardGrows:index(input.semantics?.tables?.ProduceCardGrowEffect??[]),customizeItems:index(input.semantics?.tables?.ProduceCustomizeItem??[]),cards: index(t.ProduceCard, 'upgradeCount'), items: index(t.ProduceItem),
-    abilities: index(t.MemoryAbility, 'level'), skills: index(t.ProduceSkill, 'level'),
     effects: index(t.ProduceEffect), exam: index(t.ProduceExamEffect), characters: new Map(Object.entries(input.characters ?? {})),
     triggers:index(input.semantics?.tables?.ProduceTrigger??[]), supports: index(input.supports?.cards ?? []), idols: index(input.idols?.cards ?? []), skins: index(input.idols?.skins ?? [])};
 }
@@ -134,10 +136,7 @@ export function cardInfo(card, characterId) {
     category: categories[row?.category] ?? '', upgrade: card.upgradeCount,
     customizes: card.customizes.reduce((sum, c) => sum + c.customizeCount, 0)};
 }
-export function abilityInfo(ability) {
-  const description = semantics.ability(ability);
-  return [description.heading,...description.lines].join('\n');
-}
+
 export function semanticGroup(memory, field) { return semantics.group(memory,field); }
 // 专属项优先使用所属偶像卡主流派；其它项按结构化效果归类，可多归属，不从名称猜测。
 export const selectionFlowDefinitions=[
@@ -149,6 +148,11 @@ export const selectionFlowDefinitions=[
   {id:'fullPower',label:'全力',prefixes:['ExamFullPower']},
 ];
 export function selectionChoiceMetadata(kind,reference){
+  const key=JSON.stringify([kind,reference.id,kind==='card'?reference.upgradeCount:null]);
+  if(!choiceMetadataCache.has(key))choiceMetadataCache.set(key,describeChoiceMetadata(kind,reference));
+  return choiceMetadataCache.get(key);
+}
+function describeChoiceMetadata(kind,reference){
   const row=kind==='card'?tables?.cards.get(pair(reference.id,reference.upgradeCount)):tables?.items.get(reference.id);
   const definition=row?.definition??{},types=(row?.descriptions??[]).map(part=>part.examEffectType?.replace('ProduceExamEffectType_','')).filter(Boolean);
   const owner=tables?.idols.get(definition.originIdolCardId||definition.originPrimaStellaIdolCardId);
@@ -390,6 +394,7 @@ export function selectionSupportRewards(detail){
 function describeSupport(held) {
   const card = tables?.supports.get(held.supportCardId);
   if (!card) return {name:t('未解析支援卡'), rarity:t('未知'), type:t('未知'), characters:t('目录未收录')};
+  let events;
   const types = {Vocal:'Vocal', Dance:'Dance', Visual:'Visual', Assist:t('辅助')};
   return {name:plainText(card.name), rarity:card.rarity.replace('SupportCardRarity_', '').toUpperCase(),
     type:types[card.type.replace('SupportCardType_', '')] ?? t('未知'),
@@ -397,7 +402,7 @@ function describeSupport(held) {
     image:`img_general_${card.assetId}_full.webp`,plan:card.planType?.replace('ProducePlanType_',''),
     supportChance:card.produceCardUpgradePermil/10,
     supportAttribute:card.produceCardUpgradeLessonParameterType?.replace('ProduceParameterType_',''),
-    events:(card.events??[]).map(event=>({...event,text:descriptionText(event.descriptions,undefined,true).text,
+    get events(){return events??=(card.events??[]).map(event=>({...event,text:descriptionText(event.descriptions,undefined,true).text,
       rewards:event.effectIds.flatMap(id=>tables.effects.get(id)?.definition?.produceRewards??[]).flatMap(reward=>{
         if(reward.resourceType==='ProduceResourceType_ProduceCard'){
           const reference={id:reward.resourceId,upgradeCount:reward.resourceLevel??0,customizes:[]};
@@ -411,11 +416,19 @@ function describeSupport(held) {
           return [itemRewardInfo(reward.resourceId)];
         }
         return [];
-      })}))};
+      })}));}};
 }
 
+function cachedAbilitySummary(reference){
+  const language=locale();
+  if(abilitySummaryLanguage!==language){abilitySummaryLanguage=language;abilitySummaryCache.clear();}
+  const key=pair(reference.id,reference.level);
+  if(!abilitySummaryCache.has(key))abilitySummaryCache.set(key,summarizeAbility(semantics.ability(reference),abilityIcons));
+  return abilitySummaryCache.get(key);
+}
 export function abilitySummaries(memory) {
-  return semanticGroup(memory, 'abilities').entries.map(entry => summarizeAbility(entry, abilityIcons));
+  if(memory.abilities===undefined)return semanticGroup(memory,'abilities').entries.map(entry=>summarizeAbility(entry,abilityIcons));
+  return memory.abilities.map(cachedAbilitySummary);
 }
 export function abilityChoiceKey(id){return abilityChoiceAliases.get(id)??id;}
 export function abilityChoicesReady(){return abilityChoiceAliases.size>0;}
@@ -424,7 +437,7 @@ export function abilityFilterClauses(selected){
   for(const key of new Set(selectedValues(selected).map(abilityChoiceKey))){
     if(!abilityFilterGroupCache.has(key)){
       const reference=abilityChoiceDefinitions.get(key);
-      abilityFilterGroupCache.set(key,reference?abilityGroupInfo(semantics.ability(reference)).id:'other');
+      abilityFilterGroupCache.set(key,reference?abilityGroupInfo(cachedAbilitySummary(reference).description).id:'other');
     }
     groups.get(abilityFilterGroupCache.get(key)).push(key);
   }
@@ -482,12 +495,6 @@ export function selectionPrimarySkill(memory){
   const reference=memory.produceCards?.find(card=>card.id===id)??{id,upgradeCount:0,customizes:[]};
   if(!tables?.cards.get(pair(id,reference.upgradeCount)))return null;
   return {reference,...cardInfo(reference,memory.characterId)};
-}
-
-export function recordedProduceSkillInfo(reference){
-  const row=tables?.skills.get(pair(reference.id,reference.level));
-  if(!row)return {text:t('效果说明未收录'),descriptionParts:[],effectIds:[]};
-  return {text:descriptionText(row.descriptions).text,descriptionParts:row.descriptions,effectIds:[1,2,3].map(index=>row[`produceEffectId${index}`]).filter(Boolean)};
 }
 
 // 比赛编组候选来自公开目录，包含未持有项；不暴露内部主数据 Map。

@@ -1,4 +1,5 @@
 """验证赛季及活动分组、三或五舞台页签、状态保留和响应式排列。"""
+from browser_artifacts import artifact_path
 from browser_simulation_helpers import select_season
 from playwright.sync_api import sync_playwright,expect
 
@@ -24,8 +25,8 @@ def check(url):
             page.set_viewport_size({'width':width,'height':1000});season.scroll_into_view_if_needed();boxes=[tabs.nth(i).bounding_box() for i in range(3)]
             if width==1280:assert len({round(box['y']) for box in boxes})==1 and boxes[0]['x']<boxes[1]['x']<boxes[2]['x']
             else:assert len({round(box['x']) for box in boxes})==1 and boxes[0]['y']<boxes[1]['y']<boxes[2]['y']
-            assert page.evaluate('document.documentElement.scrollWidth<=innerWidth');page.screenshot(path=f'local/ui-visual-refinement/season-stage-tabs-{width}.png',full_page=True)
-        season.click();popup=page.locator('#season-picker-popup:popover-open');expect(popup).to_be_visible();assert popup.evaluate('e=>e.scrollWidth<=e.clientWidth');box=popup.bounding_box();assert box['x']>=0 and box['x']+box['width']<=320;popup.screenshot(path='local/ui-visual-refinement/season-dropdown-320.png');popup.locator('[data-season-id="contest:pvp_rate_config-1"]').click();expect(tabs).to_have_count(3);page.locator('#season-activity-mode').check();expect(page.locator('.season-manual-multipliers')).to_be_visible();season.click();popup=page.locator('#season-picker-popup:popover-open');assert popup.locator('input').count()==0;expect(popup.locator('[role=option]')).to_have_count(6);assert popup.locator('[role=option]').evaluate_all('nodes=>nodes.every(e=>e.dataset.seasonId.startsWith("event:")&&[3,5].includes(e.querySelectorAll(".season-picker-stage").length))');popup.locator('[role=option]').last.click();expect(tabs).to_have_count(5);season.click();popup=page.locator('#season-picker-popup:popover-open');assert popup.evaluate('e=>e.scrollWidth<=e.clientWidth');popup.screenshot(path='local/ui-visual-refinement/event-dropdown-320.png');page.keyboard.press('Escape');
+            assert page.evaluate('document.documentElement.scrollWidth<=innerWidth');page.screenshot(path=artifact_path(f'local/ui-visual-refinement/season-stage-tabs-{width}.png'),full_page=True)
+        season.click();popup=page.locator('#season-picker-popup:popover-open');expect(popup).to_be_visible();assert popup.evaluate('e=>e.scrollWidth<=e.clientWidth');box=popup.bounding_box();assert box['x']>=0 and box['x']+box['width']<=320;popup.screenshot(path=artifact_path('local/ui-visual-refinement/season-dropdown-320.png'));popup.locator('[data-season-id="contest:pvp_rate_config-1"]').click();expect(tabs).to_have_count(3);page.locator('#season-activity-mode').check();expect(page.locator('.season-manual-multipliers')).to_be_visible();season.click();popup=page.locator('#season-picker-popup:popover-open');assert popup.locator('input').count()==0;expect(popup.locator('[role=option]')).to_have_count(6);assert popup.locator('[role=option]').evaluate_all('nodes=>nodes.every(e=>e.dataset.seasonId.startsWith("event:")&&[3,5].includes(e.querySelectorAll(".season-picker-stage").length))');popup.locator('[role=option]').last.click();expect(tabs).to_have_count(5);season.click();popup=page.locator('#season-picker-popup:popover-open');assert popup.evaluate('e=>e.scrollWidth<=e.clientWidth');popup.screenshot(path=artifact_path('local/ui-visual-refinement/event-dropdown-320.png'));page.keyboard.press('Escape');
         assert tabs.locator('.contest-stage-identity>strong').all_text_contents()==['舞台 A','舞台 B','舞台 C','舞台 D','舞台 E']
         for index in range(5):
             tabs.nth(index).click();page.get_by_role('tab',name='自选编组模拟',exact=True).click();page.locator('#contest-simulation-runs').fill(str((index+1)*100));page.locator('#season-manual-vocal').fill(str(100+index))
@@ -35,7 +36,7 @@ def check(url):
             page.set_viewport_size({'width':width,'height':1000});season.scroll_into_view_if_needed();boxes=[tabs.nth(i).bounding_box() for i in range(5)]
             if width>=700:assert len({round(box['y']) for box in boxes})==1 and all(boxes[i]['x']<boxes[i+1]['x'] for i in range(4))
             else:assert len({round(box['x']) for box in boxes})==1 and all(boxes[i]['y']<boxes[i+1]['y'] for i in range(4))
-            assert page.evaluate('document.documentElement.scrollWidth<=innerWidth');assert tabs.evaluate_all('(nodes)=>nodes.every(e=>e.scrollWidth<=e.clientWidth)');page.screenshot(path=f'local/ui-visual-refinement/event-five-stages-{width}.png',full_page=True)
+            assert page.evaluate('document.documentElement.scrollWidth<=innerWidth');assert tabs.evaluate_all('(nodes)=>nodes.every(e=>e.scrollWidth<=e.clientWidth)');page.screenshot(path=artifact_path(f'local/ui-visual-refinement/event-five-stages-{width}.png'),full_page=True)
         tabs.first.focus();tabs.first.press('End');expect(tabs.last).to_be_focused();expect(tabs.last).to_have_attribute('aria-selected','true')
         select_season(page,'event:4:1');expect(tabs).to_have_count(3);expect(season).to_contain_text('さいごの文化祭')
         select_season(page,'event:1:1');expect(tabs).to_have_count(5);expect(page.locator('#contest-simulation-runs')).to_have_value('100')

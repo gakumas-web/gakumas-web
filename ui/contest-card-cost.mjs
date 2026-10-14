@@ -67,3 +67,8 @@ export function contestRatingRules(){
   const details=contestCapacityRanges();details.querySelector('summary').textContent=t('评级与卡组容量区间、附魔次数和 P 道具个数');
   details.append(contestCustomizationTable(),contestItemLimitTable());return details;
 }
+
+export function contestRulesHelp(...sections){
+  const help=el('details','','contest-rules-help optimization-help');
+  help.append(el('summary',t('规则与算法说明')),...sections);return help;
+}

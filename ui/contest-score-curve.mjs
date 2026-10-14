@@ -7,7 +7,7 @@ function svgNode(tag,attributes={},text=''){
   const node=document.createElementNS('http://www.w3.org/2000/svg',tag);for(const [key,value] of Object.entries(attributes))node.setAttribute(key,String(value));node.textContent=text;return node;
 }
 export function contestScoreCurve(curve){
-  const section=el('details','','season-score-curve');section.append(el('summary',t('属性评分曲线')));
+  const section=el('section','','season-score-curve');section.setAttribute('aria-label',t('属性评分曲线'));
   const chart=svgNode('svg',{viewBox:'0 0 460 238',role:'img','aria-label':t('属性评分曲线'),class:'season-curve-chart'});
   const left=48,right=440,top=24,bottom=196,min=curve[0].parameter,max=curve.at(-1).parameter,ceiling=Math.max(1,Math.ceil(Math.max(...curve.flatMap(row=>attributes.map(key=>row[key+'Permil']/1000)))));
   const x=value=>left+(value-min)/(max-min||1)*(right-left),y=value=>bottom-value/ceiling*(bottom-top);

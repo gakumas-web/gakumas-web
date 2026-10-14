@@ -1,4 +1,5 @@
 """通过内置合成预览核对偶像卡计数、切换隔离、评级提示与图片选择入口。"""
+from browser_artifacts import artifact_path
 from pathlib import Path
 from playwright.sync_api import sync_playwright, expect
 
@@ -9,7 +10,7 @@ def check(url):
         browser=p.chromium.launch();page=browser.new_page(viewport={'width':1280,'height':1000});errors=[];page.on('pageerror',lambda error:errors.append(str(error)))
         page.goto(url,wait_until='networkidle');page.locator('#data-open').click();page.locator('#enable-preview-account').click();expect(page.locator('#season-simulation-open')).to_be_enabled(timeout=60000)
         page.locator('#season-simulation-open').click();tabs=page.locator('.simulation-mode-tabs');expect(tabs).to_be_visible(timeout=60000)
-        expect(tabs.locator('[data-mode=optimization]')).to_have_text('自定义推荐编组模拟');tabs.locator('[data-mode=optimization]').click();panel=page.locator('#contest-optimization')
+        expect(tabs.locator('[data-mode=optimization]')).to_have_text('推荐编组搜索');tabs.locator('[data-mode=optimization]').click();panel=page.locator('#contest-optimization')
         expected=page.evaluate('''async()=>{
           const c=await import('./domain/catalog.mjs'),data=await(await fetch('./resources/preview-account.json')).json(),stage=c.contestCatalog().choices.find(row=>row.id===document.querySelector('.season-stage-tab[aria-selected=true]').dataset.stageId),plan=stage.planType.replace('ProducePlanType_','');
           const counts={};for(const card of new Map(data.documents.find(doc=>Array.isArray(doc.idolCards)).idolCards.map(card=>[card.idolCardId,card])).values()){const info=c.idolInfo(card);if(info.cardResolved&&(plan==='Common'||info.plan===plan))counts[info.characterId]=(counts[info.characterId]??0)+1;}return counts;
@@ -41,7 +42,7 @@ def check(url):
         expect(panel.get_by_role('link',name='附魔规则来源')).to_have_count(0)
         panel.locator('.contest-capacity-ranges>summary').click()
         for width in [1280,375]:
-            page.set_viewport_size({'width':width,'height':1000});assert panel.evaluate('node=>node.scrollWidth<=node.clientWidth');panel.screenshot(path=str(ROOT/'local/ui-visual-refinement'/f'optimization-redesign-{width}.png'))
+            page.set_viewport_size({'width':width,'height':1000});assert panel.evaluate('node=>node.scrollWidth<=node.clientWidth');panel.screenshot(path=artifact_path(str(ROOT/'local/ui-visual-refinement'/f'optimization-redesign-{width}.png')))
         assert not errors,errors;browser.close()
     print('偶像卡按计划去重计数、角色切换与卡槽隔离、总属性保留、自动评级规则及双屏宽检查通过。')
 

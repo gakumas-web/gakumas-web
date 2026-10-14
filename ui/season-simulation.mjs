@@ -7,7 +7,7 @@ import {loadCardConversions,saveCardConversions} from '../application/card-conve
 import {openContestCardConversionSettings} from './contest-card-conversions.mjs';
 import {accountProducerLevel} from '../domain/catalog.mjs';
 import {createContestSeasonPicker} from './contest-season-picker.mjs';
-import {contestStageSummary,contestStageName,contestPlanName} from './contest-stage-picker.mjs';
+import {contestStageSummary,contestStageName,contestPlanName} from './contest-stage-summary.mjs';
 import {el} from './dom.mjs';
 import {t} from '../i18n.mjs';
 import {contestCatalog,contestCardConversions,contestCardNoDeckDuplication,cardRewardInfo,itemRewardInfo,memoryExclusiveSkill,contestCustomizationCatalog,contestFixedItemIds} from '../domain/catalog.mjs';
@@ -23,7 +23,7 @@ import {contestScoreCurve} from './contest-score-curve.mjs';
 import {createContestMemoryDraft,contestExtraItemCount} from '../domain/contest-loadout.mjs';
 import {openContestLoadoutEditor} from './contest-loadout-editor.mjs';
 import {captureSimulationLoadout} from '../application/contest-simulation-history.mjs';
-import {contestMemoryCost,contestRatingRules} from './contest-card-cost.mjs';
+import {contestMemoryCost,contestRatingRules,contestRulesHelp} from './contest-card-cost.mjs';
 import {createContestLoadoutLibrary} from './contest-loadout-library.mjs';
 import {createContestRecommendations} from './contest-recommendations.mjs';
 const planName=contestPlanName;
@@ -114,7 +114,7 @@ function createStageWorkspace({profile,memories,idolCards,supportCards,producerE
   const manualInputs={};for(const [index,key] of ['vocal','dance','visual'].entries()){const input=el('input');input.type='number';input.min='0';input.step='0.1';input.placeholder=t('未填写');input.id='season-manual-'+key;manualInputs[key]=input;const label=el('label',['Vo','Da','Vi'][index]);label.append(input);manualBox.append(label);input.oninput=()=>{manual[key]=input.value.trim()!==''&&input.validity.valid?Number(input.value):undefined;drawRows();};}body.insertBefore(manualBox,results);
   const count=el('p','','small muted'),slots=el('div','','season-memory-slots'),pickers=el('div','','season-memory-choices'),team=el('div','','season-team-preview');
   const bonus=contestSupportBonus(supportCards);
-  const methodHint=el('p','','small muted'),loadoutBody=el('div','','season-loadout-body');loadoutBody.append(pickers,team,slots);results.append(el('p',t('选择主回忆和副回忆后即可开始模拟，属性、P 道具与卡组会自动带入。副回忆仅加算 20% 属性（含体力，向下取整），不提供 P 道具。'),'small muted'),contestRatingRules(),count,loadoutBody,methodHint);
+  const methodHint=el('p','','small muted'),loadoutBody=el('div','','season-loadout-body');loadoutBody.append(pickers,team,slots);results.append(el('p',t('选择主回忆和副回忆后即可开始模拟，属性、P 道具与卡组会自动带入。副回忆仅加算 20% 属性（含体力，向下取整），不提供 P 道具。'),'small muted'),contestRulesHelp(contestRatingRules()),count,loadoutBody,methodHint);
   let simulationPanel;
   const loadoutLibrary=createContestLoadoutLibrary({profile,getCurrent:()=>({stage:currentStage,loadout:captureSimulationLoadout(drafts,manual,selected)}),onRestore,onChange:()=>simulationPanel?.refreshHistory()});loadoutBody.prepend(loadoutLibrary.element);
   const recommendations=createContestRecommendations({getContext:()=>({memories,stage:currentStage,supportCards,manual:{...manual},conversionRules:getConversionRules()}),onRestore,onOpenMemory,onSave:entry=>loadoutLibrary.saveEntry(entry),initialState:initialState?.recommendations,onTaskChange:task=>onTaskChange('recommended',task)});
@@ -171,9 +171,12 @@ function createStageWorkspace({profile,memories,idolCards,supportCards,producerE
     for(const gimmick of currentStage.gimmicks){const item=el('div','','season-gimmick');item.append(el('strong',t('第 {0} 回合',[gimmick.startTurn])),effectReading('',{descriptionParts:gimmick.descriptions,leadingEffectIcons:true}));rules.append(item);}
     const columns=el('div','','season-stage-columns'),effects=el('div','','season-stage-effects'),reference=el('div','','season-stage-reference');
     for(const id of currentStage.produceItemIds)effects.append(stageItem(itemRewardInfo(id)));columns.append(effects,reference);
+    const guide=el('details','','season-stage-guide'),guideTitle=el('summary',t('基础规则和属性评分曲线'));
+    const infoIcon=document.createElementNS('http://www.w3.org/2000/svg','svg'),infoPath=document.createElementNS(infoIcon.namespaceURI,'path');
+    infoIcon.setAttribute('viewBox','0 0 24 24');infoIcon.setAttribute('aria-hidden','true');infoPath.setAttribute('d','M12 11v6M12 7h.01M22 12a10 10 0 1 1-20 0 10 10 0 0 1 20 0Z');infoIcon.append(infoPath);guideTitle.prepend(infoIcon);guide.append(guideTitle);
     if(currentStage.setting){
-      const basic=el('details','','season-basic-rules'),values=el('dl','','season-basic-values');basic.append(el('summary',t('基础规则')),values);
-      for(const [key,label] of [['handLimit','手牌上限'],['holdLimit','保留上限'],['turnStartDistribute','回合开始抽牌'],['examTurnEndRecoveryStamina','回合结束体力恢复']])values.append(el('dt',t(label)),el('dd',String(currentStage.setting[key])));reference.append(basic);
+      const values=el('dl','','season-basic-values');
+      for(const [key,label] of [['handLimit','手牌上限'],['holdLimit','保留上限'],['turnStartDistribute','回合开始抽牌'],['examTurnEndRecoveryStamina','回合结束体力恢复']])values.append(el('dt',t(label)),el('dd',String(currentStage.setting[key])));guide.append(values);
     }
     const common=el('section','','season-common-deck');common.setAttribute('aria-label',t('比赛公共卡组'));
     for(const deck of currentStage.decks.filter(row=>currentStage.planType==='ProducePlanType_Common'||row.planType===currentStage.planType)){
@@ -182,7 +185,8 @@ function createStageWorkspace({profile,memories,idolCards,supportCards,producerE
     }
     if(currentStage.decks.length)effects.append(common);
     if(currentStage.manualMultipliers)rules.append(el('p',t('此舞台暂未关联道具与效果说明，可按计划选择回忆。'),'small muted'));
-    if(currentStage.curve.length)reference.append(contestScoreCurve(currentStage.curve));
+    if(currentStage.curve.length)guide.append(contestScoreCurve(currentStage.curve));
+    if(currentStage.setting||currentStage.curve.length)reference.append(guide);
     if(effects.childElementCount||reference.childElementCount)rules.append(columns);drawRows();
   }
   function restoreSimulation(entry){

@@ -1,4 +1,5 @@
 """实际自选编组验证同计划跳转、草稿隔离、活动排除和模拟运行。"""
+from browser_artifacts import artifact_path
 import argparse
 import copy
 import json
@@ -46,8 +47,8 @@ def check(url):
         for width in [1280,375,320]:
             page.set_viewport_size({'width':width,'height':1000});controls=page.locator('.contest-simulation-controls');controls.scroll_into_view_if_needed();assert controls.evaluate('e=>e.scrollWidth<=e.clientWidth')
             button=page.locator('.season-simulate').bounding_box();dropdown=jump.bounding_box();assert dropdown['x']>=button['x']+button['width'],(width,button,dropdown)
-            controls.screenshot(path=str(ROOT/f'local/season-simulation/quick-stage-{width}.png'))
-            jump.click();popup=page.locator('.season-quick-stage-popup:popover-open');expect(popup).to_be_visible();bounds=popup.bounding_box();assert bounds['x']>=0 and bounds['x']+bounds['width']<=width;assert popup.evaluate('e=>e.scrollWidth<=e.clientWidth');popup.screenshot(path=str(ROOT/f'local/season-simulation/quick-stage-options-{width}.png'));page.keyboard.press('Escape')
+            controls.screenshot(path=artifact_path(str(ROOT/f'local/season-simulation/quick-stage-{width}.png')))
+            jump.click();popup=page.locator('.season-quick-stage-popup:popover-open');expect(popup).to_be_visible();bounds=popup.bounding_box();assert bounds['x']>=0 and bounds['x']+bounds['width']<=width;assert popup.evaluate('e=>e.scrollWidth<=e.clientWidth');popup.screenshot(path=artifact_path(str(ROOT/f'local/season-simulation/quick-stage-options-{width}.png')));page.keyboard.press('Escape')
 
         page.set_viewport_size({'width':1280,'height':1100});choose_season('contest:pvp_rate_config-53');page.locator('.season-stage-tab').first.click();assert board()==original
         page.locator('.season-memory-row').nth(1).locator('.season-slot-actions button').click();expect(jump).to_be_disabled();choose_season('contest:pvp_rate_config-52');page.locator(f'.season-stage-tab[data-stage-id="{options["target"]}"]').click();assert board()==original

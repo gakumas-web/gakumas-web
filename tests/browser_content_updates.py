@@ -4,7 +4,7 @@ from functools import partial
 from http.server import SimpleHTTPRequestHandler,ThreadingHTTPServer
 import json
 from pathlib import Path
-import sys
+
 from tempfile import TemporaryDirectory
 from threading import Thread,Event,Lock
 from urllib.parse import urlsplit

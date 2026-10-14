@@ -98,7 +98,7 @@ function installImageIndex(prepared){
   // 资料立即可用；基础界面小包独立准备，完整卡图只在实际展示或用户要求时获取。
   const core=new Set(plan?.packages.filter(pack=>pack.group==='core').flatMap(pack=>Object.keys(pack.objects))??[]);
   const names=Object.keys(index.files).filter(name=>core.has(index.files[name].sha256+'.'+name.split('.').at(-1))||name.startsWith('ui-icons/')&&!name.includes('full.'));
-  void imageManager.request(names,{priority:0});
+  void imageManager.request(names,{priority:0,includeURLs:false});
 }
 export function appURL(path){
   if(typeof path!=='string'||path.startsWith('/')||path.split('/').includes('..')||path.includes(':'))throw new Error('invalid_app_path');
@@ -109,7 +109,7 @@ function resourceURL(name, folder, thumbnail=false){
   const [kind,file]=target.split('/'),cached=(kind==='images'?imageConfig.imageURLs:imageConfig.iconURLs)?.[file];
   if(cached)return cached;
   if(imageConfig.mode!=='managed')return appURL('ui-icons/unavailable.svg');
-  if(lastDelivery?.files[target])void imageManager.request([target],{priority:1});
+  if(lastDelivery?.files[target])void imageManager.request([target],{priority:1,includeURLs:false});
   return appURL('ui-icons/unavailable.svg')+'#resource='+encodeURIComponent(target);
 }
 export function assetURL(name, thumbnail=false){

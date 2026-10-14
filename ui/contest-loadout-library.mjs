@@ -1,6 +1,6 @@
 import {el,openDialog} from './dom.mjs';
 import {t,locale} from '../i18n.mjs';
-import {contestStageName} from './contest-stage-picker.mjs';
+import {contestStageName} from './contest-stage-summary.mjs';
 import {contestMemoryCards} from '../domain/contest-simulation.mjs';
 import {characterInfo,itemRewardInfo,contestCardNoDeckDuplication} from '../domain/catalog.mjs';
 import {itemThumbnail} from './illustrations.mjs';

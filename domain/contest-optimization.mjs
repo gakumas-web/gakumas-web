@@ -132,6 +132,7 @@ export function createOptimizationProblem({variants,roles}){
       return new Set(unique).size===unique.length&&cost>=role.capacity.min&&cost<=role.capacity.max&&indices.reduce((sum,index)=>sum+counts[index],0)<=role.maxCustomizeCount&&indices.filter(index=>counts[index]>0).length<=role.maxCustomizedCards&&Object.entries(role.customizedCardsBySource??{}).every(([source,limit])=>indices.filter(index=>variants[index].source===source&&counts[index]>0).length<=limit);
     });
   }
+  const diagnostics={mutations:0,unchanged:0,reverted:0,repairChanges:0,failed:0,retainedChanges:0,requestedChanges:0};
   function mutate(genome,random){
     if(!genome)return null;
     const result=[...genome],positions=result.flatMap((_,position)=>slots[position].length>1?[position]:[]),changes=random()<.2?2:1;
@@ -140,7 +141,12 @@ export function createOptimizationProblem({variants,roles}){
       const offset=Math.floor(random()*positions.length),position=positions.splice(offset,1)[0],current=variants[result[position]],near=slots[position].filter(index=>index!==result[position]&&variants[index].reference.id===current.reference.id);
       result[position]=near.length&&random()<.5?pick(near,random):drawVariant(position,random);
     }
-    return repair(result,random);
+    const repaired=repair(result,random);diagnostics.mutations++;
+    if(!repaired){diagnostics.failed++;return null;}
+    const changed=canonicalize([...result]).join(',')!==genome.join(',');
+    if(repaired.join(',')===genome.join(',')){diagnostics.unchanged++;if(changed)diagnostics.reverted++;}
+    for(let role=0;role<2;role++){const before=new Set(genome.slice(role*6,role*6+6)),after=new Set(repaired.slice(role*6,role*6+6)),intended=new Set(result.slice(role*6,role*6+6));for(const value of after)if(!intended.has(value))diagnostics.repairChanges++;for(const value of new Set(result.slice(role*6,role*6+6)))if(!before.has(value)){diagnostics.requestedChanges++;if(after.has(value))diagnostics.retainedChanges++;}}
+    return repaired;
   }
   function crossover(a,b,random){
     // 主副各自继承完整技能组，避免按排序后的槽位逐张混合而拆散配合。
@@ -197,7 +203,7 @@ export function createOptimizationProblem({variants,roles}){
       yield genome;
     }
   }
-  return {possible,variants,roles,repair,valid,mutate,crossover,neighbors,materialize,coverage,key:genome=>genome.join(','),random:random=>repair(null,random)};
+  return {diagnostics,possible,variants,roles,repair,valid,mutate,crossover,neighbors,materialize,coverage,key:genome=>genome.join(','),random:random=>repair(null,random)};
 }
 
 // 保留精英、三选一锦标赛、整份回忆交叉与局部变异；随机移民继续探索新组合。

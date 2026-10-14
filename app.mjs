@@ -17,7 +17,7 @@ import {setupAccountPackage} from './ui/account-package.mjs';
 import {captureAccountBackup,importAccountBackup} from './application/account-package-store.mjs';
 import {readAccountDirectory} from './application/account-directory.mjs';
 import {AccountDirectoryError,combineAccountDirectory} from './domain/account-import.mjs';
-import {resetDeferredContent} from './ui/deferred-content.mjs';
+import {resetDeferredContent,deferredEntry,sizeDeferredEntries} from './ui/deferred-content.mjs';
 import {accountProfile,profileAccountId,validPublicUserId,validProfile,snapshotFitsProfile,maskedAccountId} from './domain/account.mjs';
 import {accountIdentity} from './ui/shared.mjs';
 import {restoreSelectionSnapshot,selectionEntries,selectionSkillKey,withoutSecondExclusiveSkills,withoutCommonSelectionItems} from './domain/selection-memories.mjs';
@@ -25,10 +25,10 @@ import {setupSelectionOptions,renderSelectionChoices,renderLoadoutChoices,render
 import {loadMaster,masterReadyFor,masterLoadingFor} from './application/master-loader.mjs';
 import {setupContentControls} from './ui/content-controls.mjs';
 import {defaults,createView,createViews,parsePreferences,readSavedViews,activeFilterKeys,resetFilters,FILTER_BINDINGS,CHOICE_GROUPS,PROFILE_PREFERENCE_KEY,normalizeProfile,restoreIdolArt} from './application/view-state.mjs';
-import {setupFilterOptions,syncMemoryFilterOptions,syncFilterControls,renderFilterChoices,renderTabCount,renderActiveFilters} from './ui/filters.mjs';
+import {setupFilterOptions,prepareMemoryFilterOptions,syncMemoryFilterOptions,syncFilterControls,renderFilterChoices,renderTabCount,renderActiveFilters} from './ui/filters.mjs';
 import {t,locale,setLocale,onLocaleChange,staticTranslations} from './i18n.mjs';
 import {title, memoryUse, selectedValues} from './domain/model.mjs';
-import {cardInfo, characterInfo, collectionRecords,supportInfo,idolInfo,skinInfo,achievementViewCounts} from './domain/catalog.mjs';
+import {cardInfo, characterInfo, collectionRecords,skinInfo,achievementViewCounts} from './domain/catalog.mjs';
 import {$,el,openDialog} from './ui/dom.mjs';
 import {showDetail,memoryEntry,syncMemoryDetailFocus,restoreMemoryEntryFocus} from './ui/memories.mjs';
 import {idolEntry,focusIdol} from './ui/idols.mjs';
@@ -187,10 +187,10 @@ function renderPendingCatalogCounts(){
 
 function setup(){
   const controls=state.tab!=='achievements'&&masterReadyFor(state.tab);controlsPending=!controls;
-  setupFilterOptions(state.snapshot,groups,{controls});
-  if(controls){setupSelectionOptions(state.selectionSnapshot);refreshSavedViews();}
+  setupFilterOptions(state.snapshot,groups,{controls,tab:state.tab});
+  if(controls){if(state.tab==='selectionMemories')setupSelectionOptions(state.selectionSnapshot);refreshSavedViews();}
   if(masterReadyFor('selectionMemories')){state.views.selectionMemories.selectionSkill=withoutSecondExclusiveSkills(state.views.selectionMemories.selectionSkill);state.views.selectionMemories.selectionItem=withoutCommonSelectionItems(state.views.selectionMemories.selectionItem);}
-  if(masterReadyFor('supportCards'))syncSupportEffectChoices(state.snapshot,state.views.supportCards);
+  if(state.tab==='supportCards'&&masterReadyFor('supportCards'))syncSupportEffectChoices(state.snapshot,state.views.supportCards);
   for(const [tab,filters] of Object.entries(state.views)){
     if(tab==='seasonSimulation')continue;
     if(tab==='achievements'){updateTabCount(tab);continue;}
@@ -229,7 +229,9 @@ function syncControls(){
   if(state.tab==='seasonSimulation'){for(const nav of document.querySelectorAll('[data-tab]'))nav.setAttribute('aria-pressed',String(nav.dataset.tab===state.tab));return;}
   if(!masterReadyFor(state.tab)){controlsPending=true;return;}
   if(state.tab!=='achievements'){
-    if(controlsPending){setupFilterOptions(state.snapshot,groups);setupSelectionOptions(state.selectionSnapshot);refreshSavedViews();controlsPending=false;}
+    setupFilterOptions(state.snapshot,groups,{tab:state.tab});
+    if(state.tab==='selectionMemories')setupSelectionOptions(state.selectionSnapshot);
+    if(controlsPending){refreshSavedViews();controlsPending=false;}
     tagOptions();
   }
   if(state.tab==='memories')syncMemoryFilterOptions(state.snapshot,view());
@@ -352,7 +354,8 @@ function render(){
   $('season-simulation-view').hidden=state.tab!=='seasonSimulation'||!hasData;
   $('season-picker-region').hidden=state.tab!=='seasonSimulation'||!hasData;if(state.tab!=='seasonSimulation')seasonComponent?.hidePicker?.();
   for(const nav of document.querySelectorAll('[data-tab]'))nav.setAttribute('aria-pressed',String(nav.dataset.tab===state.tab));
-  const memoryChoices=memory?syncMemoryFilterOptions(state.snapshot,v):null;
+  const memoryChoices=memory&&masterReadyFor('memories')?syncMemoryFilterOptions(state.snapshot,v):null;
+  if(memory)for(const id of ['inheritance-skill-open','inheritance-ability-open','memory-skill-open','memory-item-open'])$(id).disabled=!memoryChoices;
   $('empty').hidden=hasData;$('inventory').hidden=!hasData;$('shared-search').hidden=!hasData;
   $('selection-capacity').hidden=!selection;
   $('achievement-browser').hidden=!achievement||!hasData;
@@ -398,7 +401,7 @@ function render(){
   $('memory-modes').hidden=!memory;
   for(const id of ['memory-skill-all','memory-item-all','selection-skill-all','selection-item-all','support-character-all'])$(id).closest('label').title=t('勾选时需满足全部已选项，未勾选时满足任一项即可。');
   if(selection)renderSelectionChoices(v,onFilterChoice,pickerAvailability);
-  if(memory){renderInheritanceChoices(v,memoryChoices,onFilterChoice,pickerAvailability);renderLoadoutChoices(v,onFilterChoice,{prefix:'memory',skillKey:'memoryExamSkill',itemKey:'memoryExamItem',choices:memoryChoices,characters:[],createAvailability:pickerAvailability});}
+  if(memoryChoices){renderInheritanceChoices(v,memoryChoices,onFilterChoice,pickerAvailability);renderLoadoutChoices(v,onFilterChoice,{prefix:'memory',skillKey:'memoryExamSkill',itemKey:'memoryExamItem',choices:memoryChoices,characters:[],createAvailability:pickerAvailability});}
   renderFilterDisclosure();if(achievement)$('advanced-filters').hidden=true;
   $('sort').closest('label').hidden=!memory;$('idol-sort').closest('label').hidden=memory||selection||achievement;
   $('selection-sort-control').hidden=!selection;
@@ -412,13 +415,17 @@ function render(){
   const currentPageSize=state.tab==='supportCards'&&!v.supportImmersive?10:pageSize;
   const pages=Math.max(1,Math.ceil(values.length/currentPageSize));v.page=Math.min(v.page,pages-1);
   const list=$('list');list.className=`inventory-list ${selection?'selection-memory-catalog':memory?'compact-grid':state.tab==='supportCards'?'support-catalog':state.tab==='idolCardSkins'?'skin-catalog':'idol-catalog'}`;list.classList.toggle('memory-catalog',memory);list.classList.toggle('support-immersive',state.tab==='supportCards'&&v.supportImmersive);list.classList.toggle('idol-immersive',state.tab==='idolCards'&&v.idolImmersive);const fragment=document.createDocumentFragment();
+  const eagerCount=state.tab==='idolCardSkins'||v.idolImmersive||v.supportImmersive?8:2;
+  let entryIndex=0;
   for(const value of values.slice(v.page*currentPageSize,(v.page+1)*currentPageSize)){
     const targetKey=['supportCards','idolCards'].includes(state.tab)?`${state.profile}:${value.held.supportCardId??value.held.idolCardId}`:'';
-    fragment.append(selection?selectionMemoryEntry(value,{...tagContext('selectionMemories',value.memory.key),...favoriteContext('selectionMemories',value.memory.key),collapsed:v.selectionLoadoutCollapsed,detail:state.selectionSnapshot?.details?.find(detail=>detail.key===value.memory.key)}):memory?memoryEntry(value,{...tagContext('memories',value.key),...favoriteContext('memories',value.key),selected:state.selected.has(value.key),active:state.detail===value.key,purpose:v.purpose,sort:v.sort,open:openDetail,select:selectMemory,simulate:useMemoryForSeason}):state.tab==='supportCards'?supportEntry(value,{...favoriteContext('supportCards',value.held.supportCardId),immersive:v.supportImmersive,targetLevel:state.supportTargets.get(targetKey),onTarget:level=>state.supportTargets.set(targetKey,level)}):state.tab==='idolCards'?idolEntry(value,{...favoriteContext('idolCards',value.held.idolCardId),immersive:v.idolImmersive,target:{...state.idolTargets.get(targetKey),art:state.idolArt[value.held.idolCardId]??state.idolTargets.get(targetKey)?.art},onTarget:target=>state.idolTargets.set(targetKey,target),onArt:art=>{state.idolArt[value.held.idolCardId]=art;persist();}}):skinEntry(value,skinOptions(value.held)));
+    const build=()=>selection?selectionMemoryEntry(value,{...tagContext('selectionMemories',value.memory.key),...favoriteContext('selectionMemories',value.memory.key),collapsed:v.selectionLoadoutCollapsed,detail:state.selectionSnapshot?.details?.find(detail=>detail.key===value.memory.key)}):memory?memoryEntry(value,{...tagContext('memories',value.key),...favoriteContext('memories',value.key),selected:state.selected.has(value.key),active:state.detail===value.key,purpose:v.purpose,sort:v.sort,open:openDetail,select:selectMemory,simulate:useMemoryForSeason}):state.tab==='supportCards'?supportEntry(value,{...favoriteContext('supportCards',value.held.supportCardId),immersive:v.supportImmersive,targetLevel:state.supportTargets.get(targetKey),onTarget:level=>state.supportTargets.set(targetKey,level)}):state.tab==='idolCards'?idolEntry(value,{...favoriteContext('idolCards',value.held.idolCardId),immersive:v.idolImmersive,target:{...state.idolTargets.get(targetKey),art:state.idolArt[value.held.idolCardId]??state.idolTargets.get(targetKey)?.art},onTarget:target=>state.idolTargets.set(targetKey,target),onArt:art=>{state.idolArt[value.held.idolCardId]=art;persist();}}):skinEntry(value,skinOptions(value.held));
+    const identity=selection?{className:'selection-memory-card',dataset:{selectionKey:value.memory.key},label:title(value.memory)}:memory?{className:'memory-row memory-card',dataset:{memoryKey:value.key,memoryUse:memoryUse(value)},label:title(value)}:state.tab==='supportCards'?{className:'support-card',dataset:{supportId:value.held.supportCardId},label:value.info.name}:state.tab==='idolCards'?{className:'idol-card',dataset:{idolId:value.held.idolCardId},label:value.info.name}:{className:'skin-card',dataset:{skinId:value.held.idolCardSkinId},label:value.info.name};
+    fragment.append(entryIndex++<eagerCount?build():deferredEntry(build,identity));
   }
   const missing=selection?!state.selectionSnapshot:(state.tab==='supportCards'||state.tab==='idolCardSkins')&&s[state.tab]===undefined;
   if(!values.length)fragment.append(el('div',missing?t(selection?'尚未采集选拔回忆，请导入独立快照。':'尚未导入主库存，请导入当前格式的账号目录。'):t(achievement?(v.achievementSection==='achievement'?'没有找到符合条件的成就。试试减少筛选条件，或清空搜索。':'没有找到符合条件的 Ending。试试清空搜索。'):'没有匹配条目。试试减少筛选条件或清空搜索。'),'empty-result'));
-  list.replaceChildren(fragment);
+  list.replaceChildren(fragment);sizeDeferredEntries(list);
   updateTabCount(state.tab,values.length);
   $('page-number').textContent=t("{0} / {1} 页",[v.page+1,pages]);$('previous').disabled=v.page===0;$('next').disabled=v.page+1>=pages;
   const conditions=activeFilterKeys(state.tab,v);
@@ -450,7 +457,7 @@ function selectionControls(){
   $('selection-items').replaceChildren();
   for(const m of state.snapshot?.memories??[])if(state.selected.has(m.key)){
     const button=el('button',`${cardInfo(m.produceCard,m.characterId).name} ×`,'selection-chip');
-    button.setAttribute('aria-label',t("移除{0}",[title(m)]));button.onclick=()=>{state.selected.delete(m.key);const row=[...$('list').children].find(row=>row.dataset.memoryKey===m.key);if(row){row.classList.remove('selected');row.querySelector('.pick input').checked=false;}selectionControls();};$('selection-items').append(button);
+    button.setAttribute('aria-label',t("移除{0}",[title(m)]));button.onclick=()=>{state.selected.delete(m.key);const row=[...$('list').children].find(row=>row.dataset.memoryKey===m.key);if(row){row.classList.remove('selected');const input=row.querySelector('.pick input');if(input)input.checked=false;}selectionControls();};$('selection-items').append(button);
   }
 }
 function openDetail(m){
@@ -508,7 +515,7 @@ $('account-directory-files').onchange=async event=>{
     const count=next.selectionSnapshot?.details?.length??0;
     message(t('账号目录已导入，已关联 {0} 条选拔详情。',[count])+(next.ignoredDetails?t('已略过 {0} 条不在当前选拔列表中的历史详情。',[next.ignoredDetails]):''),false,{transient:true});
   }catch(error){message(error instanceof AccountDirectoryError?t(error.message):t('账号目录导入失败，请检查快照格式和存储空间；原数据保留。'),true);}
-  finally{loading=false;$('profile').disabled=false;render();openMemoryLink();}
+  finally{loading=false;$('profile').disabled=false;render();document.documentElement.classList.remove('profile-restoring');openMemoryLink();}
 };
 async function restoreProfile(){
   loading=true;$('profile').disabled=true;render();
@@ -525,7 +532,7 @@ async function restoreProfile(){
     state.views=createViews(preferences?.views);state.tab=preferences?.tab??'memories';viewRun++;state.idolArt=restoreIdolArt(preferences?.idolArt);
     loadLibrary();setup();syncControls();render();if(state.snapshot||state.selectionSnapshot||state.tab==='achievements')void ensureMaster();
   }catch(error){message(error instanceof AccountImportError?error.message:t('浏览器工作副本无法恢复，请重新载入快照。'),true);}
-  finally{loading=false;$('profile').disabled=false;render();openMemoryLink();}
+  finally{loading=false;$('profile').disabled=false;render();document.documentElement.classList.remove('profile-restoring');openMemoryLink();}
 }
 $('profile').onchange=async()=>{persist();state.profile=normalizeProfile($('profile').value);resetSeasonPage();try{localStorage.setItem(PROFILE_PREFERENCE_KEY,state.profile);}catch{message(t('视图偏好保存失败，刷新后可能需要重新筛选。'),true);}state.snapshot=null;state.selectionSnapshot=null;state.library=null;state.selected.clear();resetDetail();await restoreProfile();};
 for(const button of document.querySelectorAll('[data-tab]'))button.onclick=()=>{
@@ -559,7 +566,7 @@ function changePage(direction){
   list.focus({preventScroll:true});list.scrollIntoView({block:'start',behavior:'instant'});
 }
 $('previous').onclick=()=>changePage(-1);$('next').onclick=()=>changePage(1);
-$('clear-selection').onclick=()=>{state.selected.clear();for(const row of $('list').querySelectorAll('.selected')){row.classList.remove('selected');row.querySelector('.pick input').checked=false;}selectionControls();};
+$('clear-selection').onclick=()=>{state.selected.clear();for(const row of $('list').querySelectorAll('.selected')){row.classList.remove('selected');const input=row.querySelector('.pick input');if(input)input.checked=false;}selectionControls();};
 $('compare').onclick=()=>showComparison(state.snapshot.memories.filter(m=>state.selected.has(m.key)));
 function openSeasonMemory(key){
   state.tab='memories';resetDetail();state.views.memories={...defaults(),query:key,page:0};syncControls();persist();render();
@@ -585,9 +592,11 @@ async function ensureMaster(forLink=false){
   if(masterTasks.has(scope))return masterTasks.get(scope);
   masterFailures.delete(scope);
   $('load-master').disabled=true;$('master-status').textContent=t('正在读取本地主数据…');
-  const task=loadMaster(scope).then(()=>{
+  const task=loadMaster(scope).then(async()=>{
     if(masterReadyFor(state.tab)){$('load-master').hidden=true;$('master-status').textContent=t('主数据已载入 · 公开插图按需缓存');}
-    markLoading('package-ready',{scope});viewTiming.complete();setup();syncControls();render();openCatalogLink();if(masterReadyFor('memories')&&state.detail)openDetail(state.snapshot.memories.find(m=>m.key===state.detail));
+    markLoading('package-ready',{scope});setup();
+    if(state.tab==='memories')await prepareMemoryFilterOptions(state.snapshot,view());
+    viewTiming.complete();syncControls();render();openCatalogLink();if(masterReadyFor('memories')&&state.detail)openDetail(state.snapshot.memories.find(m=>m.key===state.detail));
   }).catch(()=>{masterFailures.add(scope);viewTiming.fail(scope);if(!masterReadyFor(state.tab)){$('master-status').textContent=t('主数据暂不可用，仍可查看库存数值。');$('load-master').disabled=false;$('load-master').hidden=false;}}).finally(()=>{masterTasks.delete(scope);renderPendingCatalogCounts();renderMasterReadiness();});
   masterTasks.set(scope,task);renderPendingCatalogCounts();renderMasterReadiness();return task;
 }

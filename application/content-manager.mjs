@@ -1,9 +1,10 @@
+import {createContentProcessor} from './content-processing.mjs';
 import {markLoading} from './loading-metrics.mjs';
 import {contentConfig} from '../content-config.mjs';
 import {appURL,installContentResources,validateContentResources} from '../resources.mjs';
 import {WEB_VERSION} from './version.mjs';
 import {readContentCache,writeContentCache} from './content-store.mjs';
-import {contentScopes,contentLimits,ContentError,contentHash,validateContentManifest,validateContentChannel,validateContentPart,validateContentBundle} from '../domain/content-contract.mjs';
+import {contentScopes,contentLimits,ContentError,contentHash,validateContentManifest,validateContentChannel} from '../domain/content-contract.mjs';
 
 export async function readBounded(response,limit,onProgress=()=>{}){
   const reader=response.body.getReader(),chunks=[];let size=0;
@@ -15,7 +16,7 @@ export async function readBounded(response,limit,onProgress=()=>{}){
 const decode=bytes=>new TextDecoder('utf-8',{fatal:true}).decode(bytes);
 export function createContentManager({channelURL,bootstrapChannelURL,webVersion=WEB_VERSION,fetcher=(...args)=>fetch(...args),store={read:readContentCache,write:writeContentCache},install=installContentResources,validateResources=validateContentResources}={}){
   let current,startup,updating,controller,generation=0;
-  const parsed=new Map(),listeners=new Set();
+  const parsed=new Map(),listeners=new Set(),processor=createContentProcessor();
   let state={phase:'idle',version:null,availableVersion:null,cached:false,error:null,local:false,bytes:0,totalBytes:0};
   const notify=values=>{state={...state,...values};for(const listener of listeners)listener({...state});};
   async function request(url,limit,cache='default',onProgress){
@@ -23,7 +24,7 @@ export function createContentManager({channelURL,bootstrapChannelURL,webVersion=
     if(!response.ok)throw new ContentError('content_unavailable');return readBounded(response,limit,onProgress);
   }
   async function activate(bundle,manifest,cached,epoch=generation){
-    await install(JSON.parse(bundle.files['assets-index.json']));
+    await install(await processor.parsePart(bundle.files['assets-index.json'],manifest.files['assets-index.json'].sha256));
     if(epoch!==generation)return;
     current={bundle,manifest};parsed.clear();markLoading('content-ready');
     notify({phase:'ready',version:manifest.version,availableVersion:null,cached,error:null,local:bundle.origin==='local'});
@@ -50,11 +51,11 @@ export function createContentManager({channelURL,bootstrapChannelURL,webVersion=
         await Promise.all(names.map(async name=>{
           const saved=current?.bundle.files[name];
           if(typeof saved==='string'&&current.manifest.files[name]?.sha256===manifest.files[name].sha256){
-            try{files[name]=(await validateContentPart(name,new TextEncoder().encode(saved),manifest)).text;if(canPublishProgress())notify({totalBytes:state.totalBytes-manifest.files[name].bytes});return;}catch{}
+            try{files[name]=(await processor.validatePart(name,new TextEncoder().encode(saved),manifest)).text;if(canPublishProgress())notify({totalBytes:state.totalBytes-manifest.files[name].bytes});return;}catch{}
           }
           const bytes=await request(new URL(name,manifestURL).href,manifest.files[name].bytes,'default',bytes=>{if(canPublishProgress())notify({phase:'downloading',bytes:state.bytes+bytes});});
           if(canPublishProgress())notify({phase:'verifying'});
-          files[name]=(await validateContentPart(name,bytes,manifest)).text;
+          files[name]=(await processor.validatePart(name,bytes,manifest)).text;
         }));
       }
       if(epoch!==generation)return state;
@@ -71,7 +72,7 @@ export function createContentManager({channelURL,bootstrapChannelURL,webVersion=
     updating=task;return task;
   }
   async function checkResources(bundle){
-    try{await validateResources(JSON.parse(bundle.files['assets-index.json']));}
+    try{await validateResources(await processor.parsePart(bundle.files['assets-index.json'],JSON.parse(bundle.manifest).files['assets-index.json'].sha256));}
     catch(error){throw new ContentError(error.message==='image_program_update_required'?'content_web_too_old':'content_assets_invalid');}
   }
   async function initialize(){
@@ -82,7 +83,7 @@ export function createContentManager({channelURL,bootstrapChannelURL,webVersion=
         notify({phase:'checking',error:null});
         let cached;try{cached=await store.read();}catch{}
         if(cached){
-          try{const manifest=await validateContentBundle(cached,webVersion);if(epoch===generation&&!current)await activate(cached,manifest,true,epoch);}catch{}
+          try{const manifest=await processor.validateBundle(cached,webVersion);if(epoch===generation&&!current)await activate(cached,manifest,true,epoch);}catch{}
         }
         if(current){if(!state.local)void refresh().catch(()=>{});return current;}
         if(bootstrapChannelURL&&bootstrapChannelURL!==channelURL){
@@ -97,7 +98,7 @@ export function createContentManager({channelURL,bootstrapChannelURL,webVersion=
   }
   async function importBundle(bytes){
     if(bytes.byteLength>contentLimits.bundle)throw new ContentError('content_too_large');
-    const bundle=JSON.parse(decode(bytes)),manifest=await validateContentBundle(bundle,webVersion);
+    const bundle=JSON.parse(decode(bytes)),manifest=await processor.validateBundle(bundle,webVersion);
     await checkResources(bundle);
     generation++;controller?.abort();bundle.origin='local';
     try{await store.write(bundle);}catch{
@@ -108,7 +109,7 @@ export function createContentManager({channelURL,bootstrapChannelURL,webVersion=
     return state;
   }
   return {initialize,refresh,importBundle,
-    async take(scope){if(!contentScopes.includes(scope))throw new ContentError('content_scope_invalid');await initialize();if(!parsed.has(scope))parsed.set(scope,{...JSON.parse(current.bundle.files[scope+'.json']),releaseRevision:current.bundle.manifest_sha256});return parsed.get(scope);},
+    async take(scope){if(!contentScopes.includes(scope))throw new ContentError('content_scope_invalid');await initialize();if(!parsed.has(scope))parsed.set(scope,{...await processor.parsePart(current.bundle.files[scope+'.json'],current.manifest.files[scope+'.json'].sha256),releaseRevision:current.bundle.manifest_sha256});return parsed.get(scope);},
     status:()=>({...state}),subscribe(listener){listeners.add(listener);listener({...state});return()=>listeners.delete(listener);}};
 }
 const channelURL=new URL(contentConfig.channelURL,appURL('')).href;

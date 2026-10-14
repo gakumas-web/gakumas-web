@@ -1,5 +1,6 @@
 """验证评审调整后的配置摘要、原生输入校验、高级设置保留与响应式布局。"""
-from pathlib import Path
+from browser_artifacts import artifact_path
+
 from playwright.sync_api import sync_playwright,expect
 
 
@@ -21,8 +22,8 @@ def check(url,output=None):
   for width in [1440,1280,768,390,360,320]:
    page.set_viewport_size({'width':width,'height':900});assert panel.evaluate('e=>e.scrollWidth<=e.clientWidth+1')
    fields=panel.locator('.optimization-attributes>.optimization-field');assert abs(fields.nth(0).bounding_box()['y']-fields.nth(1).bounding_box()['y'])<2
-   if output:output.mkdir(parents=True,exist_ok=True);panel.screenshot(path=str(output/f'configuration-{width}.png'))
+   if output:output.mkdir(parents=True,exist_ok=True);panel.screenshot(path=artifact_path(str(output/f'configuration-{width}.png')))
   page.locator('#language').select_option('ja');assert panel.evaluate('e=>e.scrollWidth<=e.clientWidth+1')
-  if output:panel.screenshot(path=str(output/'configuration-ja-320.png'))
+  if output:panel.screenshot(path=artifact_path(str(output/'configuration-ja-320.png')))
   assert not errors,errors;browser.close()
  print('配置摘要、字段定位、倍率说明、高级设置保留、角色切换及六种宽度/日文检查通过。')

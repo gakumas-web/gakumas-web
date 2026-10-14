@@ -12,7 +12,7 @@ from tempfile import TemporaryDirectory
 from threading import Thread
 from unittest.mock import patch
 from PIL import Image
-from playwright.sync_api import sync_playwright,expect
+from playwright.sync_api import sync_playwright
 from test_image_plan import source_fixture
 from test_content_install import fixture
 ROOT=Path(__file__).resolve().parents[1];sys.path.insert(0,str(ROOT/'tools'))

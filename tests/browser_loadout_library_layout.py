@@ -1,4 +1,5 @@
 """用合成编组验证组合筛选、弹窗排版与完整技能卡状态。"""
+from browser_artifacts import artifact_path
 import json
 from playwright.sync_api import sync_playwright,expect
 from browser_static import ROOT
@@ -43,7 +44,7 @@ def check():
             if width==1280:
                 assert dialog.locator('.loadout-library-toolbar').evaluate('(e)=>{const t=e.querySelector(".loadout-library-tabs").getBoundingClientRect(),f=e.querySelector(".loadout-library-filters").getBoundingClientRect();return f.left>=t.right&&Math.abs(f.top-t.top)<10}')
                 assert dialog.locator('.loadout-library-entry-identity').evaluate_all('(nodes)=>nodes.every(e=>{const n=e.querySelector("strong").getBoundingClientRect(),s=e.querySelector("p").getBoundingClientRect();return n.left>s.right&&Math.abs(s.top-n.top)<5})')
-            dialog.screenshot(path=f'local/ui-visual-refinement/loadout-library-layout-{width}.png')
+            dialog.screenshot(path=artifact_path(f'local/ui-visual-refinement/loadout-library-layout-{width}.png'))
         assert not errors,errors;browser.close()
     print('舞台与偶像组合筛选、标题提示位置、舞台名称同行、道具置顶、强化附魔与详情浮层、桌面及窄屏验证通过。')
 

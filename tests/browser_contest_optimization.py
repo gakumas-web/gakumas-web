@@ -1,5 +1,6 @@
 """用合成账号经过真实入口验证遗传搜索、约束、取消及结果交接。"""
-import copy
+from browser_artifacts import artifact_path
+
 import json
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -40,12 +41,12 @@ def check(url):
         expect(panel.locator('[data-optimization-custom-count],[data-optimization-custom-cards]')).to_have_count(0)
         expect(panel.locator('.recommendation-character-count')).to_have_text('1')
         for key,value in request['params'].items():panel.locator(f'[data-optimization-attribute="{key}"]').fill(str(value))
-        expect(panel.locator('[data-optimization-item="0"]')).to_be_enabled();panel.locator('.optimization-advanced>summary').click();expect(panel.locator('#optimization-strength')).to_have_value('standard');assert panel.locator('#optimization-strength option').evaluate_all('nodes=>nodes.map(node=>node.value)')==['standard','deep'];panel.locator('#optimization-strength').select_option('standard');panel.get_by_placeholder('留空时随机',exact=True).fill('12345')
+        expect(panel.locator('[data-optimization-item="0"]')).to_be_enabled();panel.locator('.optimization-advanced>summary').click();expect(panel.locator('#optimization-strength')).to_have_value('standard');assert panel.locator('#optimization-strength option').evaluate_all('nodes=>nodes.map(node=>node.value)')==['standard','deep','custom'];panel.locator('#optimization-strength').select_option('standard');panel.get_by_placeholder('留空时随机',exact=True).fill('12345')
         expect(panel.locator('#optimization-use-baseline,#optimization-rebuild-baseline')).to_have_count(0)
         for width in [1280,375]:
-            page.set_viewport_size({'width':width,'height':1000});assert panel.evaluate('element=>element.scrollWidth<=element.clientWidth');panel.screenshot(path=str(ROOT/'local/ui-visual-refinement'/f'optimization-form-{width}.png'))
+            page.set_viewport_size({'width':width,'height':1000});assert panel.evaluate('element=>element.scrollWidth<=element.clientWidth');panel.screenshot(path=artifact_path(str(ROOT/'local/ui-visual-refinement'/f'optimization-form-{width}.png')))
         page.set_viewport_size({'width':1280,'height':1000});panel.locator('.optimization-start').click();expect(panel.locator('.optimization-stop')).to_be_visible();tabs.locator('[data-mode=selected]').click();assert page.evaluate('activeOptimizationWorkers')>0;tabs.locator('[data-mode=optimization]').click()
-        expect(panel.locator('.optimization-entry')).to_have_count(5,timeout=240000)
+        expect(panel.locator('.optimization-entry')).to_have_count(20,timeout=240000)
         assert page.evaluate('activeOptimizationWorkers')==0
         assert page.evaluate('optimizationMessages.some(row=>row.mode==="optimization-validate")')
         assert page.evaluate('optimizationMessages.every(row=>!row.baseline)')
@@ -92,10 +93,15 @@ def check(url):
         page.locator('.contest-loadout-library').get_by_role('button',name='关闭',exact=True).click();panel.locator('.optimization-entry').first.get_by_role('button',name='载入编组至自选模拟',exact=True).click();expect(tabs.locator('[data-mode=selected]')).to_have_attribute('aria-selected','true');expect(page.locator('.season-memory-row[data-memory-index="0"] [data-config-id]')).to_have_count(6)
         expect(page.locator('.season-board-power > span')).to_have_text('综合值合计（计算值）')
         expect(page.locator('.season-board-power > strong')).to_have_text(str(powers[0]+powers[1]//5))
-        tabs.locator('[data-mode=optimization]').click();expect(panel.locator('.optimization-entry')).to_have_count(5)
+        tabs.locator('[data-mode=optimization]').click();expect(panel.locator('.optimization-entry')).to_have_count(20)
         for width in [1280,375]:
-            page.set_viewport_size({'width':width,'height':1000});assert panel.evaluate('e=>e.scrollWidth<=e.clientWidth');panel.locator('.optimization-entry').first.screenshot(path=str(ROOT/'local/ui-visual-refinement'/f'optimization-result-{width}.png'))
-        panel.locator('[data-optimization-attribute=vocal]').fill(str(request['params']['vocal']+1));expect(panel.locator('.optimization-stale')).to_be_visible();page.evaluate('optimizationMessages=[]');panel.locator('.optimization-start').click();expect(panel.locator('.optimization-stop')).to_be_visible();page.wait_for_function('()=>optimizationMessages.some(row=>row.mode==="batch-scores")',timeout=60000);panel.locator('.optimization-stop').click();expect(panel.locator('.optimization-stop')).not_to_be_visible(timeout=10000);expect(panel.locator('.optimization-entry')).to_have_count(5);assert page.evaluate('activeOptimizationWorkers')==0;assert page.evaluate('optimizationMessages.every(row=>!row.baseline)')
+            page.set_viewport_size({'width':width,'height':1000});assert panel.evaluate('e=>e.scrollWidth<=e.clientWidth');panel.locator('.optimization-entry').first.screenshot(path=artifact_path(str(ROOT/'local/ui-visual-refinement'/f'optimization-result-{width}.png')))
+        panel.locator('[data-optimization-attribute=vocal]').fill(str(request['params']['vocal']+1));expect(panel.locator('.optimization-stale')).to_be_visible();page.evaluate('optimizationMessages=[]');panel.locator('.optimization-start').click();expect(panel.locator('.optimization-stop')).to_be_visible();page.wait_for_function('()=>optimizationMessages.some(row=>row.mode==="batch-scores")',timeout=60000);panel.locator('.optimization-stop').click();expect(panel.locator('.optimization-stop')).not_to_be_visible(timeout=10000);expect(panel.locator('.optimization-entry')).to_have_count(20);assert page.evaluate('activeOptimizationWorkers')==0;assert page.evaluate('optimizationMessages.every(row=>!row.baseline)')
+        tabs.locator('[data-mode=selected]').click();page.locator('#contest-simulation-run-number').fill('100');page.locator('.season-simulate').click()
+        expect(page.locator('.simulation-save-status')).to_have_text('已保存到此舞台的模拟历史。',timeout=60000)
+        saved=page.evaluate("async profile=>{const {simulationHistory}=await import('./application/contest-simulation-history.mjs');return (await simulationHistory(profile)).map(row=>row.id);}",profile);assert len(saved)==1
+        page.reload(wait_until='networkidle');expect(page.locator('#season-simulation-page')).to_be_visible(timeout=60000)
+        assert page.evaluate("async profile=>{const {simulationHistory}=await import('./application/contest-simulation-history.mjs');const {savedSimulationLoadouts}=await import('./application/contest-saved-loadouts.mjs');return {history:(await simulationHistory(profile)).map(row=>row.id),loadouts:(await savedSimulationLoadouts(profile)).length,other:(await simulationHistory('account-synthetic-other')).length};}",profile)=={'history':saved,'loadouts':1,'other':0}
         assert not errors,errors;assert not uploads,uploads;browser.close()
     print('真实入口当前舞台遗传搜索、评级/附魔/专属/P 道具约束、停止保留结果、保存载入、双屏宽和隐私检查通过。')
 

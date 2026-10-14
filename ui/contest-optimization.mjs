@@ -1,12 +1,13 @@
+import {layerSimulationMetrics} from './contest-simulation-charts.mjs';
 import {updateMemoryPower} from '../domain/memory-power.mjs';
 import {memoryPower} from '../domain/catalog.mjs';
 import {contestCompatibilityOptions} from '../application/contest-compatibility-input.mjs';
 import {optimizationCardKey} from '../domain/contest-optimization.mjs';
 import {sortedMemoryBattleCards} from '../domain/memories.mjs';
 import {el} from './dom.mjs';
-import {illustration,characterAccent,skillThumbnailFor,itemThumbnail} from './illustrations.mjs';
+import {illustration,characterAccent,skillThumbnailFor} from './illustrations.mjs';
 import {startContestMultiplierPreview} from '../application/contest-multiplier-preview.mjs';
-import {contestRatingRules} from './contest-card-cost.mjs';
+import {contestRatingRules,contestRulesHelp} from './contest-card-cost.mjs';
 import {t,locale} from '../i18n.mjs';
 import {itemRewardInfo,characterInfo,compareCharacterFilters,idolInfo,progressionInfo,contestSimulationReference} from '../domain/catalog.mjs';
 import {contestCostAliases,contestCostRanges,contestDeckCost,contestCapacityStatus} from '../domain/contest-card-cost.mjs';
@@ -24,6 +25,20 @@ import {readSimulationMultiCore} from '../application/contest-compute-preference
 
 const errors={optimization_unsupported_fixed:'固定技能、附魔或 P 道具未被引擎支持，请调整配置。',optimization_invalid_exclusive_customization:'当前专属技能附魔不符合持有解锁或评级限制，请调整配置。',optimization_unknown_item_rules:'当前资料缺少 P 道具携带规则，请应用资料更新。',optimization_unknown_customization_rules:'当前资料没有所选评级的附魔规则。',optimization_unknown_level:'当前账号的 P 等级未知，请更新账号快照后搜索。',optimization_exclusive_mismatch:'请选择已持有、同一角色且符合舞台计划的主副专属技能。',optimization_unknown_capacity:'当前资料没有所选评级的容量区间。',optimization_missing_parameters:'请填写编组总 Vo、Da、Vi 和体力。',optimization_invalid_customization_limit:'请检查附魔次数和附魔卡数量上限。',optimization_invalid_items:'P 道具需符合当前角色、计划和持有条件，且不能重复。',optimization_no_feasible_deck:'在当前评级、持有技能和附魔约束下，没有可用的完整编组。',missing_support_bonus:'支援卡持有信息未采集，无法计算当前支援奖励。',missing_manual_multipliers:'请先填写此舞台的 Vo、Da、Vi 比赛倍率。',unsupported_entities:'固定技能或 P 道具尚未完整匹配到模拟引擎。',unsupported_stage:'当前舞台尚不支持模拟。',unsupported_stage_rules:'当前舞台规则尚不支持模拟。',simulation_timeout:'搜索耗时过长，已停止；请降低搜索强度后重试。'};
 const format=value=>new Intl.NumberFormat(locale(),{maximumFractionDigits:0}).format(value);
+// 属性面板使用同一套线性图标，颜色仅辅助识别，不替代文字标签。
+function parameterIcon(kind){
+  const paths={
+    vocal:'M12 14a4 4 0 0 0 4-4V6a4 4 0 0 0-8 0v4a4 4 0 0 0 4 4ZM5 10a7 7 0 0 0 14 0M12 17v5M8 22h8',
+    dance:'M13 3h6v9l3 5v3H3v-4l6-2 4-4V3ZM3 17h19M13 7h6',
+    visual:'m12 2 3 6 7 1-5 5 1 7-6-3-6 3 1-7-5-5 7-1Z',
+    stamina:'M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8Z',
+    chart:'M4 20V13h3v7M10 20V8h3v12M16 20V3h3v17',
+    fill:'m4 20 12-12 4 4L8 24ZM3 5v4M1 7h4M16 1v4M14 3h4M21 5v4M19 7h4',
+    info:'M12 11v6M12 7h.01M22 12a10 10 0 1 1-20 0 10 10 0 0 1 20 0Z',
+  };
+  const icon=document.createElementNS('http://www.w3.org/2000/svg','svg'),path=document.createElementNS(icon.namespaceURI,'path');
+  icon.setAttribute('viewBox','0 0 24 26');icon.setAttribute('aria-hidden','true');icon.classList.add('optimization-parameter-icon');path.setAttribute('d',paths[kind]);icon.append(path);return icon;
+}
 
 export function createContestOptimization({profile,getContext,onRestore,onSave,initialState,onTaskChange=()=>{}}){
   const element=el('div','','contest-optimization');element.id='contest-optimization';
@@ -50,9 +65,10 @@ export function createContestOptimization({profile,getContext,onRestore,onSave,i
     updateResources.onclick=()=>{picker?.close();closeRewardPopover();updateResources.focus({preventScroll:true});document.getElementById('resources-open')?.click();};
     prerequisiteActions.append(updateAccount,updateResources);prerequisites.append(prerequisiteTitle,prerequisiteNotice,prerequisiteActions);
     let prerequisiteSignature='';
-    const explanation=el('details','','recommendation-algorithm');explanation.append(el('summary',t('推荐算法')),
-      el('p',t('遗传算法保留高分组合，通过交叉、变异和随机候选继续探索；每次评分都运行真实舞台模拟。最后使用独立样本复评候选，结果为本次搜索中最佳，不保证全局最优。')));
-    const capacity=contestRatingRules(),help=el('details','','optimization-help');help.append(el('summary',t('规则与算法说明')),capacity,explanation);
+    const explanation=el('details','','recommendation-algorithm'),searchExplanation=el('p'),polishExplanation=el('p'),reviewExplanation=el('p'),finalExplanation=el('p');
+    explanation.append(el('summary',t('推荐算法')),searchExplanation,polishExplanation,reviewExplanation,finalExplanation,
+      el('p',t('搜索、局部改进、复筛和最终复评使用独立样本；复筛加测接续已有样本。结果仅代表本次有限搜索与抽样的排名，不保证全局最优或实际战斗表现。')));
+    const capacity=contestRatingRules(),help=contestRulesHelp(capacity,explanation);
     const form=el('form','','optimization-form'),fields=el('fieldset','','optimization-fields'),rolesBox=el('div','','optimization-roles'),roleControls=[];
     const roleNames=['主回忆','副回忆'];let poolResult=null,poolFailure=false;const poolOptions=contestCompatibilityOptions(catalog);
     const supportedReference=reference=>!poolResult||[({...reference,customizes:[]}),...(reference.customizes??[]).map(value=>({...reference,customizes:[value]}))].every(value=>poolResult.supported.has(optimizationCardKey(value)));
@@ -91,14 +107,25 @@ export function createContestOptimization({profile,getContext,onRestore,onSave,i
     }
 
     const totalsBox=el('section','','season-team-summary optimization-total'),attributes=el('div','','optimization-attributes'),params={},multipliers={};
-    const totalsHeading=el('div','','optimization-total-heading'),fill=el('button',t('快捷填入'),'optimization-autofill'),fillNotice=el('p','','small muted optimization-autofill-notice');let filling=false;
+    const totalsHeading=el('div','','optimization-total-heading'),fillActions=el('div','','optimization-total-actions'),fill=el('button',t('填入参考属性'),'optimization-autofill'),fillNotice=el('p','','small muted optimization-autofill-notice');let filling=false,fillUndo=null;const undoFill=el('button',t('撤销'),'optimization-autofill-undo');undoFill.hidden=true;undoFill.title=t('撤销填入');undoFill.setAttribute('aria-label',t('撤销填入'));
     const fillUnavailable=context.stage.manualMultipliers||context.stage.custom||context.stage.kind!=='contest'||!context.stage.preset;
-    fill.title=t(fillUnavailable?'当前舞台无法由倍率反推属性。':'按舞台权重填入主属性 3000%、副属性 2000%、第三属性 1200% 所需数值，保留体力。');fillNotice.hidden=true;fillNotice.setAttribute('role','status');totalsHeading.append(el('h3',t('编组总属性')),fill);
-    totalsBox.append(totalsHeading,el('p',t('填写主副回忆合计的模拟输入属性，自动计算加成。'),'small muted'),fillNotice,attributes);
+    if(fillUnavailable||context.supportCards===undefined)fill.title=t(fillUnavailable?'当前舞台无法由倍率反推属性。':'支援卡持有信息未采集，无法计算当前支援奖励。');
+    const totalsTitle=el('h3',t('编组总属性')),inputHelp=el('details','','optimization-input-help');
+    const helpSummary=el('summary'),helpText=el('span',t('可填入参考属性，再手动调整。'));helpSummary.append(parameterIcon('info'),helpText);helpSummary.setAttribute('aria-label',t('填写说明'));
+    inputHelp.append(helpSummary,el('p',t('输入为主回忆属性 + 向下取整（副回忆属性 ÷ 5）；支援奖励由模拟引擎另行计入。')),el('p',t('根据当前舞台和支援奖励填入 Vo、Da、Vi 参考值，体力保持不变。')));
+    const fillLabel=el('span',t('填入参考属性'));totalsTitle.prepend(parameterIcon('chart'));fill.replaceChildren(parameterIcon('fill'),fillLabel);
+    fillNotice.hidden=true;fillNotice.setAttribute('role','status');fillActions.append(fill,undoFill);totalsHeading.append(totalsTitle,fillActions);
+    totalsBox.append(totalsHeading,el('p',t('填写主副回忆折算后的总属性，支援奖励在模拟时计入。'),'optimization-total-description'),attributes,fillNotice,inputHelp);
+    undoFill.onclick=()=>{
+      if(!fillUndo||busy||filling)return;
+      for(const [key,value] of Object.entries(fillUndo))if(params[key].value===value.after){params[key].value=value.before;params[key].dispatchEvent(new Event('input',{bubbles:true}));}
+      fillUndo=null;undoFill.hidden=true;fillNotice.hidden=true;
+    };
     for(const [key,text] of [['vocal','Vo'],['dance','Da'],['visual','Vi'],['stamina','体力']]){
-      const input=numeric(formState?.params?.[key],{min:key==='stamina'?1:0,required:true,placeholder:'输入数值'});input.dataset.optimizationAttribute=key;input.setAttribute('aria-label',t('编组总属性')+' '+t(text));params[key]=input;const field=label(text,input);field.dataset.attribute=key;
+      const input=numeric(formState?.params?.[key],{min:key==='stamina'?1:0,required:true,placeholder:'未填写'});input.dataset.optimizationAttribute=key;input.setAttribute('aria-label',t('编组总属性')+' '+t(text));params[key]=input;const field=label(text,input);field.dataset.attribute=key;
+      field.querySelector('span').prepend(parameterIcon(key));
       const issue=el('small','','optimization-field-error');issue.id=`optimization-error-${key}`;issue.hidden=true;input.setAttribute('aria-describedby',issue.id);field.append(issue);const validate=()=>{const invalid=!input.validity.valid;issue.hidden=!invalid;issue.textContent=invalid?t('请填写有效的{0}数值。',[t(text)]):'';input.setAttribute('aria-invalid',String(invalid));};input.oninvalid=validate;input.onblur=validate;input.addEventListener('input',()=>{if(input.getAttribute('aria-invalid')==='true')validate();});
-      if(key!=='stamina'){const output=el('output',t('属性倍率：待计算'),'optimization-multiplier');output.dataset.optimizationMultiplier=key;output.setAttribute('aria-label',t(text)+' '+t('属性倍率'));output.setAttribute('aria-live','polite');multipliers[key]=output;field.append(output);}attributes.append(field);
+      if(key!=='stamina'){const output=el('output','','optimization-multiplier'),value=el('span'),empty=el('span','—','optimization-multiplier-empty');value.hidden=true;value.dataset.optimizationMultiplier=key;empty.setAttribute('aria-hidden','true');output.append(el('small',t('当前倍率')),value,empty);output.setAttribute('aria-label',t(text)+' '+t('当前倍率'));output.setAttribute('aria-live','polite');multipliers[key]=value;field.append(output);}attributes.append(field);
     }
     const itemsBox=el('section','','season-team-items optimization-items');itemsBox.append(el('h3',t('P 道具')));
     const itemGrid=el('div','','optimization-item-selection'),fixedItem=el('div','','optimization-fixed-item'),selectedItems=el('div','','optimization-selected-items'),itemActions=el('div','','optimization-item-actions'),chooseItems=el('button',t('选择 P 道具'),'optimization-items-open optimization-exclusive-change'),itemCount=el('span','','small muted');
@@ -153,32 +180,64 @@ export function createContestOptimization({profile,getContext,onRestore,onSave,i
     }
     updateMain();
     const settings=el('div','','optimization-settings'),strength=el('select'),seedInput=numeric(formState?.seed,{max:4294967295,placeholder:'留空时随机'});
-    strength.id='optimization-strength';for(const [key,name] of [['standard','标准'],['deep','深入']])strength.append(new Option(t(name),key));strength.value=['standard','deep'].includes(formState?.strength)?formState.strength:'standard';
+    strength.id='optimization-strength';for(const [key,name] of [['standard','标准'],['deep','极致'],['custom','自定义']])strength.append(new Option(t(name),key));strength.value=['standard','deep','custom'].includes(formState?.strength)?formState.strength:'standard';
     settings.append(label('搜索强度',strength),label('随机种子',seedInput));
-    const advanced=el('details','','optimization-advanced'),advancedTitle=el('summary');advanced.append(advancedTitle,settings,el('p',t('搜索强度越高，探索与复评次数越多，等待时间也会增加。'),'small muted'));
-    const budgetHint=el('p','','small muted'),availability=el('p','','small muted');
-    function showBudget(){const budget=OPTIMIZATION_BUDGETS[strength.value];budgetHint.textContent=t('种群 {0}，目标舞台最多 {1} 代；最终前 {2} 组各复评 {3} 次。',[budget.population,budget.generations,budget.finalCandidates,budget.finalRuns]);updateStale();}
+    const advanced=el('details','','optimization-advanced'),advancedTitle=el('summary'),customSettings=el('fieldset','','optimization-custom-budget'),customInputs={},customError=el('p','','optimization-field-error');
+    let customEdited=Boolean(formState?.customBudget),lastPreset=strength.value==='deep'?'deep':'standard';customError.id='optimization-budget-error';customError.hidden=true;customError.setAttribute('role','status');
+    const budgetGroups=[
+      ['搜索',[['population','每代编组数'],['generations','搜索代数'],['samples','每组模拟次数',10000]]],
+      ['局部改进',[['polishParents','起始编组数'],['polishNeighbors','每组尝试数'],['polishRounds','改进轮数（0 为关闭）'],['polishRuns','每组模拟次数',10000]]],
+      ['复筛',[['reviewCandidates','候选编组数'],['screenRuns','初筛模拟次数',10000],['reviewRuns','加测后模拟次数',10000]]],
+      ['最终复评',[['finalCandidates','最终编组数'],['finalRuns','每组模拟次数',10000]]],
+    ];
+    for(const [title,entries] of budgetGroups){
+      const group=el('section','','optimization-budget-group'),grid=el('div','','optimization-budget-fields');group.append(el('h4',t(title)),grid);
+      for(const [key,text,max] of entries){const input=numeric(formState?.customBudget?.[key]??OPTIMIZATION_BUDGETS[lastPreset][key],{min:key==='polishRounds'?0:1,max,required:true});input.dataset.optimizationBudget=key;input.setAttribute('aria-label',`${t(title)} · ${t(text)}`);input.setAttribute('aria-describedby',customError.id);input.oninput=showBudget;input.oninvalid=()=>{advanced.open=true;};customInputs[key]=input;grid.append(label(text,input));}
+      customSettings.append(group);
+    }
+    const readBudget=()=>strength.value==='custom'?Object.fromEntries(Object.entries(customInputs).map(([key,input])=>[key,input.value===''?NaN:Number(input.value)])):OPTIMIZATION_BUDGETS[strength.value];
+    advanced.append(advancedTitle,settings,customSettings,customError,el('p',t('搜索强度越高，探索与复评次数越多，等待时间也会增加。'),'small muted'));
+    const availability=el('p','','small muted');
+    function showBudget(){
+      const custom=strength.value==='custom';customSettings.hidden=customSettings.disabled=!custom;
+      if(!custom)lastPreset=strength.value;
+      else if(!customEdited){for(const [key,input] of Object.entries(customInputs))input.value=String(OPTIMIZATION_BUDGETS[lastPreset][key]);customEdited=true;}
+      const budget=readBudget();
+      for(const input of Object.values(customInputs)){input.setCustomValidity('');if(input.value!==''&&!Number.isSafeInteger(Number(input.value)))input.setCustomValidity(t('请输入整数。'));}
+      if(custom&&budget.screenRuns>budget.reviewRuns)customInputs.reviewRuns.setCustomValidity(t('加测后模拟次数不能小于初筛模拟次数。'));
+      if(custom&&budget.finalCandidates>budget.reviewCandidates)customInputs.finalCandidates.setCustomValidity(t('最终编组数不能超过候选编组数。'));
+      const invalid=custom?Object.values(customInputs).find(input=>!input.validity.valid):null;
+      customError.hidden=!invalid;customError.textContent=invalid?(invalid.validity.customError?invalid.validationMessage:t('请填写有效的自定义搜索参数；次数和数量须为整数，每组模拟次数为 1–10000。')):'';
+      for(const paragraph of [searchExplanation,polishExplanation,reviewExplanation,finalExplanation])paragraph.hidden=Boolean(invalid);
+      if(invalid){updateStale();return;}
+      searchExplanation.textContent=t('搜索：每代最多 {0} 个合法编组，最多 {1} 代，每个新编组模拟 {2} 次。保留高分编组，通过交叉、少量换卡和随机新编组继续探索；固定专属、P 道具及评级约束保持不变。',[budget.population,budget.generations,budget.samples]);
+      polishExplanation.textContent=t('局部改进：从高分且技能组成不同的编组出发，尝试换卡及强化、附魔调整，共 {0} 轮，每个新编组模拟 {1} 次。',[budget.polishRounds,budget.polishRuns]);
+      reviewExplanation.textContent=t('复筛：兼顾高分与不同技能组合，先各模拟 {0} 次，再为第一名或最终入选名额竞争接近的编组追加到 {1} 次。复筛总预算为 {2} 次，追加受剩余预算限制，各组实际次数可能不同。',[budget.screenRuns,budget.reviewRuns,budget.reviewCandidates*budget.reviewRuns]);
+      finalExplanation.textContent=t('最终复评：取复筛前 {0} 组，各用全新样本模拟 {1} 次，再按综合分排名；最终分数不混入前面阶段的样本。有效编组不足时按实际数量展示。',[budget.finalCandidates,budget.finalRuns]);
+      updateStale();
+    }
     strength.onchange=showBudget;showBudget();
-    const composition=el('div','','optimization-composition'),loadout=el('div','','optimization-loadout');loadout.append(rolesBox,itemsBox);composition.append(loadout,totalsBox);explanation.append(budgetHint);fields.append(idolGroup,changeNotice,composition,advanced,availability);form.append(fields);
+    const composition=el('div','','optimization-composition'),loadout=el('div','','optimization-loadout');loadout.append(rolesBox,itemsBox);composition.append(loadout,totalsBox);fields.append(idolGroup,changeNotice,composition,advanced,availability);form.append(fields);
+    const retryPool=el('button',t('重新准备候选'),'optimization-pool-retry');retryPool.type='button';retryPool.onclick=preparePool;form.append(retryPool);
     const actions=el('div','','optimization-actions'),configuration=el('p','','optimization-configuration small'),start=el('button',t('开始搜索'),'primary optimization-start'),stop=el('button',t('停止'),'optimization-stop');start.type='submit';configuration.setAttribute('role','status');actions.append(start,stop,configuration);form.append(actions);
     const status=el('p','','optimization-status small muted'),progress=el('progress'),failure=el('div','','optimization-error'),output=el('section','','optimization-output'),stale=el('p',t('约束已调整，以下保留上次结果；重新搜索后更新。'),'optimization-stale small muted');
     status.setAttribute('role','status');status.setAttribute('aria-live','polite');progress.setAttribute('aria-label',t('搜索进度'));stale.hidden=true;
     element.replaceChildren(description,candidateHint,help,prerequisites,form,status,progress,failure,stale,output);
-    readForm=()=>({characterId,params:Object.fromEntries(Object.entries(params).map(([key,input])=>[key,input.value])),roles:roleControls.map(control=>({exclusiveId:control.exclusiveId,exclusiveReference:control.exclusiveReference?structuredClone(control.exclusiveReference):undefined,grade:control.grade.value})),items:[fixedItemId,...extraItemIds],strength:strength.value,seed:seedInput.value});
+    readForm=()=>({characterId,params:Object.fromEntries(Object.entries(params).map(([key,input])=>[key,input.value])),roles:roleControls.map(control=>({exclusiveId:control.exclusiveId,exclusiveReference:control.exclusiveReference?structuredClone(control.exclusiveReference):undefined,grade:control.grade.value})),items:[fixedItemId,...extraItemIds],strength:strength.value,seed:seedInput.value,customBudget:customEdited?Object.fromEntries(Object.entries(customInputs).map(([key,input])=>[key,input.value])):undefined});
     const currentSignature=()=>JSON.stringify([contextSignature,readForm()]);
     updateStale=()=>{stale.hidden=!report||reportSignature===currentSignature();sync();};
     let previewTimer,previewHandle,previewGeneration=0;
     disposePreview=()=>{clearTimeout(previewTimer);previewGeneration++;previewHandle?.cancel();previewHandle=null;};
     function updateMultipliers(){
       disposePreview();const generation=previewGeneration;
-      for(const output of Object.values(multipliers))output.textContent=t('属性倍率：待计算');
+      for(const output of Object.values(multipliers)){output.textContent='';output.hidden=true;}
       const values=Object.fromEntries(Object.entries(params).map(([key,input])=>[key,input.value!==''&&input.validity.valid?Number(input.value):undefined]));
       if(!context.stage.manualMultipliers&&!['vocal','dance','visual'].some(key=>values[key]!==undefined))return;
       previewTimer=setTimeout(async()=>{
         try{
           previewHandle=startContestMultiplierPreview({params:values,stage:context.stage,supportCards:context.supportCards,manual:context.manual});
           const result=await previewHandle.promise;if(disposed||currentView!==viewId||generation!==previewGeneration)return;
-          for(const [key,output] of Object.entries(multipliers))output.textContent=Number.isFinite(result[key])?t('属性倍率：{0}%',[Number((result[key]*100).toFixed(1))]):t('属性倍率：待计算');
+          for(const [key,output] of Object.entries(multipliers)){output.hidden=values[key]===undefined||!Number.isFinite(result[key]);output.textContent=output.hidden?'':`${Number((result[key]*100).toFixed(1))}%`;}
         }catch{}finally{if(generation===previewGeneration)previewHandle=null;}
       },160);
     }
@@ -191,23 +250,25 @@ export function createContestOptimization({profile,getContext,onRestore,onSave,i
       const handle=startContestMultiplierPreview({params:{vocal:0,dance:0,visual:0},stage:context.stage,supportCards:context.supportCards,manual:context.manual},{suggestParameters:true});fillHandle=handle;
       try{
         const result=await handle.promise;if(disposed||viewId!==currentView||fillHandle!==handle)return;
+        fillUndo=Object.fromEntries(Object.entries(result.params).map(([key,value])=>[key,{before:params[key].value,after:String(value)}]));undoFill.hidden=false;
         for(const [key,value] of Object.entries(result.params)){params[key].value=String(value);params[key].dispatchEvent(new Event('input',{bubbles:true}));}
-        if(result.limited.length){fillNotice.textContent=t('部分目标超过舞台可达上限，已填入可达值：{0}。',[result.limited.map(key=>`${({vocal:'Vo',dance:'Da',visual:'Vi'})[key]} ${Number((result.multipliers[key]*100).toFixed(1))}%`).join('、')]);fillNotice.hidden=false;}
+        fillNotice.textContent=result.limited.length?t('部分目标超过舞台可达上限，已填入可达值：{0}。',[result.limited.map(key=>`${({vocal:'Vo',dance:'Da',visual:'Vi'})[key]} ${Number((result.multipliers[key]*100).toFixed(1))}%`).join('、')]):t('已填入参考属性，体力未变。');fillNotice.hidden=false;
       }catch(error){if(!disposed&&viewId===currentView&&error.name!=='AbortError'){fillNotice.textContent=t('无法反推属性，请确认舞台资料与支援卡持有信息。');fillNotice.hidden=false;}}
       finally{if(fillHandle===handle)fillHandle=null;if(!disposed&&viewId===currentView){filling=false;sync();}}
     };
     function sync(){
-      fields.disabled=busy||filling||!poolResult;fill.disabled=fillUnavailable||context.supportCards===undefined;fill.textContent=t(filling?'填入中…':'快捷填入');stop.hidden=!busy;progress.hidden=!busy;
+      retryPool.hidden=!poolFailure;retryPool.disabled=busy||filling;fields.disabled=busy||filling||!poolResult;fill.disabled=fillUnavailable||context.supportCards===undefined;fillLabel.textContent=t(filling?'填入中…':'填入参考属性');stop.hidden=!busy;progress.hidden=!busy;
       let exclusiveIssue=null;for(const control of roleControls){if(!control.exclusiveId)continue;try{validateOptimizationExclusiveReference(context,{exclusiveId:control.exclusiveId,exclusiveReference:control.exclusiveReference,grade:Number(control.grade.value)});}catch{exclusiveIssue=errors.optimization_invalid_exclusive_customization;}}
       const fixedIssues=poolResult?[...roleControls.filter(control=>control.exclusiveReference&&!supportedReference(control.exclusiveReference)).map(control=>catalog.exclusive.find(choice=>choice.id===control.exclusiveId)?.name??control.exclusiveId),...[fixedItemId,...extraItemIds].filter(id=>id&&!poolResult.supported.has(`item:${id}`)).map(id=>itemRewardInfo(id).name)]:[];
-      const missing=(!poolResult?t(poolFailure?'候选准备失败，请重新打开模拟页。':'正在准备候选…'):fixedIssues.length?t('固定配置不支持：{0}',[fixedIssues.join('、')]):null)||exclusiveIssue||(!ranks.length?errors.optimization_unknown_customization_rules:contestExtraItemLimit(Number(roleControls[0].grade.value))===null?errors.optimization_unknown_item_rules:!Number.isSafeInteger(context.producerLevel)?errors.optimization_unknown_level:context.supportCards===undefined?errors.missing_support_bonus:roleControls.some(control=>!control.exclusiveId)?'请选择主副回忆的专属技能卡':context.stage.manualMultipliers&&!['vocal','dance','visual'].every(key=>Number.isFinite(context.manual?.[key])&&context.manual[key]>=0)?errors.missing_manual_multipliers:null);
+      const missing=(!poolResult?t(poolFailure?'候选准备失败，请重试。当前配置已保留。':'正在准备候选…'):fixedIssues.length?t('固定配置不支持：{0}',[fixedIssues.join('、')]):null)||exclusiveIssue||(!ranks.length?errors.optimization_unknown_customization_rules:contestExtraItemLimit(Number(roleControls[0].grade.value))===null?errors.optimization_unknown_item_rules:!Number.isSafeInteger(context.producerLevel)?errors.optimization_unknown_level:context.supportCards===undefined?errors.missing_support_bonus:roleControls.some(control=>!control.exclusiveId)?'请选择主副回忆的专属技能卡':context.stage.manualMultipliers&&!['vocal','dance','visual'].every(key=>Number.isFinite(context.manual?.[key])&&context.manual[key]>=0)?errors.missing_manual_multipliers:null);
       const unknownLevel=!Number.isSafeInteger(context.producerLevel),unknownSupports=context.supportCards===undefined,unknownRules=!ranks.length||contestExtraItemLimit(Number(roleControls[0].grade.value))===null;
       const prerequisitesMissing=[...(!ranks.length?[errors.optimization_unknown_customization_rules]:[]),...(contestExtraItemLimit(Number(roleControls[0].grade.value))===null?[errors.optimization_unknown_item_rules]:[]),...(unknownLevel?[errors.optimization_unknown_level]:[]),...(unknownSupports?[errors.missing_support_bonus]:[]),...(context.stage.manualMultipliers&&!['vocal','dance','visual'].every(key=>Number.isFinite(context.manual?.[key])&&context.manual[key]>=0)?[errors.missing_manual_multipliers]:[])];
       const nextPrerequisiteSignature=JSON.stringify(prerequisitesMissing);
       if(nextPrerequisiteSignature!==prerequisiteSignature){prerequisiteList.replaceChildren(...prerequisitesMissing.map(message=>el('li',t(message))));prerequisiteSignature=nextPrerequisiteSignature;}
       prerequisites.hidden=!prerequisitesMissing.length;updateAccount.hidden=!unknownLevel&&!unknownSupports;updateResources.hidden=!unknownRules;prerequisiteActions.hidden=updateAccount.hidden&&updateResources.hidden;updateAccount.disabled=updateResources.disabled=busy;
-      availability.hidden=!missing;availability.textContent=missing?t(missing):'';start.disabled=busy||filling||Boolean(missing);start.textContent=t(busy?'推荐与模拟中…':report?'重新推荐并模拟':'推荐并模拟');
+      availability.hidden=!missing;availability.textContent=missing?t(missing):'';start.disabled=busy||filling||Boolean(missing)||!customError.hidden;start.textContent=t(busy?'搜索中…':'开始搜索');
       const unfinished=Object.entries(params).filter(([,input])=>!input.validity.valid).map(([key])=>t(({vocal:'Vo',dance:'Da',visual:'Vi',stamina:'体力'})[key]));
+      if(!customError.hidden)unfinished.push(t('自定义搜索参数'));
       configuration.textContent=[t(roleControls.every(control=>control.exclusiveId)?'主副回忆已配置':'主副回忆尚未配置'),itemCount.textContent,missing?t(missing):unfinished.length?t('待填写或修正：{0}',[unfinished.join('、')]):t('配置完成，可以推荐并模拟')].filter(Boolean).join(' · ');
       advancedTitle.textContent=t('高级搜索设置 · {0} · {1}',[strength.selectedOptions[0].textContent,seedInput.value===''?t('随机种子'):t('种子 {0}',[seedInput.value])]);
     }
@@ -217,6 +278,7 @@ export function createContestOptimization({profile,getContext,onRestore,onSave,i
     }
     function render(){
       closeRewardPopover();output.replaceChildren();if(!report)return;
+      output.append(el('p',t('推荐结果暂存于当前页面；保存编组可再次载入。载入自选并完成模拟后，结果才会记入模拟历史。'),'small muted'));
       output.append(el('p',t('搜索 {0} 个目标舞台编组 · 共 {1} 次模拟 · 种子 {2}',[report.explored,report.totalRuns,report.seed]),'optimization-summary small muted'));
       const unsupported=report.unsupported.flatMap(value=>value.details).concat(report.skipped.flatMap(value=>value.details??[]));
       if(unsupported.length||report.missingCosts.length){const details=el('details'),names=[...new Set([...unsupported.map(value=>value.name),...report.missingCosts])];details.append(el('summary',t('部分技能或附魔未完整收录，已排除 {0} 项。',[names.length])),el('p',names.join('、'),'small muted'));output.append(details);}
@@ -229,11 +291,12 @@ export function createContestOptimization({profile,getContext,onRestore,onSave,i
           const cost=contestDeckCost(memory.examBattleProduceCards.map(card=>contestSimulationReference('card',card))),count=memory.examBattleProduceCards.flatMap(card=>card.customizes).reduce((sum,value)=>sum+value.customizeCount,0),customized=memory.examBattleProduceCards.filter(card=>card.customizes.length).length;
           capacities.append(el('small',t('{0}：{1} · 容量 {2} · 附魔 {3} 张 / {4} 次',[t(roleNames[role]),selectionGrades[memory.grade],cost.total,customized,count]),'muted'));
         }
-        identity.append(el('span',`#${index+1}`,'recommendation-rank'),face,capacities);head.append(identity,comparisonScore(row.stats));
+        identity.append(el('span',`#${index+1}`,'recommendation-rank'),face,capacities,el('span',t('{0} 次模拟',[row.result.runs]),'recommendation-run-count small muted'));head.append(identity,comparisonScore(row.stats));
         const values={...row.stats,p75:scoreQuantile(row.result.scores,.75),p25:scoreQuantile(row.result.scores,.25)};
         for(const [key,text] of [['mean','平均值'],['median','中位数'],['deviation','标准差'],['p25','P25'],['p75','P75']]){
           const metric=el('div');metric.dataset.metric=key;if(key==='p75'||key==='p25')metric.title=t(key==='p75'?'第 75 百分位得分':'第 25 百分位得分');metric.append(el('small',t(text)),el('strong',format(values[key])));metrics.append(metric);
         }
+      layerSimulationMetrics(metrics,row.result);
         const details=el('section','','recommendation-loadout'),preview=loadoutPreview(source.loadout,reportContext.conversionRules),items=preview.querySelector('.loadout-library-items');
         if(items){const itemRow=el('div','','recommendation-item-row');itemRow.append(items);preview.prepend(itemRow);}
         const result=el('div','','recommendation-result');result.append(metrics,comparisonRange(row.result,minimum,maximum));details.append(preview,result);
@@ -244,7 +307,7 @@ export function createContestOptimization({profile,getContext,onRestore,onSave,i
     }
     function showProgress(value){
       const {phase,completed=0,total=0,generation,generations}=value;
-      const label=phase==='validate'?t('正在校验技能与附魔 {0}/{1}',[completed,total]):phase==='polish'?t('局部改进 · 第 {0}/{1} 轮 · {2}/{3} 组',[generation,generations,completed,total]):phase==='search'?t('目标舞台 · 第 {0}/{1} 代 · {2}/{3} 组',[generation,generations,completed,total]):t(phase==='review'?'独立样本复筛 {0}/{1} 组':'最终复评 {0}/{1} 组',[completed,total]);
+      const label=phase==='refine'?t('入围竞争加测 {0}/{1} 组',[completed,total]):phase==='validate'?t('正在校验技能与附魔 {0}/{1}',[completed,total]):phase==='polish'?t('局部改进 · 第 {0}/{1} 轮 · {2}/{3} 组',[generation,generations,completed,total]):phase==='search'?t('目标舞台 · 第 {0}/{1} 代 · {2}/{3} 组',[generation,generations,completed,total]):t(phase==='review'?'独立样本复筛 {0}/{1} 组':'最终复评 {0}/{1} 组',[completed,total]);
       status.textContent=`${label} · ${t('累计 {0} 次模拟',[value.totalRuns])}${Number.isFinite(value.best)?` · ${t('当前初筛最佳 {0}',[format(value.best)])}`:''}`;
       if(total){progress.max=total;progress.value=completed;}else progress.removeAttribute('value');
     }
@@ -258,7 +321,7 @@ export function createContestOptimization({profile,getContext,onRestore,onSave,i
         const input=buildContestOptimizationInput(context,constraints),seed=state.seed===''?crypto.getRandomValues(new Uint32Array(1))[0]:Number(state.seed);
         const runContext={stage:context.stage,manual:structuredClone(context.manual??{}),conversionRules:structuredClone(context.conversionRules)};
         handle=startContestOptimization({input,stage:context.stage,supportCards:context.supportCards,manual:context.manual,conversionRules:context.conversionRules},
-          {seed,multiCore:readSimulationMultiCore(),budget:OPTIMIZATION_BUDGETS[state.strength],onProgress:value=>{if(!disposed&&viewId===currentView)showProgress(value);}});
+          {seed,multiCore:readSimulationMultiCore(),budget:readBudget(),onProgress:value=>{if(!disposed&&viewId===currentView)showProgress(value);}});
         active=handle;onTaskChange({state:'running',stop:()=>handle.cancel()});
         const result=await handle.promise;if(disposed||viewId!==currentView||active!==handle)return;
         report=result;reportSignature=signature;reportContext=runContext;onTaskChange({state:'completed'});status.textContent=t('搜索完成。');render();
@@ -269,10 +332,19 @@ export function createContestOptimization({profile,getContext,onRestore,onSave,i
       }finally{if(active===handle)active=null;if(!disposed&&viewId===currentView){busy=false;sync();}}
     };
     stop.onclick=()=>active?.cancel();render();sync();
-    poolTask=startContestCompatibilityAudit(poolOptions);poolTask.promise.then(result=>{
-      if(disposed||viewId!==currentView)return;
-      poolResult={supported:new Set(result.supported),unsupported:result.unsupported};sync();
-    }).catch(error=>{if(disposed||viewId!==currentView||error.name==='AbortError')return;poolFailure=true;sync();});
+    function preparePool(){
+      if(disposed||currentView!==viewId||busy||filling)return;
+      poolTask?.cancel();poolFailure=false;sync();
+      const handle=startContestCompatibilityAudit(poolOptions);poolTask=handle;
+      handle.promise.then(result=>{
+        if(disposed||viewId!==currentView||poolTask!==handle)return;
+        poolResult={supported:new Set(result.supported),unsupported:result.unsupported};sync();
+      }).catch(error=>{
+        if(disposed||viewId!==currentView||poolTask!==handle||error.name==='AbortError')return;
+        poolFailure=true;sync();
+      });
+    }
+    preparePool();
   }
   return {element,refresh,captureState:()=>({form:readForm(),report,reportSignature,reportContext,contextSignature}),dispose(){disposed=true;poolTask?.cancel();fillHandle?.cancel();disposePreview();picker?.close();active?.cancel();active=null;viewId++;}};
 }

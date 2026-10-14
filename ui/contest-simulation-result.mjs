@@ -1,3 +1,4 @@
+import {layerSimulationMetrics} from './contest-simulation-charts.mjs';
 import {contestEngineMap} from '../domain/contest-engine-map.mjs';
 import {readSimulationMultiCore,saveSimulationMultiCore,onSimulationMultiCoreChange} from '../application/contest-compute-preferences.mjs';
 import {el} from './dom.mjs';
@@ -24,20 +25,32 @@ export function createContestSimulationPanel({profile,stage,supportBonus,getInpu
   let mode='recommended',recommendations=null,optimization=null,selectMode=()=>{};
   const heading=el('div','','simulation-section-intro'),title=el('h2',t('舞台模拟'));title.id='contest-simulation-result-title';
   const multiCore=el('input'),multiCoreLabel=el('label','','simulation-multicore'),titleGroup=el('div','','simulation-title-group season-section-heading');
-  multiCore.type='checkbox';multiCore.setAttribute('aria-label',t('模拟开启多核加速'));multiCoreLabel.append(multiCore,el('span',t('模拟开启多核加速')));
+  multiCore.type='checkbox';multiCore.setAttribute('aria-label',t('模拟开启多核加速'));multiCoreLabel.append(multiCore,el('span',t('模拟开启多核加速')),el('small',t('下次模拟生效'),'muted'));
   const syncMultiCore=()=>{multiCore.checked=readSimulationMultiCore();multiCoreLabel.title=t('使用一半逻辑核心，下次模拟生效。');};
   const unsubscribeMultiCore=onSimulationMultiCoreChange(syncMultiCore);syncMultiCore();
   multiCore.onchange=()=>{try{saveSimulationMultiCore(multiCore.checked);}catch{multiCoreLabel.title=t('多核设置未能保存，当前页面仍会使用该值。');}};
   titleGroup.append(title,multiCoreLabel);
-  const titleBlock=el('div','','simulation-heading-title'),engineCredit=el('p','','small muted'),engineLink=el('a',`GakumasTools · ${contestEngineMap.source.commit.slice(0,7)}`);engineLink.href=`https://github.com/${contestEngineMap.source.repository}/commit/${contestEngineMap.source.commit}`;engineLink.title=contestEngineMap.source.commit;engineLink.target='_blank';engineLink.rel='noopener noreferrer';engineCredit.append(t('模拟引擎：'),engineLink);const titleRow=el('div','','simulation-title-row season-section-heading');titleRow.append(titleGroup);if(supportBonus!==undefined){const bonus=el('span',t('当前支援卡奖励倍率 {0}',[supportBonus===null?t('未采集'):`+${supportBonus.toFixed(2)}%`]),'season-support-bonus');if(supportBonus!==null)bonus.title=`×${(1+supportBonus/100).toFixed(4)}`;titleRow.append(bonus);}titleBlock.append(titleRow,engineCredit,el('p',t('模拟采用自动出牌和随机抽样，供编组比较参考；实战表现可能因出牌策略和随机过程而不同。引擎与效果数据来自 GakumasTools。'),'simulation-source-note small muted'),el('p',t('综合分 =（平均数 + 中位数）÷ 2 + 0.25 × 上行波动 − 0.25 × 下行波动。上下行波动分别衡量高于和低于中位数的频率与幅度。'),'simulation-score-note small muted'));heading.append(titleBlock);
+  const titleBlock=el('div','','simulation-heading-title'),engineCredit=el('p','','small muted'),engineLink=el('a',`GakumasTools · ${contestEngineMap.source.commit.slice(0,7)}`);engineLink.href=`https://github.com/${contestEngineMap.source.repository}/commit/${contestEngineMap.source.commit}`;engineLink.title=contestEngineMap.source.commit;engineLink.target='_blank';engineLink.rel='noopener noreferrer';engineCredit.append(t('模拟引擎：'),engineLink);const titleRow=el('div','','simulation-title-row season-section-heading');titleRow.append(titleGroup);if(supportBonus!==undefined){const bonus=el('span',t('当前支援卡奖励倍率 {0}',[supportBonus===null?t('未采集'):`+${supportBonus.toFixed(2)}%`]),'season-support-bonus');if(supportBonus!==null)bonus.title=`×${(1+supportBonus/100).toFixed(4)}`;titleRow.append(bonus);}titleBlock.append(titleRow,engineCredit,el('p',t('模拟采用自动出牌和随机抽样，供编组比较参考；实战表现可能因出牌策略和随机过程而不同。引擎与效果数据来自 GakumasTools。'),'simulation-source-note small muted'),el('p',t('综合评分 =（平均数 + 中位数）÷ 2 + 0.25 × 上行波动 − 0.25 × 下行波动。上下行波动分别衡量高于和低于中位数的频率与幅度。'),'simulation-score-note small muted'));heading.append(titleBlock);
+  const scoreHelp=el('details','','simulation-score-help'),scoreSummary=el('summary',t('综合评分说明'));
+  const infoIcon=document.createElementNS('http://www.w3.org/2000/svg','svg'),infoPath=document.createElementNS(infoIcon.namespaceURI,'path');
+  infoIcon.setAttribute('viewBox','0 0 24 24');infoIcon.setAttribute('aria-hidden','true');infoPath.setAttribute('d','M12 11v6M12 7h.01M22 12a10 10 0 1 1-20 0 10 10 0 0 1 20 0Z');infoIcon.append(infoPath);scoreSummary.prepend(infoIcon);
+  scoreHelp.append(scoreSummary,titleBlock.querySelector('.simulation-score-note'));titleBlock.append(scoreHelp);
   if(onOpenConversions){const conversions=el('button',t('技能卡转换状态'),'contest-card-conversions-open');conversions.onclick=onOpenConversions;titleGroup.append(conversions);}
-  const controls=el('div','','contest-simulation-controls'),runs=el('input'),runValue=el('output'),runLabel=el('label',t('模拟次数')),rerun=el('button',t('模拟'),'primary season-simulate'),stop=el('button',t('停止'));runs.id='contest-simulation-runs';runs.type='range';runs.min='100';runs.max='10000';runs.step='100';runs.value='500';runLabel.htmlFor=runs.id;runValue.htmlFor=runs.id;runValue.textContent=runs.value;runLabel.append(runValue,runs);controls.append(runLabel,rerun,stop);
+  const controls=el('div','','contest-simulation-controls'),runs=el('input'),runValue=el('output'),runLabel=el('label',t('模拟次数')),rerun=el('button',t('开始模拟'),'primary season-simulate'),stop=el('button',t('停止'));runs.id='contest-simulation-runs';runs.type='range';runs.min='100';runs.max='10000';runs.step='100';runs.value='500';runLabel.htmlFor=runs.id;runValue.htmlFor=runs.id;runValue.textContent=runs.value;runLabel.append(runValue,runs);controls.append(runLabel,rerun,stop);
+  const runNumber=el('input'),presets=el('div','','simulation-run-presets'),runError=el('p','','small simulation-run-validation');runNumber.type='number';runNumber.min=runs.min;runNumber.max=runs.max;runNumber.step=runs.step;runNumber.required=true;runNumber.value=runs.value;runNumber.setAttribute('aria-label',t('模拟次数'));runNumber.id='contest-simulation-run-number';runError.id='simulation-run-validation';runNumber.setAttribute('aria-describedby',runError.id);runError.setAttribute('role','status');runError.hidden=true;runLabel.append(runNumber);controls.insertBefore(presets,rerun);controls.append(runError);
+  function syncRunInput(){
+    const valid=runNumber.validity.valid;runNumber.setAttribute('aria-invalid',String(!valid));runError.hidden=valid;runError.textContent=valid?'':t('请输入 100–10000 之间、以 100 为单位的模拟次数。');
+    if(valid){runs.value=runNumber.value;runValue.textContent=runNumber.value;}
+    rerun.disabled=running||!available||!valid;
+  }
+  for(const value of [100,500,2000,5000,10000]){const button=el('button',String(value));button.type='button';button.onclick=()=>{runNumber.value=String(value);syncRunInput();};presets.append(button);}
+  runNumber.oninput=syncRunInput;
   const quickPicker=onQuickStage?createContestQuickStagePicker(quickStages,onQuickStage):null;if(quickPicker)controls.insertBefore(quickPicker.element,stop);
   const failure=el('div','','simulation-run-error');
   const status=el('p','','small muted'),progress=el('progress'),output=el('section','','contest-simulation-output'),saveStatus=el('p','','simulation-save-status small muted'),stale=el('p','','simulation-stale-note small muted');status.setAttribute('role','status');status.setAttribute('aria-live','polite');progress.setAttribute('aria-label',t('模拟进度'));saveStatus.setAttribute('aria-live','polite');stale.hidden=true;
   const resultView=el('section','','simulation-result-view');resultView.id='simulation-result-view';resultView.hidden=true;resultView.setAttribute('aria-label',t('模拟结果'));
   const history=createSimulationHistoryPanel({profile,stage,onView:entry=>{
-    if(running)return;characterId=entry.characterId;runs.value=String(entry.result.runs);runValue.textContent=runs.value;completed=true;resultSignature='history';status.textContent=t('正在查看历史模拟：{0}',[new Intl.DateTimeFormat(locale(),{dateStyle:'short',timeStyle:'medium'}).format(new Date(entry.createdAt))]);saveStatus.textContent='';showResult(entry.result,entry);selectMode('selected');sync();
+    if(running)return;characterId=entry.characterId;runs.value=String(entry.result.runs);runValue.textContent=runs.value;runNumber.value=runs.value;completed=true;resultSignature='history';status.textContent=t('正在查看历史模拟：{0}',[new Intl.DateTimeFormat(locale(),{dateStyle:'short',timeStyle:'medium'}).format(new Date(entry.createdAt))]);saveStatus.textContent='';showResult(entry.result,entry);selectMode('selected');sync();
   },onRestore:entry=>{
     if(running)return;
     if(onRestore(entry)===false)saveStatus.textContent=t('当前资料已不包含此舞台，无法载入编组。');
@@ -46,7 +59,7 @@ export function createContestSimulationPanel({profile,stage,supportBonus,getInpu
   history.element.id='simulation-history-view';history.element.hidden=true;
   resultView.append(stale,failure,output,saveStatus);element.append(heading,controls,status,progress,resultView,history.element);
   function sync(){
-    resultView.hidden=!output.childElementCount;status.hidden=!status.textContent;runs.disabled=running;rerun.disabled=running||!available;quickPicker?.setDisabled(running||!available);history.setBusy(running);rerun.textContent=t(completed?'重新模拟':'模拟');stop.hidden=!running;progress.hidden=!running;
+    resultView.hidden=!output.childElementCount;status.hidden=!status.textContent;runs.disabled=runNumber.disabled=running;for(const button of presets.children)button.disabled=running;syncRunInput();quickPicker?.setDisabled(running||!available);history.setBusy(running);rerun.textContent=t('开始模拟');stop.hidden=!running;progress.hidden=!running;
     stale.hidden=!completed||!running&&(resultSignature==='history'||resultSignature===inputSignature);stale.textContent=t(running?'正在重新模拟，以下保留上次完成结果。':'编组已调整，以下保留上次模拟结果；重新模拟后更新。');
   }
   const format=value=>new Intl.NumberFormat(locale(),{maximumFractionDigits:0}).format(value);
@@ -64,6 +77,7 @@ export function createContestSimulationPanel({profile,stage,supportBonus,getInpu
     const values={...result,deviation:statistics.deviation,p25:scoreQuantile(result.scores,.25),p75:scoreQuantile(result.scores,.75)},scores=el('div','','contest-simulation-scores');
     for(const [key,label] of [['mean','平均值'],['median','中位数'],['deviation','标准差'],['p25','P25'],['p75','P75']]){const stat=el('div');stat.dataset.score=key;stat.append(el('span',t(label)),el('strong',format(values[key])));scores.append(stat);}
 
+    layerSimulationMetrics(scores,result);
     const multipliers=el('div','','contest-simulation-multipliers');for(const [key,label] of [['vocal','Vo'],['dance','Da'],['visual','Vi']]){const value=el('div');value.append(el('small',label),el('strong',`${new Intl.NumberFormat(locale(),{maximumFractionDigits:1}).format(result.multipliers[key]*100)}%`));value.dataset.attribute=key;multipliers.append(value);}
     const bonus=el('p',result.manualMultipliers?t('使用手动输入的倍率，不再叠加支援奖励。'):t('已计入支援奖励 +{0}%。',[(result.supportBonus*100).toFixed(2)]),'small muted');
     const graphControls=el('div','','simulation-segments'),graph=el('div'),recordControls=el('div','','simulation-segments'),records=el('div'),recordScore=el('p','','simulation-record-score');
@@ -75,7 +89,7 @@ export function createContestSimulationPanel({profile,stage,supportBonus,getInpu
     switches(graphControls,[['distribution','分数分布'],['box','分位区间'],['turns','得分走势']],'distribution',key=>graph.replaceChildren(simulationChart(result,key)));
     switches(recordControls,[['minimumRun','最低分'],['representative','接近平均分'],['maximumRun','最高分']],'representative',key=>{const run=result[key];recordScore.textContent=t('本局得分：{0}',[format(run.score)]);records.replaceChildren(simulationRecords(run,{characterId}));});
     const details=el('details','','simulation-records'),recordToolbar=el('div','','simulation-record-toolbar');recordToolbar.append(recordControls,recordScore);details.append(el('summary',t('逐回合记录')),recordToolbar,records);
-    engineLink.href='https://github.com/gakumas-tools/gakumas-tools/tree/'+result.source.commit;
+    const source=result.source;engineLink.textContent=`GakumasTools · ${source.commit.slice(0,7)}`;engineLink.title=source.commit;engineLink.href=`https://github.com/${source.repository??contestEngineMap.source.repository}/commit/${source.commit}`;
     const analysis=el('div','','simulation-result-analysis'),chartPanel=el('section','','simulation-result-chart-panel'),context=el('aside','','simulation-result-context'),configuration=el('section','','simulation-result-configuration');
     chartPanel.append(graphControls,graph);configuration.append(el('h4',t('本次使用倍率')),multipliers);if(result.manualMultipliers)configuration.append(bonus);context.append(configuration);
     if(entry){const deck=el('section','','simulation-result-deck');deck.append(el('h4',t('本次编组')),entry.loadout?.memories?.some(Boolean)?loadoutPreview(entry.loadout,{excludedCardIds:entry.loadout.memories.flatMap(memory=>memory?.examBattleProduceCards??[]).map(card=>card.id).filter(id=>!entry.request.cards.some(card=>card.reference.id===id))}):simulationLoadoutSummary(entry));context.append(deck);}
@@ -87,7 +101,7 @@ export function createContestSimulationPanel({profile,stage,supportBonus,getInpu
     if(error.details?.length){const list=el('ul');const seen=new Set();for(const item of error.details){const label=t(({card:'技能卡',customization:'附魔',item:'P 道具'})[item.kind]??'未分类')+' · '+item.name;if(!seen.has(label)){seen.add(label);list.append(el('li',label));}}target.append(list);}
   }
   async function run(){
-    if(!available||running||disposed)return;
+    if(!available||running||disposed||!runNumber.reportValidity())return;
     closeRewardPopover();const input=getInput(),request=input.request,runStage=input.stage,loadout=input.loadout,signature=inputSignature;characterId=input.characterId;
     running=true;failure.replaceChildren();if(!completed)output.replaceChildren();saveStatus.textContent='';selectMode('selected');onTaskChange({state:'running',stop:()=>activeRun?.cancel()});progress.max=Number(runs.value);progress.value=0;status.textContent=t('正在模拟 {0}/{1}',[0,runs.value]);sync();
     let handle;
@@ -100,7 +114,7 @@ export function createContestSimulationPanel({profile,stage,supportBonus,getInpu
     }catch(error){if(handle&&activeRun!==handle||disposed)return;onTaskChange({state:'stopped'});if(error.name==='AbortError')status.textContent=t('模拟已停止');else{status.textContent=t('模拟未完成');showError(error);}}
     finally{if(!disposed&&(!handle||activeRun===handle)){activeRun=null;running=false;sync();}}
   }
-  rerun.onclick=run;stop.onclick=()=>activeRun?.cancel();runs.oninput=()=>{runValue.textContent=runs.value;};
+  rerun.onclick=run;stop.onclick=()=>activeRun?.cancel();runs.oninput=()=>{runNumber.value=runs.value;syncRunInput();};
   runs.onchange=()=>{status.textContent=available?t('请选择模拟次数后开始。'):'';sync();};
   sync();void history.refresh();
   return {element,setModes(selection,recommendationPanel,optimizationPanel){
@@ -108,7 +122,7 @@ export function createContestSimulationPanel({profile,stage,supportBonus,getInpu
     const tabs=el('div','','simulation-segments simulation-mode-tabs'),selectedPanel=el('div','','simulation-selected-panel'),recommendedPanel=recommendations.element;
     tabs.setAttribute('role','tablist');tabs.setAttribute('aria-label',t('舞台模拟'));
     selectedPanel.append(selection,...[...element.children].filter(child=>child!==heading&&child!==history.element));
-    const entries=[['recommended','推荐编组模拟',recommendedPanel],...(optimization?[['optimization','自定义推荐编组模拟',optimization.element]]:[]),['selected','自选编组模拟',selectedPanel],['history','模拟历史',history.element]];
+    const entries=[['recommended','回忆编组搜索',recommendedPanel],...(optimization?[['optimization','推荐编组搜索',optimization.element]]:[]),['selected','自选模拟',selectedPanel],['history','模拟历史',history.element]];
     selectMode=value=>{
       closeRewardPopover();quickPicker?.hide();mode=value;
       for(const [key,,panel] of entries){const selected=key===mode,tab=tabs.querySelector(`[data-mode="${key}"]`);panel.hidden=!selected;tab.setAttribute('aria-selected',String(selected));tab.tabIndex=selected?0:-1;}
@@ -127,8 +141,8 @@ export function createContestSimulationPanel({profile,stage,supportBonus,getInpu
     if(stage.id!==input.stage.id){stage=input.stage;history.setStage(stage);}
     if(!completed&&!running){status.textContent=available?t('请选择模拟次数后开始。'):'';}
     if(mode==='recommended')recommendations?.refresh();if(mode==='optimization')optimization?.refresh();sync();
-  },dispose(){quickPicker?.dispose();unsubscribeMultiCore();disposed=true;activeRun?.cancel();activeRun=null;},refreshHistory(){void history.refresh();},showHistory(){selectMode('history');},captureState(){return {mode,runs:runs.value,entry:completed?lastEntry:null,signature:resultSignature};},restoreState(state){
-    runs.value=state.runs;runValue.textContent=runs.value;
+  },dispose(){quickPicker?.dispose();unsubscribeMultiCore();disposed=true;activeRun?.cancel();activeRun=null;},refreshHistory(){void history.refresh();},showHistory(){selectMode('history');},captureState(){return {mode,runs:runNumber.value,entry:completed?lastEntry:null,signature:resultSignature};},restoreState(state){
+    runs.value=state.runs;runValue.textContent=runs.value;runNumber.value=state.runs;
     if(state.entry){const entry=state.entry;characterId=entry.characterId;completed=true;resultSignature=state.signature;showResult(entry.result,entry);status.textContent=t('已完成 {0} 次模拟',[entry.result.runs]);}
     selectMode(state.mode??'recommended');sync();
   }};

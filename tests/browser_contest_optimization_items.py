@@ -1,4 +1,5 @@
 """验证专属道具说明、额外道具多选草稿与主回忆评级名额。"""
+from browser_artifacts import artifact_path
 from pathlib import Path
 from playwright.sync_api import sync_playwright,expect
 
@@ -25,10 +26,10 @@ def check(url,output=None):
   if output:output.mkdir(parents=True,exist_ok=True)
   for width in [1280,375,320]:
    page.set_viewport_size({'width':width,'height':950});assert dialog.evaluate('e=>e.scrollWidth<=e.clientWidth+1')
-   if output:dialog.screenshot(path=str(output/f'items-{width}.png'))
+   if output:dialog.screenshot(path=artifact_path(str(output/f'items-{width}.png')))
   dialog.locator('.optimization-picker-confirm').click();expect(panel.locator('[data-optimization-selected-item]')).to_have_count(2)
   page.locator('#language').select_option('ja');expect(page.locator('.optimization-items>h3')).to_contain_text('追加アイテム 2/2');page.locator('#language').select_option('zh-CN')
-  if output:panel.locator('.optimization-items').screenshot(path=str(output/'items-form-320.png'))
+  if output:panel.locator('.optimization-items').screenshot(path=artifact_path(str(output/'items-form-320.png')))
   page.locator('.optimization-items-open').click();dialog=page.locator('.optimization-picker');dialog.get_by_role('button',name='清空选择').click();dialog.locator('.optimization-picker-confirm').click();expect(page.locator('[data-optimization-selected-item]')).to_have_count(0)
   assert not errors,errors;browser.close()
  print('专属效果、单入口多选、2/3名额、满额取消、草稿取消、降级保留、主副隔离及中日/三种宽度通过。')

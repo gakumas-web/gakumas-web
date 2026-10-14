@@ -15,7 +15,7 @@ export function scoreQuantile(scores,fraction){const position=(scores.length-1)*
 export function comparisonScore(stats){
   const metric=el('div','','comparison-score'),value=el('strong',number(stats.score));metric.dataset.metric='score';
   value.title=`(${stats.mean.toFixed(2)} + ${stats.median.toFixed(2)}) ÷ 2 + ${RECOMMENDATION_STABILITY_WEIGHT} × ${stats.upside.toFixed(2)} − ${RECOMMENDATION_STABILITY_WEIGHT} × ${stats.downside.toFixed(2)} ≈ ${stats.score.toFixed(2)}`;
-  value.tabIndex=0;value.setAttribute('aria-label',`${t('综合分')} ${value.title}`);metric.append(el('small',t('综合分')),value);return metric;
+  value.tabIndex=0;value.setAttribute('aria-label',`${t('综合评分')} ${value.title}`);metric.append(el('small',t('综合评分')),value);return metric;
 }
 
 export function comparisonRange(result,minimum,maximum){
@@ -23,7 +23,14 @@ export function comparisonRange(result,minimum,maximum){
   node.setAttribute('role','img');node.setAttribute('aria-label',t('最低 {0}，中位数 {1}，最高 {2}',[number(result.minimum),number(result.median),number(result.maximum)]));
   const whisker=el('span','','history-whisker'),box=el('span','','history-box'),median=el('span','','history-median');
   whisker.style.left=position(result.minimum)+'%';whisker.style.width=Math.max(.2,position(result.maximum)-position(result.minimum))+'%';
-  const q1=scoreQuantile(result.scores,.25),q3=scoreQuantile(result.scores,.75);box.style.left=position(q1)+'%';box.style.width=Math.max(.3,position(q3)-position(q1))+'%';median.style.left=position(result.median)+'%';node.append(whisker,box,median);const scale=el('div','','simulation-history-scale');const low=el('span',number(result.minimum)),high=el('span',number(result.maximum));low.dataset.endpoint='minimum';high.dataset.endpoint='maximum';low.style.left=position(result.minimum)+'%';high.style.left=position(result.maximum)+'%';scale.append(low,high);node.classList.toggle('is-narrow-range',position(result.maximum)-position(result.minimum)<25);node.append(scale);return node;
+  const q1=scoreQuantile(result.scores,.25),q3=scoreQuantile(result.scores,.75);box.style.left=position(q1)+'%';box.style.width=Math.max(.3,position(q3)-position(q1))+'%';median.style.left=position(result.median)+'%';node.append(whisker,box,median);const scale=el('div','','simulation-history-scale');const low=el('span',number(result.minimum)),high=el('span',number(result.maximum));low.dataset.endpoint='minimum';high.dataset.endpoint='maximum';low.style.left=position(result.minimum)+'%';high.style.left=position(result.maximum)+'%';scale.append(low,high);node.classList.toggle('is-narrow-range',position(result.maximum)-position(result.minimum)<25);node.append(scale);
+  const chart=el('div','','simulation-range-chart'),quartiles=el('div','','simulation-quartile-labels');
+  for(const [key,value,label] of [['p25',q1,'25% 分位'],['p75',q3,'75% 分位']]){
+    const mark=el('span',number(value)),at=position(value);mark.dataset.quantile=key;mark.title=t(label);
+    quartiles.style.setProperty(`--${key}-position`,at+'%');quartiles.style.setProperty(`--${key}-width`,mark.textContent.length+'ch');quartiles.append(mark);
+  }
+  node.setAttribute('aria-label',`${node.getAttribute('aria-label')} · ${t('25% 分位')} ${number(q1)} · ${t('75% 分位')} ${number(q3)}`);
+  quartiles.style.setProperty('--quartile-mid',(position(q1)+position(q3))/2+'%');node.append(quartiles);chart.append(node);return chart;
 }
 
 export function simulationChart(result,type){
@@ -61,4 +68,9 @@ export function simulationSkipChart(statistics){
     if(index%2===0||index===points.length-1)svg.append(svgNode('text',{x:x(index),y:164,'text-anchor':'middle',class:'chart-axis-x'},String(point.turn)));
   }
   panel.append(heading,svg,el('figcaption',t('全部模拟的逐回合累计跳过次数。'),'small muted'));return panel;
+}
+
+// 上方统一展示平均值、中位数与标准差；分位区间放在箱线图内。
+export function layerSimulationMetrics(metrics){
+  for(const node of [...metrics.children])if(['p25','p75'].includes(node.dataset.metric??node.dataset.score))node.remove();
 }

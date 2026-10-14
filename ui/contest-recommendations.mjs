@@ -1,3 +1,5 @@
+import {contestRulesHelp} from './contest-card-cost.mjs';
+import {layerSimulationMetrics} from './contest-simulation-charts.mjs';
 import {readSimulationMultiCore} from '../application/contest-compute-preferences.mjs';
 import {el} from './dom.mjs';
 import {illustration,characterAccent} from './illustrations.mjs';
@@ -27,7 +29,7 @@ export function createContestRecommendations({getContext,onRestore,onSave,onOpen
     for(const [id,result] of completed)if(result.signature!==signature)completed.delete(id);
     const currentView=el('div','','recommendation-content');view=currentView;
     const description=el('p',t('使用当前舞台与持有回忆，所有符合偶像与计划条件的回忆都参与主副组合。'),'recommendation-description small muted');
-    const controls=el('div','','recommendation-controls'),idolGroup=el('fieldset','','recommendation-characters'),start=el('button',t('开始推荐'),'primary recommendation-start'),stop=el('button',t('停止'),'recommendation-stop');
+    const controls=el('div','','recommendation-controls'),idolGroup=el('fieldset','','recommendation-characters'),start=el('button',t('开始搜索'),'primary recommendation-start'),stop=el('button',t('停止'),'recommendation-stop');
     const orderedCharacters=[...characters].sort(([a,ac],[b,bc])=>bc-ac||compareCharacterFilters(a,b));
     const idol={value:characters.has(selectedCharacterId)?selectedCharacterId:orderedCharacters[0]?.[0]??''},choices=[];
     selectedCharacterId=idol.value;
@@ -51,7 +53,7 @@ export function createContestRecommendations({getContext,onRestore,onSave,onOpen
       el('p',t('推荐为抽样结果，不保证最优或实际战斗表现；不会自动写入模拟历史，可保存编组或载入后自行模拟。')),
       el('p',t('已完成结果按舞台和偶像暂存，重新推荐成功后替换；修改比赛倍率、导入快照、切换账号或刷新页面后清除。'))
     );
-    currentView.append(description,algorithm,idolGroup,controls,status,progress,summary,list);element.replaceChildren(currentView);
+    currentView.append(description,contestRulesHelp(algorithm),idolGroup,controls,status,progress,summary,list);element.replaceChildren(currentView);
     let busy=false;
     const visible=()=>!disposed&&view===currentView;
     const format=value=>new Intl.NumberFormat(locale(),{maximumFractionDigits:0}).format(value);
@@ -61,7 +63,7 @@ export function createContestRecommendations({getContext,onRestore,onSave,onOpen
       const missing=context.supportCards===undefined?'支援卡持有信息未采集，无法计算当前支援奖励。':context.stage.manualMultipliers&&!['vocal','dance','visual'].every(key=>Number.isFinite(context.manual[key])&&context.manual[key]>=0)?'请先填写此舞台的 Vo、Da、Vi 比赛倍率。':available<2?'至少需要同一偶像的两条符合当前舞台计划的回忆。':null;
       if(!busy&&missing)status.textContent=t(missing);
       start.disabled=busy||Boolean(missing);for(const choice of choices){const selected=choice.dataset.characterId===idol.value;choice.disabled=busy;choice.setAttribute('aria-checked',String(selected));choice.tabIndex=selected?0:-1;}stop.hidden=!busy;progress.hidden=!busy;
-      start.textContent=t(completed.has(idol.value)?'重新推荐':'开始推荐');
+      start.textContent=t(busy?'搜索中…':'开始搜索');
       list.inert=busy;summary.title=busy&&cache?t('重新模拟期间显示上次完成结果。'):'';
     }
     function sourceFor(row,index){
@@ -71,6 +73,7 @@ export function createContestRecommendations({getContext,onRestore,onSave,onOpen
     function render(){
       closeRewardPopover();list.replaceChildren();summary.textContent='';cache=completed.get(idol.value)??null;
       if(!cache)return;
+      list.append(el('p',t('推荐结果暂存于当前页面；保存编组可再次载入。载入自选并完成模拟后，结果才会记入模拟历史。'),'small muted'));
       const report=cache.report;summary.textContent=t('推荐 {0} 组 · {1} 个组合 · {2} 次模拟 · 耗时 {3} 秒 · 种子 {4}',[report.rows.length,report.combinations,report.totalRuns,cache.elapsedSeconds.toFixed(0),report.seed]);
       if(report.skipped.length){
         const skipped=el('details','','recommendation-skipped'),names=[...new Set(report.skipped.flatMap(row=>row.details.map(detail=>detail.name)))];
@@ -89,6 +92,7 @@ export function createContestRecommendations({getContext,onRestore,onSave,onOpen
           if(key==='p75'||key==='p25')metric.title=t(key==='p75'?'第 75 百分位得分':'第 25 百分位得分');
           metric.append(el('small',t(text)),value);metrics.append(metric);
         }
+      layerSimulationMetrics(metrics,row.result);
         const source=sourceFor(row,index),details=el('section','','recommendation-loadout');const preview=loadoutPreview(source.loadout,context.conversionRules),items=preview.querySelector('.loadout-library-items');
         for(const [slot,memoryIndex] of [row.main,row.sub].entries()){
           const memory=cache.originals[memoryIndex],role=preview.querySelectorAll('.loadout-library-memory>small')[slot],link=el('button',role.textContent,'recommendation-memory-link');

@@ -1,4 +1,5 @@
 """用实际编组界面与 Worker 验证历史、手动保存、恢复和账号隔离。"""
+from browser_artifacts import artifact_path
 import copy
 import json
 from pathlib import Path
@@ -40,7 +41,7 @@ def check(url):
         save_name('测试编组');expect(dialog.locator('.loadout-library-entry')).to_have_count(1)
         entry=dialog.locator('.loadout-library-entry');entry.locator('.loadout-library-keep').click();save_name('重命名编组');expect(entry.locator('strong')).to_have_text('重命名编组')
         for width in [1280,375,320]:
-            page.set_viewport_size({'width':width,'height':1000});assert dialog.evaluate('e=>e.scrollWidth<=e.clientWidth');page.screenshot(path=f'local/ui-visual-refinement/saved-loadouts-{width}.png',full_page=True)
+            page.set_viewport_size({'width':width,'height':1000});assert dialog.evaluate('e=>e.scrollWidth<=e.clientWidth');page.screenshot(path=artifact_path(f'local/ui-visual-refinement/saved-loadouts-{width}.png'),full_page=True)
         dialog.locator('.dialog-head button').click();page.reload(wait_until='networkidle');page.locator('[data-tab="seasonSimulation"]').click();page.get_by_role('tab',name='自选编组模拟',exact=True).click();expect(page.locator('.season-loadout-library-open')).to_be_visible(timeout=60000)
         page.locator('.season-loadout-library-open').click();dialog.locator('.loadout-library-tabs').get_by_role('button',name='已保存',exact=True).click();expect(dialog.locator('.loadout-library-entry')).to_have_count(1);dialog.locator('.loadout-library-load').click();expect(dialog).not_to_be_visible();assert board()==before
         page.locator('[data-customize-memory="0"]').click();expect(page.locator('[data-memory-index="0"] [data-edit-card="2"]')).to_have_text('还原')

@@ -1,10 +1,11 @@
 """通过真实推荐表单与 Worker 验证倍率反推、体力保留和双屏宽布局。"""
-import copy
+from browser_artifacts import artifact_path
+
 import json
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from playwright.sync_api import sync_playwright,expect
-from browser_static import fixtures,ROOT,ACCOUNT
+from browser_static import fixtures, ROOT
 from browser_simulation_helpers import select_season
 
 
@@ -39,15 +40,39 @@ def check(url):
         expect(panel.locator('[data-optimization-attribute]')).to_have_count(4)
         expect(panel.locator('[data-optimization-custom-count],[data-optimization-custom-cards]')).to_have_count(0)
         expect(panel.locator('.recommendation-character-count')).to_have_text('1')
+        expect(panel.locator('.optimization-total > p:visible')).to_have_count(1)
+        expect(panel.locator('.optimization-multiplier small')).to_have_text(['当前倍率']*3)
+        expect(panel.locator('.optimization-multiplier-empty:visible')).to_have_count(3)
+        expect(panel.locator('[data-attribute="stamina"] .optimization-multiplier')).to_have_count(0)
+        expect(panel.locator('[data-optimization-multiplier]:visible')).to_have_count(0)
+        help_panel=panel.locator('.optimization-input-help')
+        expect(help_panel).not_to_have_attribute('open','')
+        help_panel.locator('summary').focus();page.keyboard.press('Enter')
+        expect(help_panel.locator('p').first).to_be_visible()
+        expect(help_panel).to_contain_text('体力保持不变')
+        help_panel.locator('summary').click()
+        for width in [1280,320]:
+            page.set_viewport_size({'width':width,'height':1000})
+            expect(panel.locator('[data-optimization-attribute="vocal"]')).to_have_attribute('placeholder','未填写')
+            assert panel.locator('.optimization-total').evaluate('e=>e.scrollWidth<=e.clientWidth')
+            panel.locator('.optimization-total').screenshot(path=artifact_path(str(ROOT/'local/optimization-autofill'/f'attributes-empty-{width}.png')))
+        page.set_viewport_size({'width':1280,'height':1000})
+        panel.locator('[data-optimization-attribute="vocal"]').fill('123')
+        expect(panel.locator('[data-optimization-multiplier="vocal"]')).to_be_visible()
+        expect(panel.locator('[data-optimization-multiplier="dance"],[data-optimization-multiplier="visual"]')).to_have_count(2)
+        expect(panel.locator('[data-optimization-multiplier]:visible')).to_have_count(1)
+        panel.locator('[data-optimization-attribute="vocal"]').fill('')
+        expect(panel.locator('[data-optimization-multiplier]:visible')).to_have_count(0)
         for key,value in request['params'].items():panel.locator(f'[data-optimization-attribute="{key}"]').fill(str(value))
         button=panel.locator('.optimization-autofill')
-        expect(button).to_have_text('快捷填入');expect(button).to_be_enabled()
+        expect(button).to_have_text('填入参考属性');expect(button).to_be_enabled()
         expected=page.evaluate('''async request=>{
           const {suggestContestParameters}=await import('./domain/contest-engine-runner.mjs');
           return suggestContestParameters({...request,supportBonus:0.001});
         }''',request)
         stamina=panel.locator('[data-optimization-attribute="stamina"]')
         stamina.fill('');button.click();expect(button).to_be_enabled();expect(stamina).to_have_value('')
+        expect(panel.locator('.optimization-autofill-notice')).to_be_visible()
         for key,value in expected['params'].items():
             expect(panel.locator(f'[data-optimization-attribute="{key}"]')).to_have_value(str(value))
         stamina.fill('77')
@@ -55,15 +80,33 @@ def check(url):
         button.click();expect(button).to_be_enabled();expect(stamina).to_have_value('77')
         for key,value in expected['params'].items():
             expect(panel.locator(f'[data-optimization-attribute="{key}"]')).to_have_value(str(value))
-            expect(panel.locator(f'[data-optimization-multiplier="{key}"]')).to_have_text(f"属性倍率：{expected['multipliers'][key]*100:g}%")
+            expect(panel.locator(f'[data-optimization-multiplier="{key}"]')).to_have_text(f"{expected['multipliers'][key]*100:g}%")
         if expected['limited']:expect(panel.locator('.optimization-autofill-notice')).to_contain_text('超过舞台可达上限')
+        else:expect(panel.locator('.optimization-autofill-notice')).to_have_text('已填入参考属性，体力未变。')
+        panel.locator('[data-optimization-attribute="vocal"]').fill('123')
+        panel.locator('.optimization-autofill-undo').click()
+        expect(panel.locator('[data-optimization-attribute="vocal"]')).to_have_value('123')
+        for key in ['dance','visual']:expect(panel.locator(f'[data-optimization-attribute="{key}"]')).to_have_value('1')
+        expect(stamina).to_have_value('77')
+        expect(panel.locator('.optimization-autofill-notice')).to_be_hidden()
         assert page.evaluate('optimizationMessages.some(row=>row.mode==="suggest-parameters")')
         assert not page.evaluate('optimizationMessages.some(row=>row.mode?.startsWith("session-"))')
-        for width in [1280,375]:
+        button.click();expect(button).to_be_enabled()
+        expect(panel.locator('[data-optimization-multiplier="vocal"]')).to_be_visible()
+        for width in [1280,375,320]:
             page.set_viewport_size({'width':width,'height':1000})
             assert panel.evaluate('e=>e.scrollWidth<=e.clientWidth')
-            assert button.evaluate('button=>{const title=button.parentElement.querySelector("h3").getBoundingClientRect(),bounds=button.getBoundingClientRect();return bounds.left>=title.right&&Math.abs(bounds.top-title.top)<20}')
-            panel.locator('.optimization-total').screenshot(path=str(ROOT/'local/optimization-autofill'/f'attributes-{width}.png'))
+            assert button.evaluate('button=>button.getBoundingClientRect().width>0')
+            assert panel.locator('.optimization-attributes').evaluate('''element=>{
+                const fields=[...element.children],inputs=fields.map(field=>field.querySelector('input').getBoundingClientRect());
+                return inputs.every(rect=>Math.abs(rect.left-inputs[0].left)<1)&&inputs.every((rect,index)=>!index||rect.top>=inputs[index-1].bottom)&&fields.slice(0,3).every(field=>{
+                    const input=field.querySelector('input').getBoundingClientRect(),output=field.querySelector('output').getBoundingClientRect();
+                    return output.left>=input.right&&output.top>=input.top-1&&output.bottom<=input.bottom+1;
+                });
+            }''')
+            assert panel.locator('.optimization-autofill-notice').evaluate('element=>element.getBoundingClientRect().top>=element.previousElementSibling.getBoundingClientRect().bottom')
+            panel.locator('.optimization-total').screenshot(path=artifact_path(str(ROOT/'local/optimization-autofill'/f'attributes-{width}.png')))
+            if width==1280:panel.locator('.optimization-composition').screenshot(path=artifact_path(str(ROOT/'local/optimization-autofill/attributes-context-1280.png')))
         assert not errors and not uploads,(errors,uploads)
         browser.close()
     print('真实 Worker 按当前舞台和支援反推三维；空白及已有体力均保留；上限提示、右上角按钮和双屏宽检查通过，无数据上传。')

@@ -65,12 +65,12 @@ export async function validateContentPart(name,bytes,manifest){
   }catch{fail('content_part_invalid');}
   return {text,value};
 }
-export async function validateContentBundle(value,webVersion){
+export async function validateContentBundle(value,webVersion,onPart=()=>{}){
   if(!object(value)||value.format!=='gakumas-content-bundle'||value.schema_version!==1||typeof value.manifest!=='string'||!object(value.files))fail('content_format_unsupported');
   const raw=new TextEncoder().encode(value.manifest);
   if(raw.byteLength>contentLimits.manifest||await contentHash(raw)!==value.manifest_sha256)fail('content_hash_mismatch');
   const manifest=validateContentManifest(JSON.parse(value.manifest),webVersion);
   if(Object.keys(value.files).length!==fileNames.length||!fileNames.every(name=>typeof value.files[name]==='string'))fail('content_files_invalid');
-  for(const name of fileNames)await validateContentPart(name,new TextEncoder().encode(value.files[name]),manifest);
+  for(const name of fileNames){const part=await validateContentPart(name,new TextEncoder().encode(value.files[name]),manifest);onPart(name,part.value);}
   return manifest;
 }

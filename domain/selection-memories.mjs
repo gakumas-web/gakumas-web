@@ -6,7 +6,6 @@ import {InputError,digest,validCapturedAt,matchesAny,selectedValues} from './mod
 import {characterInfo,cardInfo,itemArt,idolInfo,selectionChoiceMetadata,selectionFlowDefinitions,selectionSupportRewards} from './catalog.mjs';
 import {effectSearchText} from './effect-language.mjs';
 
-export const SELECTION_CAPACITY=1000;
 export function missingSelectionRewards(memory,detail){
   const candidates=selectionSupportRewards(detail);
   if(candidates===null)return null;

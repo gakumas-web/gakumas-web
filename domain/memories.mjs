@@ -45,17 +45,21 @@ export function summaryText(m, purpose = 'inheritance') {
 // 普通回忆按实际记录列出考试卡组，不套用选拔回忆的稀有度或专属卡排除规则。
 export const inheritanceCustomizeCount=card=>(card.customizes??[]).reduce((sum,value)=>sum+value.customizeCount,0);
 export const inheritanceSkillKey=memory=>JSON.stringify([memory.produceCard.id,memory.produceCard.upgradeCount,memory.produceCardPhaseType??null,inheritanceCustomizeCount(memory.produceCard)]);
-export function inheritanceCardChoices(memories){
+function collectChoices(steps){let next;do{next=steps.next();}while(!next.done);return next.value;}
+export const inheritanceCardChoices=memories=>collectChoices(inheritanceCardChoiceSteps(memories));
+export function* inheritanceCardChoiceSteps(memories){
   const cards=new Map();
   for(const memory of memories){
     if(!memory.produceCard)continue;
     const key=inheritanceSkillKey(memory);if(cards.has(key))continue;
     const reference={...memory.produceCard,customizes:[]};
     cards.set(key,{key,reference,phase:memory.produceCardPhaseType,customizeCount:inheritanceCustomizeCount(memory.produceCard),characterId:memory.characterId,memoryCharacterIds:[],info:cardInfo(reference,memory.characterId),metadata:selectionChoiceMetadata('card',reference)});
+    yield;
   }
   return [...cards.values()];
 }
-export function memoryExamChoices(memories){
+export const memoryExamChoices=memories=>collectChoices(memoryExamChoiceSteps(memories));
+export function* memoryExamChoiceSteps(memories){
   const cards=new Map(),items=new Map();
   for(const memory of memories){
     for(const card of memory.examBattleProduceCards??[]){
@@ -69,6 +73,7 @@ export function memoryExamChoices(memories){
       if(!items.has(id))items.set(id,{key:id,memoryCharacterIds:[],info:itemArt(id),metadata});
       items.get(id).memoryCharacterIds.push(memory.characterId);
     }
+    yield;
   }
   return {cards:sortExamCardChoices([...cards.values()]),items:sortExamItemChoices([...items.values()])};
 }

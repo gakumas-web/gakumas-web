@@ -1,4 +1,5 @@
 """用合成编组验证全局转换设置、限制卡排除与真实 Worker 模拟。"""
+from browser_artifacts import artifact_path
 import json
 from pathlib import Path
 from playwright.sync_api import sync_playwright, expect
@@ -110,7 +111,7 @@ def check(url):
             page.set_viewport_size({'width':width,'height':950})
             dialog=page.locator('#contest-card-conversion-dialog')
             assert dialog.evaluate('element=>element.scrollWidth<=element.clientWidth')
-            dialog.screenshot(path=str(ROOT/'local/ui-visual-refinement'/f'global-card-conversions-{width}.png'))
+            dialog.screenshot(path=artifact_path(str(ROOT/'local/ui-visual-refinement'/f'global-card-conversions-{width}.png')))
         close_settings()
         expect(page.locator('.recommendation-entry')).to_have_count(0)
         assert page.evaluate('JSON.stringify(switchMemories)===originalSwitchMemories')

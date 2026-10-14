@@ -1,3 +1,4 @@
+import {CONTEST_PARAMETER_TARGETS} from './contest-parameter-targets.mjs';
 import {IdolConfig,StageConfig,IdolStageConfig,StageEngine,StagePlayer,STRATEGIES,resetRand,S,SkillCards,PItems,Customizations,Stages} from './upstream-contest-engine.mjs';
 import {generatedSkillReference} from './contest-engine-display.mjs';
 import {createContestStatistics} from './contest-simulation-stats.mjs';
@@ -69,7 +70,7 @@ export async function suggestContestParameters(request){
   if(request.manualMultipliers||request.stage.kind!=='contest')throw new ContestSimulationError('unsupported_stage');
   const keys=['vocal','dance','visual'],params=Object.fromEntries(keys.map(key=>[key,0]));
   await previewContestMultipliers({...request,params});
-  const order=[...keys].sort((a,b)=>request.stage.preset.criteria[b]-request.stage.preset.criteria[a]),targets=Object.fromEntries(order.map((key,index)=>[key,[30,20,12][index]]));
+  const order=[...keys].sort((a,b)=>request.stage.preset.criteria[b]-request.stage.preset.criteria[a]),targets=Object.fromEntries(order.map((key,index)=>[key,CONTEST_PARAMETER_TARGETS[index]]));
   const maximum=await previewContestMultipliers({...request,params:Object.fromEntries(keys.map(key=>[key,Number.MAX_SAFE_INTEGER]))}),limited=[];
   for(const key of keys){
     const target=Math.min(targets[key],maximum[key]);if(maximum[key]<targets[key])limited.push(key);

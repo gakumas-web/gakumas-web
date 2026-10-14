@@ -1,4 +1,5 @@
 """用真实 Worker 检查统计展示、跨舞台历史筛选和保存失败提示。"""
+from browser_artifacts import artifact_path
 import argparse
 import json
 from pathlib import Path
@@ -23,12 +24,12 @@ def check(url):
         assert dialog.locator('.simulation-statistics tbody tr[data-entity-type="skillCard"]').count()>0
         assert dialog.locator('.simulation-statistics tbody tr[data-entity-type="pItem"]').count()>0
         for width in [1280,390,320]:
-            page.set_viewport_size({'width':width,'height':1000});assert dialog.evaluate('node=>node.scrollWidth<=node.clientWidth');page.screenshot(path=str(ROOT/f'local/season-simulation/statistics-{width}.png'))
+            page.set_viewport_size({'width':width,'height':1000});assert dialog.evaluate('node=>node.scrollWidth<=node.clientWidth');page.screenshot(path=artifact_path(str(ROOT/f'local/season-simulation/statistics-{width}.png')))
         dialog.locator('.simulation-statistics > summary').click();dialog.locator('.season-simulation-history-open').click()
         expect(dialog.locator('.simulation-history-entry')).to_have_count(1)
         dialog.get_by_role('combobox',name='舞台筛选').select_option('all');expect(dialog.locator('.simulation-history-entry')).to_have_count(2)
         for width in [1280,320]:
-            page.set_viewport_size({'width':width,'height':1000});dialog.locator('.simulation-history').scroll_into_view_if_needed();assert dialog.evaluate('node=>node.scrollWidth<=node.clientWidth');page.screenshot(path=str(ROOT/f'local/season-simulation/history-{width}.png'))
+            page.set_viewport_size({'width':width,'height':1000});dialog.locator('.simulation-history').scroll_into_view_if_needed();assert dialog.evaluate('node=>node.scrollWidth<=node.clientWidth');page.screenshot(path=artifact_path(str(ROOT/f'local/season-simulation/history-{width}.png')))
         key='contest:'+str(fixtures['customized']['stage']['preset']['id']);dialog.get_by_role('combobox',name='舞台筛选').select_option(key);expect(dialog.locator('.simulation-history-entry')).to_have_count(1)
         dialog.locator('.simulation-history-entry').get_by_role('button',name='查看结果',exact=True).click();expect(dialog.locator('[data-score="mean"] strong')).to_be_visible()
         # 保存故障不能抹掉已完成结果，也不能显示保存成功。

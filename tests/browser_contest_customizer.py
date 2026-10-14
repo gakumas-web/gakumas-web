@@ -1,4 +1,5 @@
 """通过内置预览验证模拟附魔加减、次数上限、取消与应用。"""
+from browser_artifacts import artifact_path
 from browser_simulation_helpers import select_season
 from playwright.sync_api import sync_playwright, expect
 
@@ -45,7 +46,7 @@ def check(url):
         for width in [1280,375]:
             page.set_viewport_size({'width':width,'height':1000 if width==1280 else 850});assert page.locator('#contest-loadout-editor').evaluate('e=>e.scrollWidth<=e.clientWidth');expect(panel).to_be_visible();expect(page.locator('.contest-loadout-footer .primary')).to_be_visible();assert panel.locator('xpath=..').get_attribute('class')=='contest-loadout-footer contest-card-footer'
             if width==375:assert page.locator('.contest-loadout-footer .primary').bounding_box()['y']>=panel.bounding_box()['y']+panel.bounding_box()['height']
-            page.locator('#contest-loadout-editor').screenshot(path=f'local/ui-visual-refinement/contest-customizer-{width}.png')
+            page.locator('#contest-loadout-editor').screenshot(path=artifact_path(f'local/ui-visual-refinement/contest-customizer-{width}.png'))
         page.locator('.contest-loadout-footer .primary').click();expect(page.locator('#contest-loadout-editor')).not_to_be_visible();expect(board.locator(f'[data-config-id="{candidate["id"]}"] .selection-custom-count').last).to_have_text('1');
         # 用同一个实际编辑器验证未强化卡打开后直接应用不会被悄悄强化。
         page.evaluate('''async id=>{const {contestCustomizationCatalog}=await import('./domain/catalog.mjs'),{openContestLoadoutEditor}=await import('./ui/contest-loadout-editor.mjs'),{prepareSnapshot}=await import('./domain/model.mjs');const data=await(await fetch('./resources/preview-account.json')).json(),snapshot=await prepareSnapshot(data.documents.find(d=>d.source==='user_get'));const memory=snapshot.memories.find(m=>m.key===document.querySelector('[data-memory-index="0"] .season-memory-board').dataset.memoryKey);window.linkedOriginal={id,upgradeCount:0,customizes:[]};openContestLoadoutEditor({catalog:contestCustomizationCatalog(),memory,memoryIndex:0,slotIndex:2,current:window.linkedOriginal,onApply:value=>window.linkedApplied=value});}''',candidate['id'])

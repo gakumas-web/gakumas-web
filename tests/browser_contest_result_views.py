@@ -1,6 +1,7 @@
 """真实推荐验证分位数、结果卡片与跨偶像临时结果生命周期。"""
+from browser_artifacts import artifact_path
 import re
-from pathlib import Path
+
 from playwright.sync_api import sync_playwright,expect
 from browser_static import ROOT
 
@@ -20,16 +21,17 @@ def check(url):
             panel.locator('.recommendation-start').click();expect(summary).to_contain_text('推荐 ',timeout=120000);expect(panel.locator('.recommendation-stop')).not_to_be_visible(timeout=120000)
             assert panel.locator('.recommendation-entry').count()>0
             return summary.inner_text(),panel.locator('.recommendation-entry').first.get_attribute('data-score')
-        first=choose_count(2);first_result=run();expect(panel.locator('.recommendation-start')).to_have_text('重新推荐')
+        first=choose_count(2);first_result=run();expect(panel.locator('.recommendation-start')).to_have_text('开始搜索')
         samples=page.evaluate('window.finalSamples')
         for entry in panel.locator('.recommendation-entry').all():
+            expect(entry.locator('[data-metric=deviation]')).to_be_visible();expect(entry.locator('.simulation-extra-metrics')).to_have_count(0)
             scores=samples[entry.get_attribute('data-main')+':'+entry.get_attribute('data-sub')]
             for key,fraction in [('p25',.25),('p75',.75)]:
                 position=(len(scores)-1)*fraction;left=int(position);expected=scores[left]+(scores[min(left+1,len(scores)-1)]-scores[left])*(position-left)
-                actual=float(entry.locator(f'[data-metric={key}] strong').inner_text().replace(',',''));assert abs(actual-expected)<=.5,(key,actual,expected)
+                actual=float(entry.locator(f'.simulation-quartile-labels [data-quantile={key}]').inner_text().replace(',',''));assert abs(actual-expected)<=.5,(key,actual,expected)
             assert all(re.fullmatch(r'[\d,]+',value) for value in entry.locator('[data-metric] strong').all_text_contents())
-            assert entry.locator('.recommendation-metrics small').all_text_contents()==['平均值','中位数','标准差','P25','P75']
-            assert entry.locator('.recommendation-metrics>div').count()==5 and entry.locator('[data-metric=variance],[data-metric=downside]').count()==0
+            assert entry.locator('.recommendation-metrics [data-metric] small').all_text_contents()==['平均值','中位数','标准差']
+            assert entry.locator('.recommendation-metrics [data-metric]').count()==3 and entry.locator('[data-metric=variance],[data-metric=downside]').count()==0
             expect(entry.locator('.recommendation-entry-identity .recommendation-run-count')).to_have_text(f'{len(scores)} 次模拟')
             assert '实际复评' not in entry.inner_text();assert entry.locator('.recommendation-entry-footer>span').count()==0
             expect(entry.locator('.recommendation-entry-face')).to_be_visible();expect(entry.locator('.recommendation-entry-heading>[data-metric=score]')).to_be_visible();assert entry.locator('.recommendation-item-row>small').count()==0
@@ -44,9 +46,9 @@ def check(url):
             assert abs(float(entry.locator('.history-whisker').evaluate('e=>parseFloat(e.style.left)'))-expected_left)<.0001
             score=entry.locator('[data-metric=score] strong');score.hover();formula=score.get_attribute('title');assert '下行波动' not in formula and '\n' not in formula
             assert re.fullmatch(r'[\d,]+',score.inner_text())
-            assert re.fullmatch(r'\(\d+\.\d{2} \+ \d+\.\d{2}\) ÷ 2 − 0\.25 × \d+\.\d{2} ≈ \d+\.\d{2}',formula)
-            mean,median,divisor,weight,downside,total=[float(v) for v in re.findall(r'-?\d+(?:\.\d+)?',formula)]
-            assert abs((mean+median)/divisor-weight*downside-total)<=.011
+            assert re.fullmatch(r'\(\d+\.\d{2} \+ \d+\.\d{2}\) ÷ 2 \+ 0\.25 × \d+\.\d{2} − 0\.25 × \d+\.\d{2} ≈ \d+\.\d{2}',formula)
+            mean,median,divisor,up_weight,upside,weight,downside,total=[float(v) for v in re.findall(r'-?\d+(?:\.\d+)?',formula)]
+            assert abs((mean+median)/divisor+up_weight*upside-weight*downside-total)<=.011
             assert abs(int(score.inner_text().replace(',',''))-total)<=.51
         print('实际最终样本与 P25/P75 一致，综合分计算、短码与直接展示编组通过。',flush=True)
         # 主副回忆使用完整标识定位；返回模拟页仍保留本次推荐结果。
@@ -68,11 +70,11 @@ def check(url):
             page.wait_for_function("()=>[...document.querySelectorAll('.recommendation-entry:first-child .loadout-library-preview img')].every(i=>i.complete)")
             assert page.evaluate('document.documentElement.scrollWidth<=innerWidth');assert entry.evaluate('e=>e.scrollWidth<=e.clientWidth')
             actions=entry.locator('.recommendation-entry-actions');footer=entry.locator('.recommendation-entry-footer');assert abs(actions.bounding_box()['x']-footer.bounding_box()['x'])<1
-            metrics=entry.locator('.recommendation-metrics');preview=entry.locator('.loadout-library-preview');assert metrics.evaluate('e=>new Set([...e.children].map(n=>Math.round(n.getBoundingClientRect().top))).size')==2
+            metrics=entry.locator('.recommendation-metrics');preview=entry.locator('.loadout-library-preview');assert metrics.evaluate('e=>new Set([...e.children].map(n=>Math.round(n.getBoundingClientRect().top))).size')==1
             if width>=700:assert metrics.bounding_box()['x']>=preview.bounding_box()['x']+preview.bounding_box()['width']
             items=entry.locator('.loadout-library-items');cards=entry.locator('.loadout-library-cards').first
             if items.count():assert abs(items.bounding_box()['x']-cards.bounding_box()['x'])<1
-            entry.screenshot(path=str(image_dir/f'card-{width}.png'))
+            entry.screenshot(path=artifact_path(str(image_dir/f'card-{width}.png')))
         page.reload(wait_until='networkidle');expect(page.locator('#season-simulation-page')).to_be_visible(timeout=60000);expect(panel.locator('.recommendation-entry')).to_have_count(0);expect(summary).not_to_be_visible()
         assert not errors and not uploads,(errors,uploads);browser.close()
     print('两个偶像结果独立保留，停止、舞台、页签、语言切换及刷新清理通过，四种宽度截图已生成。',flush=True)

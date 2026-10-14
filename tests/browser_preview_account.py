@@ -1,4 +1,5 @@
 """验证真实账号入口中的预览安装、标签编辑及与其他合成账号的隔离。"""
+from browser_artifacts import artifact_path
 import argparse
 import json
 from pathlib import Path
@@ -32,7 +33,7 @@ def check(url):
         page.locator('#enable-preview-account').click();expect(page.locator('#profile option:checked')).to_contain_text('预览账号');assert len(downloads)==1
         page.locator('#data-open').click();page.locator('#manage-tags').click();expect(page.locator('.tag-manager-row')).to_have_count(8);expect(page.locator('[data-tag="预览自建标签"]')).to_be_visible();page.locator('#close-tags').click()
         for width in [1280,390]:
-            page.set_viewport_size({'width':width,'height':1000});page.screenshot(path=str(ROOT/f'local/season-simulation/preview-account-{width}.png'))
+            page.set_viewport_size({'width':width,'height':1000});page.screenshot(path=artifact_path(str(ROOT/f'local/season-simulation/preview-account-{width}.png')))
         page.locator('#close-data').click();page.locator('#profile').select_option('account-'+ACCOUNT);expect(page.locator('#count-memories')).to_have_text('1',timeout=30000)
         assert not errors,errors;assert not uploads,uploads;browser.close()
     print('预览入口：按需读取、六页签、培养阵容、7 个初始标签、标签编辑、刷新／再次启用保留、其他账号隔离及无上传通过。')

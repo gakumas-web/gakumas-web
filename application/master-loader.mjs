@@ -36,6 +36,7 @@ function loadPackage(name){
 export async function loadMaster(scope='full'){
   if(masterReadyFor(scope))return;
   await Promise.all(masterDependencies[scope].map(loadPackage));
+  if(masterReadyFor(scope))return;
   const input={tables:Object.fromEntries(['MemoryAbility','ProduceSkill','ProduceEffect','ProduceCard','ProduceItem','ProduceExamEffect'].map(name=>[name,[]]))};
   for(const data of packages.values()){
     const {tables,...rest}=data;Object.assign(input,rest);if(tables)Object.assign(input.tables,tables);

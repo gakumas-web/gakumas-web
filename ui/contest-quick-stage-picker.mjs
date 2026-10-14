@@ -1,6 +1,6 @@
 import {el} from './dom.mjs';
 import {t} from '../i18n.mjs';
-import {contestStageSummary} from './contest-stage-picker.mjs';
+import {contestStageSummary} from './contest-stage-summary.mjs';
 import {closeRewardPopover} from './card-rewards.mjs';
 
 let pickerId=0;

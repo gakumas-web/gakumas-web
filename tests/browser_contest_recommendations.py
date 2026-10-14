@@ -1,4 +1,5 @@
 """用真实 Worker 检查分阶段推荐、统计排名、停止、历史与载入保存。"""
+from browser_artifacts import artifact_path
 import copy
 import json
 import re
@@ -58,7 +59,7 @@ def check(url='http://127.0.0.1:18765/'):
         print('4→16→64真实引擎推荐、累计前缀、20组最终轮、前十排名和不自动写入历史通过。',flush=True)
         expect(dialog.locator('.loadout-library-preview').first).to_be_visible();assert dialog.locator('.recommendation-loadout>summary').count()==0;assert dialog.locator('[data-metric=variance]').count()==0;expect(dialog.locator('[data-metric=score] strong').first).to_have_attribute('title',re.compile(r'.*÷ 2 \+ 0\.25 × .* − 0\.25 × .*≈.*',re.S))
         for width in [1280,375,320]:
-            page.set_viewport_size({'width':width,'height':1000});assert dialog.evaluate('e=>e.scrollWidth<=e.clientWidth');assert page.locator('.simulation-mode-tabs').evaluate('e=>e.scrollWidth<=e.clientWidth');dialog.screenshot(path=f'local/ui-visual-refinement/recommendations-{width}.png')
+            page.set_viewport_size({'width':width,'height':1000});assert dialog.evaluate('e=>e.scrollWidth<=e.clientWidth');assert page.locator('.simulation-mode-tabs').evaluate('e=>e.scrollWidth<=e.clientWidth');dialog.screenshot(path=artifact_path(f'local/ui-visual-refinement/recommendations-{width}.png'))
         dialog.locator('.recommendation-entry [data-action="save"]').first.click();library=page.locator('#contest-loadout-library');expect(library).to_be_visible();assert page.locator('dialog:modal').count()==1;library.locator('#loadout-library-name').fill('推荐第一名');library.locator('.loadout-library-name-form').get_by_role('button',name='保存',exact=True).click();expect(library.locator('.loadout-library-status')).to_have_text('编组已保存。');library.locator('.dialog-head button').click()
         page.get_by_role('tab',name='推荐编组模拟',exact=True).click();expect(dialog.locator('.recommendation-entry')).to_have_count(10);dialog.locator('.recommendation-entry [data-action="load"]').first.click();expect(dialog).not_to_be_visible();expect(page.locator('.season-memory-board')).to_have_count(2);expect(page.locator('.season-simulate')).to_be_enabled()
         page.evaluate('window.__workerPeak=0')
