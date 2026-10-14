@@ -1,4 +1,4 @@
-"""对最终 Pages 入口验证基础小包、缓存复用、卡图分级与状态界面。"""
+"""对最终 Pages 入口验证图片交付、缓存复用、卡图分级与状态界面。"""
 import argparse,datetime,json,re,hashlib,urllib.request
 from pathlib import Path
 from urllib.parse import urlsplit
@@ -58,8 +58,14 @@ with sync_playwright() as driver:
  page.set_viewport_size({'width':375,'height':812});assert page.evaluate('document.documentElement.scrollWidth<=innerWidth')
  assert not failures,failures
  assert not errors,errors
- assert all(method in ('GET','HEAD') and not body and urlsplit(address).netloc==urlsplit(url).netloc for address,method,body in requests if address.startswith(('https://','http://')))
+ # 同源用途包之外，发布清单显式允许的 CDN 增量也可只读获取。
+ origin=lambda address:urlsplit(address).scheme+'://'+urlsplit(address).netloc
+ allowed_origins={origin(url),*release['image_policy'].get('download_origins',[])}
+ network_requests=[(address,method,body) for address,method,body in requests if address.startswith(('https://','http://'))]
+ assert all(method in ('GET','HEAD') and not body and origin(address) in allowed_origins for address,method,body in network_requests)
  result={'captured_at':captured_at,'entry_url':url,'release_sha256':hashlib.sha256(release_bytes).hexdigest(),'source_commit':release.get('source_commit'),'build_run_id':release.get('build_run_id'),'browser_version':browser.version,'cache_scenarios':['fresh-context','reload-same-context'],'program_version':release['version'],'character_placeholder':placeholder,'core_objects':initial['status']['completed'],'core_bytes':initial['core']['bytes'],'initial_image_requests':len(first),'reload_image_requests':0,'download_groups':phases,'dimensions':dimensions,'same_origin_only':True,'page_errors':errors,'request_failures':failures,'mobile_overflow':False,'startup_and_collapsed_status':True}
+ result.update(same_origin_only=all(origin(address)==origin(url) for address,_,_ in network_requests),
+               readonly_allowed_origins_only=True,request_origins=sorted({origin(address) for address,_,_ in network_requests}))
  args.output.parent.mkdir(parents=True,exist_ok=True)
  args.output.write_text(json.dumps(result,ensure_ascii=False,indent=2)+'\n')
  print(json.dumps(result,ensure_ascii=False));context.close();browser.close()
