@@ -9,6 +9,7 @@ import struct
 import sys
 import tempfile
 import unittest
+import zipfile
 from unittest.mock import patch
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT/'tools'))
@@ -43,6 +44,18 @@ class PortableReleaseTest(unittest.TestCase):
             with self.assertRaises(ValueError):package(site,launcher,license,root/'output')
             (site/'private.json').unlink();(site/'index.html').write_text('changed')
             with self.assertRaises(ValueError):package(site,launcher,license,root/'output')
+
+    def test_publication_and_engine_sources_are_preserved_without_allowing_other_content(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root=Path(folder);site,launcher,license=self.fixture(root);content=site/'content';content.mkdir()
+            documents={'publication.json':{'format':'gakumas-content-publication','data_commit':'a'*40},'engine-source.json':{'commit':'b'*40}}
+            for name,document in documents.items():(content/name).write_text(json.dumps(document))
+            output=root/'output';report=package(site,launcher,license,output)
+            with zipfile.ZipFile(output/report['archive']['name']) as archive:
+                prefix=report['archive']['name'].removesuffix('.zip')+'/www/content/'
+                for name,document in documents.items():self.assertEqual(json.loads(archive.read(prefix+name)),document)
+            (content/'private.json').write_text('{}')
+            with self.assertRaisesRegex(ValueError,'未登记文件'):package(site,launcher,license,root/'rejected')
 
     def test_release_is_draft_until_artifacts_uploaded(self):
         with tempfile.TemporaryDirectory() as folder:

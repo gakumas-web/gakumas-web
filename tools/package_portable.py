@@ -32,7 +32,7 @@ def package(site,launcher,go_license,output):
         names.add(name.casefold())
         if any(part.endswith(('.', ' ')) or re.search(r'[<>:"|?*]',part) for part in path.relative_to(site).parts):raise ValueError('站点文件名不兼容 Windows')
         parts=path.relative_to(site).parts
-        content_file=(len(parts)==2 and parts[0]=='content' and parts[1] in {'channel.json','channel.json.gz'}) or (len(parts)==4 and parts[:2]==('content','releases') and parts[3].removesuffix('.gz') in {'manifest.json','catalog.json','effects.json','abilities.json','progression.json','achievements.json','assets-index.json'})
+        content_file=(len(parts)==2 and parts[0]=='content' and parts[1] in {'channel.json','channel.json.gz','publication.json','engine-source.json'}) or (len(parts)==4 and parts[:2]==('content','releases') and parts[3].removesuffix('.gz') in {'manifest.json','catalog.json','effects.json','abilities.json','progression.json','achievements.json','assets-index.json'})
         if name not in release['files'] and name not in {'release.json','build-report.json'} and not (name.endswith('.gz') and name[:-3] in release['files']) and not content_file:
             raise ValueError('站点包含未登记文件：'+name)
     raw=launcher.read_bytes()
