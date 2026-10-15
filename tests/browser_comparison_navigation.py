@@ -2,6 +2,7 @@
 import argparse
 import copy
 import json
+import re
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from playwright.sync_api import sync_playwright,expect
@@ -17,6 +18,9 @@ def check(url,account=None):
             docs=fixtures();original=docs['capture']['memories'][0];rows=[]
             for i in range(4):
                 row=copy.deepcopy(original);row.update(userMemoryId=f'synthetic-compare-{i}',vocal=100+i*20,power=1200+i*100,examBattleProduceCards=[row['produceCard']]);rows.append(row)
+            cards=json.loads((ROOT/'tests/fixtures/public-data/contest-engine.json').read_text())['customized']['cards']
+            customized=next(entry['reference'] for entry in cards if entry['reference']['customizes'])
+            for row in rows:row['examBattleProduceCards'].append(copy.deepcopy(customized))
             docs['capture'].update(memories=rows,count=4)
             support=json.loads((ROOT/'tests/fixtures/public-data/supports.json').read_text())['cards'][0]['id']
             docs['capture']['supportCards']=[{'supportCardId':support,'level':10,'levelLimitRank':0,'stockQuantity':0,'createdTime':0}]
@@ -30,6 +34,7 @@ def check(url,account=None):
         page.locator('[data-tab="memories"]').click()
         row=page.locator('.memory-card:has(.pick)').first;key=row.get_attribute('data-memory-key');favorite=row.locator('.favorite-button');favorite.click();expect(favorite).to_have_attribute('aria-pressed','true')
         if page.locator('#filter-toggle').get_attribute('aria-expanded')=='false':page.locator('#filter-toggle').click()
+        expect(page.locator('#count-memories')).to_have_text(re.compile(r'^\d+$'),timeout=60000)
         before=page.locator('#count-memories').inner_text()
         page.locator('#inheritance-skill-open').click();page.locator('#selection-picker-list input:not(:disabled)').first.check();page.locator('#selection-picker-confirm').click()
         page.locator('#reset-filters').click();expect(page.locator('#count-memories')).to_have_text(before)
@@ -37,6 +42,9 @@ def check(url,account=None):
         page.locator('#reset-filters').click()
         for i in range(4):page.locator('.memory-card .pick input').nth(i).check()
         page.locator('#compare').click();expect(page.locator('#compare-dialog')).to_be_visible()
+        if not account:
+            badges=page.locator('.comparison-config-scroll .selection-custom-count');assert badges.count()>0
+            for badge in badges.all():expect(badge).to_have_attribute('aria-label',f'附魔次数：{badge.inner_text()}');expect(badge).to_have_attribute('title',badge.get_attribute('aria-label'))
         original=page.locator('.comparison-table thead .comparison-memory-column').all_text_contents()
         for width in [390,360,320,1440]:
             page.set_viewport_size({'width':width,'height':900})
@@ -64,11 +72,14 @@ def check(url,account=None):
                     assert bounds['left']>=bounds['min']-2 and bounds['right']<=bounds['max']+2 and bounds['top']==0,(width,base,bounds)
                 current=page.locator('.comparison-table thead .comparison-memory-column').all_text_contents()
                 assert [text.replace('基准','') for text in current]==[text.replace('基准','') for text in original]
+                page.evaluate("window.comparisonImages=[...document.querySelectorAll('#comparison img')]")
                 page.locator('#differences-only').check()
+                assert page.evaluate('comparisonImages.every(image=>image.isConnected)')
                 if width<600 and not account:
                     expect(page.locator('.comparison-summary-pair [data-compare-field="vocal"]')).to_have_count(3)
-                    expect(page.locator('.comparison-summary-pair [data-compare-field="grade"]')).to_have_count(0)
+                    expect(page.locator('.comparison-summary-pair [data-compare-field="grade"]:visible')).to_have_count(0)
                 page.locator('#differences-only').uncheck()
+                assert page.evaluate('comparisonImages.every(image=>image.isConnected)')
             assert page.evaluate('document.documentElement.scrollWidth<=innerWidth')
         # 比较结束后回到原应用，再走实际阵容链接及浏览器持久化恢复。
         page.locator('#close-compare').click();page.locator('[data-tab="selectionMemories"]').click();page.locator('.selection-details-button').first.click();page.locator('.selection-detail-support-card').first.click()

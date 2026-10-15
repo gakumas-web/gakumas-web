@@ -61,11 +61,20 @@ test('主题选项按最早主题装扮记录排序，不随补发年份或文�
   const {skinThemeNames}=await import('../domain/catalog.mjs');
   const {readFileSync}=await import('node:fs');
   const catalog=JSON.parse(readFileSync(new URL('./fixtures/public-data/idols.json',import.meta.url)));
-  const names=skinThemeNames(catalog.skins.map(s=>({theme:s.theme,themeStartTime:s.themeStartTime})));
+  const reference=JSON.parse(readFileSync(new URL('./fixtures/public-data/reference-data.json',import.meta.url)));
+  installMaster({tables:{ProduceCard:[],ProduceItem:[],MemoryAbility:[],ProduceSkill:[],ProduceEffect:[],ProduceExamEffect:[]},idols:catalog,catalogMetadata:reference.catalogMetadata});
+  const names=skinThemeNames(catalog.skins.map(s=>skinInfo({idolCardSkinId:s.id})));
   assert.deepEqual(names,[
     '夏 · キミとセミブルー','祭 · 冠菊','ハロウィン · 仮装狂騒曲','クリスマス · White Night! White Wish!',
     'バレンタイン · ハッピーミルフィーユ','ひな祭り · 雪解けに','桜 · 桜フォトグラフ',
     'アニメイト · 古今東西ちょちょいのちょい','Howling over the World','ミラクルナナウ(ﾟ∀ﾟ)！',
     'がむしゃらに行こう！','ENDLESS DANCE','GO MY WAY!!','水着 · 「ねえ、言っちゃうよ。」']);
-  assert.deepEqual(skinThemeNames([{theme:'未记录'},{theme:'早期',themeStartTime:0},{theme:'后来',themeStartTime:20}]),['早期','后来','未记录']);
+  assert.deepEqual(skinThemeNames([{theme:'未记录'},{theme:'早期',themeStartTime:0,themeCardStartTime:10},{theme:'后来',themeStartTime:20}]),['早期','后来','未记录']);
+});
+
+test('主题时间缺失以关联主题偶像卡日期保底，零值与后续补发不把最新主题排到前面',async()=>{
+  const {skinThemeNames}=await import('../domain/catalog.mjs');
+  const rows=[{theme:'Agitato',themeStartTime:0,themeCardStartTime:300},{theme:'夏',themeStartTime:0,themeCardStartTime:100},{theme:'祭',themeStartTime:200,themeCardStartTime:50},{theme:'Agitato',themeStartTime:0},{theme:'夏',themeStartTime:0,themeCardStartTime:400}];
+  assert.deepEqual(skinThemeNames(rows),['夏','祭','Agitato']);
+  assert.deepEqual(skinThemeNames([...rows].reverse()),['夏','祭','Agitato']);
 });

@@ -18,6 +18,7 @@ export function setupAccountCleanup({target,summary,remove,complete,lock,report}
     if(counts)box.append(el('p',t('普通回忆 {0} 条 · 历史快照 {1} 份',[counts.memories,counts.history])),
       el('p',t('选拔回忆 {0} 条 · 已关联详情 {1} 条',[counts.selection,counts.details])),
       el('p',t('标签、收藏与偏好存储 {0} 项',[counts.settings])),el('p',t('模拟历史 {0} 条',[counts.simulations??0])),el('p',t('已保存编组 {0} 条',[counts.loadouts??0])));
+    if((counts?.simulations??0)+(counts?.loadouts??0)>0)box.append(el('p',t('还将删除模拟历史 {0} 条、已保存编组 {1} 条。这两类内容不包含在账号数据包中，仅导出数据包无法恢复。',[counts.simulations??0,counts.loadouts??0]),'account-cleanup-simulation-warning'));
   }
   function error(text){const node=$('account-cleanup-error');node.textContent=text;node.hidden=!text;if(text)node.focus();}
   $('clear-account').onclick=async()=>{

@@ -1,6 +1,7 @@
 import {uiIconURL} from '../resources.mjs';
 import {favoriteButton} from './personal-library.mjs';
 import {$,el} from './dom.mjs';
+import {createNumberStepper} from './number-stepper.mjs';
 import {shareLinkButton,collectionState} from './shared.mjs';
 import {setCatalogRefresh,openCatalogDialog} from './catalog-dialog.mjs';
 import {t} from '../i18n.mjs';
@@ -13,22 +14,18 @@ function targetControls(held,initial,onChange){
   const panel=el('div','','idol-preview-controls'),controls=el('div','','idol-stage-controls');panel.hidden=true;panel.append(controls);
   const fields=[],selected={rank:initial.targetRank,potential:initial.targetPotential};
   for(const [kind,label,max] of [['rank',t('预览特训'),initial.maximum],['potential',t('预览开花'),initial.maxPotential]]){
-    const group=el('div','','idol-stage-stepper');group.setAttribute('role','group');group.setAttribute('aria-label',label);
-    const symbol=el('span','','idol-stage-symbol'),icon=el('img');symbol.title=label;symbol.setAttribute('role','img');symbol.setAttribute('aria-label',label);icon.src=uiIconURL(`idol-${kind==='rank'?'training':'potential'}.webp`);icon.alt='';symbol.append(icon);group.append(symbol);
+    const symbol=el('span','','idol-stage-symbol'),icon=el('img');symbol.title=label;symbol.setAttribute('role','img');symbol.setAttribute('aria-label',label);icon.src=uiIconURL(`idol-${kind==='rank'?'training':'potential'}.webp`);icon.alt='';symbol.append(icon);
     const input=el('input');input.type='number';input.min='0';input.max=String(max);input.step='1';input.dataset.stageInput=kind;input.setAttribute('aria-label',label);
-    const buttons=[];
-    for(const [action,text] of [['min','Min'],['minus','−'],['plus','+'],['max','Max']]){
-      const button=el('button',text);button.type='button';button.dataset.stageKind=kind;button.dataset.stageAction=action;button.setAttribute('aria-label',`${label} ${text}`);
-      button.onclick=()=>set({...selected,[kind]:action==='min'?0:action==='max'?max:selected[kind]+(action==='plus'?1:-1)});
-      if(action==='plus')group.append(input);group.append(button);buttons.push({button,action});
-    }
+    const actions=[['min','Min'],['minus','−'],['plus','+'],['max','Max']].map(([value,text])=>({value,text,label:`${label} ${text}`,data:{stageKind:kind,stageAction:value}}));
+    const stepper=createNumberStepper({input,before:actions.slice(0,2),after:actions.slice(2),className:'idol-stage-stepper',onAction:action=>set({...selected,[kind]:action==='min'?0:action==='max'?max:selected[kind]+(action==='plus'?1:-1)})});
+    stepper.element.setAttribute('role','group');stepper.element.setAttribute('aria-label',label);stepper.element.prepend(symbol);
     input.onchange=()=>set({...selected,[kind]:input.value===''?selected[kind]:Math.max(0,Math.min(max,Math.trunc(Number(input.value))))});
-    fields.push({input,buttons,kind,max});controls.append(group);
+    fields.push({input,stepper,kind,max});controls.append(stepper.element);
   }
   const reset=el('button',t('还原预览'),'idol-preview-reset');reset.type='button';reset.onclick=()=>set({rank:held.levelLimitRank,potential:held.potentialRank});controls.append(reset);
   function set(next,notify=true){
     Object.assign(selected,next);
-    for(const {input,buttons,kind,max} of fields){input.value=String(selected[kind]);for(const {button,action} of buttons)button.disabled=['min','minus'].includes(action)?selected[kind]===0:selected[kind]===max;}
+    for(const {input,stepper,kind,max} of fields){input.value=String(selected[kind]);stepper.setDisabled(action=>['min','minus'].includes(action)?selected[kind]===0:selected[kind]===max);}
     reset.disabled=selected.rank===held.levelLimitRank&&selected.potential===held.potentialRank;
     if(notify)onChange({...selected});
   }

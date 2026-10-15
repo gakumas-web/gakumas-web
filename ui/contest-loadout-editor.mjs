@@ -1,9 +1,11 @@
+import {updateSkillCustomizationBadge} from './memory-skill-badges.mjs';
 import {conversionChoiceAvailable,conversionChoiceEnabled} from '../domain/card-conversions.mjs';
 import {loadCardConversions} from '../application/card-conversion-preferences.mjs';
-import {customizationColorKind} from './contest-customization-colors.mjs';
+import {createContestCustomizationStepper} from './contest-customization-stepper.mjs';
 import {el,openDialog} from './dom.mjs';
 import {t} from '../i18n.mjs';
 import {choiceFilterIcons} from './choice-filter-icons.mjs';
+import {createChoiceNavigation} from './choice-navigation.mjs';
 import {cardInfo,cardRewardInfo,itemRewardInfo,cardCustomizations,selectionChoiceMetadata,selectionFlowDefinitions,planLabel} from '../domain/catalog.mjs';
 import {groupedInheritanceCardChoices} from '../domain/memories.mjs';
 import {contestSlotChoices,contestCustomizationValid,contestChoiceOwned} from '../domain/contest-loadout.mjs';
@@ -27,7 +29,7 @@ export function openContestLoadoutEditor({profile,catalog,memory,memoryIndex,slo
     choices=[original??{id:currentId,name:isCard?cardInfo(current,memory.characterId).name:itemRewardInfo(currentId).name,metadata:selectionChoiceMetadata(kind,isCard?current:{id:currentId}),...(isCard?{versions:[{id:current.id,upgradeCount:current.upgradeCount>0?1:0,customizes:[]}]}:{})},...choices];
   }
   const plan=({2:'Plan1',3:'Plan2',4:'Plan3'})[memory.planType];
-  const instructions=el('p',t(isCard?'选中技能后用加减按钮调整附魔，悬停卡片查看完整说明。':'勾选 P 道具，悬停或点击卡片查看说明。'),'small muted');
+  const instructions=el('p',t(isCard?'选中技能后用加减按钮调整附魔，悬停卡片查看完整说明。':'选择 P 道具，悬停或点击卡片查看说明。'),'small muted');
   const filters=el('div','','selection-picker-filters contest-loadout-filters'),planFilter=el('select'),flow=el('select'),rarity=el('select'),showN=el('input');
   showN.type='checkbox';showN.id='contest-loadout-show-n';showN.checked=false;
   planFilter.id='contest-loadout-plan';flow.id='contest-loadout-flow';rarity.id='contest-loadout-rarity';
@@ -44,7 +46,7 @@ export function openContestLoadoutEditor({profile,catalog,memory,memoryIndex,slo
   function syncIconFilters(){
     const available=choices.filter(choice=>availableChoice(choice)&&(!planFilter.value||choice.metadata.plan===planFilter.value)&&(!isCard||showN.checked||choice.metadata.rarity!=='N')),hasFlow=value=>!value||available.some(choice=>value==='unclassified'?!choice.metadata.flows.length:choice.metadata.flows.includes(value));
     if(!hasFlow(flow.value))flow.value='';
-    for(const {input,buttons} of iconGroups)for(const button of buttons){button.hidden=input===flow&&!hasFlow(button.dataset.value)||input===rarity&&button.dataset.value==='N'&&!showN.checked;const selected=button.dataset.value===input.value;button.setAttribute('aria-checked',String(selected));button.tabIndex=selected?0:-1;}
+    for(const group of iconGroups)group.sync({isVisible:value=>(group.input!==flow||hasFlow(value))&&(group.input!==rarity||value!=='N'||showN.checked)});
   }
 
   const toggles=el('div','','contest-loadout-toggles'),enhanced=el('input'),ownedOnly=el('input');enhanced.type='checkbox';enhanced.id='contest-loadout-enhanced';enhanced.checked=!isCard||current.upgradeCount>0;ownedOnly.type='checkbox';ownedOnly.id='contest-loadout-owned';ownedOnly.checked=true;
@@ -53,11 +55,12 @@ export function openContestLoadoutEditor({profile,catalog,memory,memoryIndex,slo
     enhanced.title=t('切换强化会重置本次附魔选择。');
     if(!ownership.supportsKnown)toggles.append(el('small',t('持有情况未采集'),'muted'));
   }
-  const listCount=el('p','','small muted'),list=el('div','','contest-loadout-groups'),footer=el('div','','contest-loadout-footer'),selection=el('span','','small'),error=el('p','','message'),apply=el('button',t('应用到槽位'),'primary');error.setAttribute('role','alert');error.hidden=true;footer.append(selection,error,apply);
+  const listCount=el('p','','small muted'),list=el('div','','contest-loadout-groups'),footer=el('div','','contest-loadout-footer'),selection=el('span','','small'),error=el('p','','message error'),apply=el('button',t('应用到槽位'),'primary');list.setAttribute('role','radiogroup');list.setAttribute('aria-label',t(isCard?'技能卡选项':'P 道具选项'));error.setAttribute('role','alert');error.hidden=true;footer.append(selection,error,apply);
   const customizer=el('section','','contest-inline-customizer');
   if(isCard){footer.classList.add('contest-card-footer');footer.insertBefore(customizer,error);}
   dialog.replaceChildren(head,instructions,filters,...(isCard?[toggles]:[]),el('hr','','contest-memory-divider'),listCount,list,footer);
   let selected=choices.find(choice=>choice.id===currentId)??null;const drafts=new Map(),views=new Map();
+  const navigate=createChoiceNavigation({getButtons:()=>[...views.values()].map(view=>view.button),onMove:button=>choose(choices.find(choice=>choice.id===button.dataset.choiceId))});
   const availableVersion=(choice,enhanced)=>choice.versions.find(value=>value.upgradeCount===(enhanced?1:0))??choice.versions.find(value=>value.upgradeCount<=1);
   if(isCard&&selected){const version=availableVersion(selected,enhanced.checked);drafts.set(currentId,{...version,customizes:current.upgradeCount===version.upgradeCount?(current.customizes??[]).map(value=>({...value})):[]});}
   if(isCard&&selected&&(!availableChoice(selected)||!showN.checked&&selected.metadata.rarity==='N'))selected=null;
@@ -66,14 +69,14 @@ export function openContestLoadoutEditor({profile,catalog,memory,memoryIndex,slo
   }
   function syncSelection(){
     error.hidden=true;apply.disabled=!selected;selection.textContent=selected?t('已选：{0}',[isCard?'':selected.name]):t(isCard?'请选择技能卡':'请选择 P 道具');
-    for(const [id,view] of views){view.input.checked=id===selected?.id;view.button.setAttribute('aria-pressed',String(id===selected?.id));}
+    const buttons=[...views.values()].map(view=>view.button),focusId=selected&&views.has(selected.id)?selected.id:buttons[0]?.dataset.choiceId;
+    for(const [id,view] of views){view.button.setAttribute('aria-checked',String(id===selected?.id));view.button.tabIndex=id===focusId?0:-1;}
     if(isCard)renderCustomizer();
   }
   function updateVisual(choice){
     const view=views.get(choice.id);if(!view)return;
     view.art.replaceChildren(isCard?skillThumbnailFor(referenceFor(choice),memory.characterId):itemThumbnail(itemRewardInfo(choice.id)));
-    view.button.querySelector('.selection-custom-count')?.remove();
-    if(isCard){const count=referenceFor(choice).customizes.reduce((sum,value)=>sum+value.customizeCount,0);if(count){const badge=el('span',String(count),'selection-custom-count');badge.setAttribute('aria-label',t('附魔次数：{0}',[count]));view.button.append(badge);}}
+    if(isCard)updateSkillCustomizationBadge(view.button,referenceFor(choice));
   }
   function choose(choice){
     if(isCard&&selected?.id!==choice.id){
@@ -100,20 +103,17 @@ export function openContestLoadoutEditor({profile,catalog,memory,memoryIndex,slo
     const options=el('div','','contest-customizer-options'),controls=[];settings.append(options);
     if(reference.customizes.some(value=>!data?.options.some(option=>option.id===value.id)))customizer.append(el('p',t('未收录的当前附魔会保留；切换技能卡后清除。'),'small muted'));
     for(const option of data?.options??[]){
-      const names=[...new Set(option.levels.flatMap(level=>level.effects.map(effect=>effect.name)).filter(Boolean))],label=names.join('／')||t('附魔'),row=el('div','','contest-customizer-stepper'),minus=el('button','−'),value=el('output'),plus=el('button','+'),text=el('span',label,'contest-customizer-name');
-      row.dataset.customizeId=option.id;row.dataset.colorKind=customizationColorKind(option);row.setAttribute('role','group');row.setAttribute('aria-label',label);minus.type=plus.type='button';minus.dataset.step='-1';plus.dataset.step='1';minus.setAttribute('aria-label',`${t('减少附魔次数')} · ${label}`);plus.setAttribute('aria-label',`${t('增加附魔次数')} · ${label}`);value.setAttribute('aria-live','polite');
-      row.append(text,minus,value,plus);options.append(row);controls.push({option,minus,value,plus});
       const change=delta=>{
         const active=referenceFor(choice),own=active.customizes.find(entry=>entry.id===option.id)?.customizeCount??0,customizes=active.customizes.filter(entry=>entry.id!==option.id);
         if(own+delta>0)customizes.push({id:option.id,customizeCount:own+delta});
         drafts.set(choice.id,{...active,customizes});refresh();
       };
-      minus.onclick=()=>change(-1);plus.onclick=()=>change(1);
+      const control=createContestCustomizationStepper({option,onStep:change});options.append(control.element);controls.push({option,control});
     }
     if(!data?.options.length)options.append(el('p',t('当前技能卡版本没有可选附魔记录。'),'small muted'));
     function sync(){
       const active=referenceFor(choice),used=active.customizes.reduce((sum,entry)=>sum+entry.customizeCount,0);
-      for(const control of controls){const own=active.customizes.find(entry=>entry.id===control.option.id)?.customizeCount??0;control.value.value=String(own);control.minus.disabled=own<=0;control.plus.disabled=used>=data.maximum||!control.option.levels.some(level=>level.level===own+1);control.value.closest('.contest-customizer-stepper').classList.toggle('has-customization',own>0);}
+      for(const {option,control} of controls){const own=active.customizes.find(entry=>entry.id===option.id)?.customizeCount??0;control.update({count:own,canDecrease:own>0,canIncrease:used<data.maximum&&option.levels.some(level=>level.level===own+1)});}
     }
     function refresh(){
       error.hidden=true;sync();updateVisual(choice);updatePreview();
@@ -121,7 +121,7 @@ export function openContestLoadoutEditor({profile,catalog,memory,memoryIndex,slo
     }
     function updatePreview(){
       const active=referenceFor(choice);preview.replaceChildren(skillThumbnailFor(active,memory.characterId));
-      const used=active.customizes.reduce((sum,entry)=>sum+entry.customizeCount,0);if(used){const badge=el('span',String(used),'selection-custom-count');preview.append(badge);}
+      updateSkillCustomizationBadge(preview,active);
       const popup=previewSlot.querySelector('.support-reward-popover');if(popup.childElementCount)popup.replaceChildren(cardPopover(choice));
     }
     sync();updatePreview();
@@ -140,11 +140,11 @@ export function openContestLoadoutEditor({profile,catalog,memory,memoryIndex,slo
     for(const group of groups){
       const section=el('section','','selection-source-column'),heading=el('h3',group.label),options=el('div','','selection-source-options');section.dataset.source=group.id;heading.append(el('span',String(group.matches.length),'selection-source-count'));section.append(heading,options);
       for(const choice of group.matches){
-        const wrapper=el('div','','selection-filter-choice contest-loadout-choice'),button=el('button','','contest-loadout-art'),art=el('span','','support-reward-art'),input=el('input');input.type='checkbox';input.name='contest-loadout-choice';input.value=choice.id;input.setAttribute('aria-label',choice.name);input.onchange=()=>choose(choice);
-        wrapper.dataset.choiceKind=isCard?'cards':'items';wrapper.dataset.choiceId=choice.id;wrapper.dataset.source=choice.metadata.source;wrapper.dataset.plan=choice.metadata.plan;wrapper.dataset.owner=choice.metadata.ownerCharacterId??'';wrapper.dataset.supportCardId=choice.supportCardId??'';button.setAttribute('aria-label',choice.name);button.append(art);wrapper.append(button,input);
+        const wrapper=el('div','','selection-filter-choice contest-loadout-choice'),button=el('button','','contest-loadout-art'),art=el('span','','support-reward-art');
+        wrapper.dataset.choiceKind=isCard?'cards':'items';wrapper.dataset.choiceId=choice.id;wrapper.dataset.source=choice.metadata.source;wrapper.dataset.plan=choice.metadata.plan;wrapper.dataset.owner=choice.metadata.ownerCharacterId??'';wrapper.dataset.supportCardId=choice.supportCardId??'';button.dataset.choiceId=choice.id;button.setAttribute('role','radio');button.setAttribute('aria-label',choice.name);button.setAttribute('aria-checked','false');button.append(art);wrapper.append(button);
         if(restricted(choice)){wrapper.dataset.conversionRestricted='true';const badge=el('span',t('限制'),'contest-conversion-restricted');badge.title=t('非当前转换版本，在实际比赛中视为空技能卡槽位。');wrapper.append(badge);}
         supportHint(button,()=>isCard?cardPopover(choice):itemRewardDetails(itemRewardInfo(choice.id)),{container:wrapper});wrapper.querySelector('.support-reward-popover').classList.add('contest-customization-popover');
-        const togglePopover=button.onclick;button.onclick=()=>{togglePopover();choose(choice);};views.set(choice.id,{input,button,art});updateVisual(choice);options.append(wrapper);
+        const togglePopover=button.onclick;button.onclick=()=>{togglePopover();choose(choice);};button.onkeydown=navigate;views.set(choice.id,{button,art});updateVisual(choice);options.append(wrapper);
       }
       list.append(section);
     }

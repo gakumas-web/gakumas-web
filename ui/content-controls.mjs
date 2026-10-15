@@ -10,18 +10,25 @@ export function setupContentControls({loaded=()=>{},canReload=()=>true}={}){
   let busy=false,importError='';
   function render(){
     const state=contentManager.status(),working=busy||['checking','downloading','verifying','saving'].includes(state.phase);
-    $('content-version').textContent=state.version?t('当前资料版本：{0}',[state.version]):t('尚未安装卡片资料');
-    let status=state.local?t('使用本地导入的资料。'):t('公开卡片资料与账号库存分开更新。');
+    $('content-version').textContent=state.version?t('当前资料版本：{0}',[state.version]):t('尚未安装公共资料');
+    let status=state.local?t('使用本地导入的资料。'):t('公共资料与账号库存分开更新。');
     if(state.phase==='checking')status=t('正在检查资料更新…');
-    if(state.phase==='downloading')status=t('正在下载并校验完整资料…');
+    if(contentPhases[state.phase])status=t(contentPhases[state.phase]);
     if(state.availableVersion)status=t('资料 {0} 已准备好，应用后刷新页面。',[state.availableVersion]);
     if(state.version&&!state.cached)status=t('资料已载入，浏览器未能保存离线副本。');
-    if(state.error)status=t(!state.version?'尚未取得卡片资料，可导入内容包。':state.error==='content_web_too_old'?'新资料需要更新 Web，当前资料继续保留。':state.error==='content_cache_failed'?'无法保存新资料，当前资料继续保留。':'资料更新未完成，已有资料仍可使用。');
+    if(state.error)status=t(!state.version?'尚未取得公共资料，可导入内容包。':state.error==='content_web_too_old'?'新资料需要更新 Web，当前资料继续保留。':state.error==='content_cache_failed'?'无法保存新资料，当前资料继续保留。':'资料更新未完成，已有资料仍可使用。');
     if(importError)status=importError;
     $('content-status').textContent=status;
+    $('content-status').classList.toggle('is-error',Boolean(state.error||importError));
     $('content-check').disabled=working||Boolean(state.availableVersion);
-    $('content-import').disabled=busy;
+    $('content-import').disabled=working;
     $('content-apply').hidden=!state.availableVersion;
+    const contentWorking=Boolean(contentPhases[state.phase]);
+    $('resource-content-status').textContent=state.totalBytes?t('已读取 {0} / {1} MiB',[(state.bytes/1048576).toFixed(1),(state.totalBytes/1048576).toFixed(1)]):'';
+    $('resource-content-status').hidden=!contentWorking||!state.totalBytes;
+    $('resource-content-progress').hidden=!contentWorking;
+    if(state.totalBytes){$('resource-content-progress').max=state.totalBytes;$('resource-content-progress').value=state.bytes;}else $('resource-content-progress').removeAttribute('value');
+    $('resource-content-retry').hidden=!state.error;$('resource-content-retry').disabled=working;
   }
   let timer,lastPhase='',expanded=true,autoCollapsed=false,imageError='',actionBusy=false,lastCompleted='',badgeTimer,feedbackTimer,badgeLabel='';
   function renderBadge(kind,label){
@@ -43,22 +50,18 @@ export function setupContentControls({loaded=()=>{},canReload=()=>true}={}){
     clearTimeout(timer);timer=null;
     if(!$('resource-feedback').hidden)$('resource-feedback').textContent=t('完整图片准备完成');
     const state=imageManager.status(),content=contentManager.status(),contentWorking=Boolean(contentPhases[content.phase]),working=Boolean(phases[state.phase]);
-    const contentText=content.error?t('公开资料准备失败，已有资料保留，请重试。'):contentWorking?t(contentPhases[content.phase]):content.version?t('公开资料已就绪。'):'';
-    $('resource-content-status').textContent=contentText+(content.totalBytes?' '+t('已读取 {0} / {1} MiB',[(content.bytes/1048576).toFixed(1),(content.totalBytes/1048576).toFixed(1)]):'');
-    $('resource-content-progress').hidden=!contentWorking;
-    if(content.totalBytes){$('resource-content-progress').max=content.totalBytes;$('resource-content-progress').value=content.bytes;}else $('resource-content-progress').removeAttribute('value');
-    $('resource-content-retry').hidden=!content.error;$('resource-content-retry').disabled=contentWorking;
-    if(state.phase==='ready'&&!contentWorking&&!content.error&&!autoCollapsed){expanded=false;autoCollapsed=true;}
+    if(state.phase==='ready'&&!autoCollapsed){expanded=false;autoCollapsed=true;}
     let text=working?t(['verifying','waiting','unpacking','saving'].includes(state.phase)?'正在完成图片准备…':phases[state.phase]):state.phase==='ready'?t(state.full?'图片已保存到本机，后续只补充缺失图片。':'已请求的图片已准备好。'):state.phase==='cancelled'?t('图片下载已停止，已完成部分保留。'):'';
-    if(state.failed||state.error)text=t(errors[state.error]??'部分图片准备失败，已完成部分保留，可重试。');
+    if(state.phase!=='cancelled'&&(state.failed||state.error))text=t(errors[state.error]??'部分图片准备失败，已完成部分保留，可重试。');
     if(imageError)text=imageError;
-    $('image-retry').hidden=!(state.failed||state.phase==='cancelled');
-    $('resource-status').hidden=state.phase==='idle'&&!contentWorking&&!content.error;
-    const issue=Boolean(content.error||state.failed||state.error||imageError||importError);
+    $('resource-status').hidden=state.phase==='idle'&&!state.failed&&!state.error&&!imageError;
+    const imageIssue=Boolean(state.phase!=='cancelled'&&(state.failed||state.error)||imageError);
+    const issue=Boolean(content.error||imageIssue||importError);
     const badge=issue?'error':contentWorking||working||actionBusy||busy?'busy':content.availableVersion?'update':state.phase==='cancelled'?'paused':'idle';
     const label=badge==='error'?t('资料：准备未完成，点击查看并重试'):badge==='busy'?t('资料：正在后台准备'):badge==='update'?t('资料：有资料更新可应用'):badge==='paused'?t('资料：图片准备已暂停'):t('资料与图片');
     renderBadge(badge,label);
-    if($('image-notice').textContent!==(contentWorking||content.error?contentText:text))$('image-notice').textContent=contentWorking||content.error?contentText:text;
+    if($('image-notice').textContent!==text)$('image-notice').textContent=text;
+    $('image-notice').classList.toggle('is-error',imageIssue);
     // 自动需求会随浏览增加，不把变化中的下载总量展示成整体完成百分比。
     const progress=$('resource-progress');progress.hidden=!working;
     if(state.full&&state.total){progress.max=state.total;progress.value=state.completed;progress.setAttribute('aria-label',t('完整图片准备进度'));}
@@ -67,9 +70,9 @@ export function setupContentControls({loaded=()=>{},canReload=()=>true}={}){
     const counts=Object.entries(phases).map(([phase,label])=>{const count=state.tasks.filter(task=>task.phase===phase).length;return count?t(label)+' '+count:'';}).filter(Boolean);
     $('resource-stage').textContent=[...counts,...(state.total?[t('已就绪 {0} / {1} 个图片对象',[state.completed,state.total])]:[])].join(' · ');
     $('resource-refresh').hidden=!['image_not_found','image_source_not_allowed'].includes(state.error);
-    $('resource-stop').hidden=!working;$('resource-retry').hidden=!(state.failed||state.phase==='cancelled');
+    $('resource-stop').hidden=!working;$('resource-retry').hidden=!(state.failed||state.error||imageError||state.phase==='cancelled');
     $('resource-complete').disabled=actionBusy||!content.version||state.full&&working;
-    $('image-clear').disabled=actionBusy;$('resource-retry').disabled=actionBusy;$('image-retry').disabled=actionBusy;
+    $('image-clear').disabled=actionBusy;$('resource-retry').disabled=actionBusy;
     $('resource-complete').textContent=t('准备完整图片');
     $('image-total-size').textContent=t('完整图片资源总量约 {0} MiB；已有缓存会复用，不代表本次剩余下载量。',[Math.ceil(completeImageBytes()/1048576)]);
     $('resource-details').hidden=!expanded;$('resource-toggle').textContent=t(expanded?'收起详情':'查看详情');$('resource-toggle').setAttribute('aria-expanded',String(expanded));
@@ -78,7 +81,7 @@ export function setupContentControls({loaded=()=>{},canReload=()=>true}={}){
   }
   function schedule(){
     const phase=imageManager.status().phase+':'+contentManager.status().phase;
-    if(phase!==lastPhase){lastPhase=phase;if(imageManager.status().error||contentManager.status().error)expanded=true;renderImages();}else if(!timer)timer=setTimeout(renderImages,150);
+    if(phase!==lastPhase){lastPhase=phase;if(imageManager.status().error)expanded=true;renderImages();}else if(!timer)timer=setTimeout(renderImages,150);
   }
   imageManager.subscribe(schedule);onLocaleChange(renderImages);
   async function imageAction(action,{announce=false}={}){
@@ -88,7 +91,7 @@ export function setupContentControls({loaded=()=>{},canReload=()=>true}={}){
     finally{actionBusy=false;renderImages();}
   }
   $('resource-toggle').onclick=()=>{autoCollapsed=true;expanded=!expanded;renderImages();};
-  $('image-retry').onclick=$('resource-retry').onclick=()=>imageAction(retryContentImages);
+  $('resource-retry').onclick=()=>imageAction(retryContentImages);
   $('resource-refresh').onclick=()=>{if(canReload())location.reload();};
   $('resource-stop').onclick=()=>imageManager.cancel();
   $('resource-complete').onclick=()=>{expanded=true;autoCollapsed=true;return imageAction(()=>imageManager.complete(),{announce:true});};

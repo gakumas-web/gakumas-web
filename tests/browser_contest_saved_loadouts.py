@@ -32,7 +32,7 @@ def check(url):
         # 通过实际编辑器修改普通卡，确认恢复时仍有正确的还原依据。
         page.locator('[data-customize-memory="0"]').click();page.locator('[data-memory-index="0"] [data-edit-card="2"]').click()
         original=memories[0]['examBattleProduceCards'][2]['id'];page.locator('#contest-loadout-owned').uncheck()
-        page.locator(f'.contest-loadout-choice[data-source="common"]:not([data-choice-id="{original}"]) > input').first.check();page.locator('.contest-loadout-footer .primary').click()
+        page.locator(f'.contest-loadout-choice[data-source="common"]:not([data-choice-id="{original}"]) [role="radio"]').first.click();page.locator('.contest-loadout-footer .primary').click()
         def board():
             return page.locator('.season-memory-board [data-config-id]').evaluate_all('(nodes)=>nodes.map(e=>[e.dataset.configId,e.dataset.retained,e.textContent])')
         before=board();page.locator('.season-loadout-save').click();dialog=page.locator('#contest-loadout-library');expect(dialog).to_be_visible();assert page.locator('dialog:modal').count()==1

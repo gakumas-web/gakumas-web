@@ -1,0 +1,8 @@
+{
+  "format": "gakumas-content-publication-source",
+  "schema_version": 1,
+  "repository": "https://cnb.cool/birdnest_333/gakumas-data.git",
+  "ref": "refs/heads/content-channel",
+  "path": "pages-source.json",
+  "site_url": "https://gakumas-web.github.io/gakumas-web/"
+}

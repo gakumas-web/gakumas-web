@@ -33,6 +33,6 @@ export async function importAccountBackup(input){
   const library=mergeLibraries(previousLibrary,backup.library);
   const settings=new Map([[libraryKey(profile),JSON.stringify(library)],[`gakumas-web:view:${profile}`,JSON.stringify(backup.preferences)],
     [`gakumas-web:saved-views:${profile}`,JSON.stringify(backup.savedViews)]]);
-  await saveAccountDirectory(profile,plan,{settings});
-  return {profile,...plan,preferences:backup.preferences};
+  const lifecycleId=await saveAccountDirectory(profile,plan,{settings});
+  return {profile,...plan,lifecycleId,preferences:backup.preferences};
 }

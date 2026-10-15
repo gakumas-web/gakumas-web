@@ -1,3 +1,5 @@
+import {mountResourceImages} from './ui/resource-images.mjs';
+import {createAccountSessionManager,AccountSessionError,readLastAccount,rememberAccount,persistAccountSession} from './application/account-session.mjs';
 import {features} from './application/features.mjs';
 import {createChoiceAvailability} from './domain/choice-availability.mjs';
 import {abilityChoiceKey,abilityFilterClauses,accountProducerLevel} from './domain/catalog.mjs';
@@ -9,22 +11,21 @@ import {contentManager} from './application/content-manager.mjs';
 import {beginImageView} from './resources.mjs';
 import {showSelectionDetails,closeSelectionDetails} from './ui/selection-details.mjs';
 import {renderAchievementBrowser} from './ui/achievement-browser.mjs';
-import {PersonalLibrary} from './application/personal-library.mjs';
 import {matchesTag,favoriteRecords} from './domain/personal-library.mjs';
 import {setupLibraryUI} from './ui/personal-library.mjs';
 import {setupAccountCleanup} from './ui/account-cleanup.mjs';
 import {setupAccountPackage} from './ui/account-package.mjs';
-import {captureAccountBackup,importAccountBackup} from './application/account-package-store.mjs';
+import {captureAccountBackup} from './application/account-package-store.mjs';
 import {readAccountDirectory} from './application/account-directory.mjs';
-import {AccountDirectoryError,combineAccountDirectory} from './domain/account-import.mjs';
+import {AccountDirectoryError} from './domain/account-import.mjs';
 import {resetDeferredContent,deferredEntry,sizeDeferredEntries} from './ui/deferred-content.mjs';
 import {accountProfile,profileAccountId,validPublicUserId,validProfile,snapshotFitsProfile,maskedAccountId} from './domain/account.mjs';
 import {accountIdentity} from './ui/shared.mjs';
-import {restoreSelectionSnapshot,selectionEntries,selectionSkillKey,withoutSecondExclusiveSkills,withoutCommonSelectionItems} from './domain/selection-memories.mjs';
+import {selectionEntries,selectionSkillKey,withoutSecondExclusiveSkills,withoutCommonSelectionItems} from './domain/selection-memories.mjs';
 import {setupSelectionOptions,renderSelectionChoices,renderLoadoutChoices,renderInheritanceChoices,selectionCapacity,selectionMemoryEntry} from './ui/selection-memories.mjs';
 import {loadMaster,masterReadyFor,masterLoadingFor} from './application/master-loader.mjs';
 import {setupContentControls} from './ui/content-controls.mjs';
-import {defaults,createView,createViews,parsePreferences,readSavedViews,activeFilterKeys,resetFilters,FILTER_BINDINGS,CHOICE_GROUPS,PROFILE_PREFERENCE_KEY,normalizeProfile,restoreIdolArt} from './application/view-state.mjs';
+import {defaults,createView,createViews,readSavedViews,activeFilterKeys,resetFilters,FILTER_BINDINGS,CHOICE_GROUPS,normalizeProfile} from './application/view-state.mjs';
 import {setupFilterOptions,prepareMemoryFilterOptions,syncMemoryFilterOptions,syncFilterControls,renderFilterChoices,renderTabCount,renderActiveFilters} from './ui/filters.mjs';
 import {t,locale,setLocale,onLocaleChange,staticTranslations} from './i18n.mjs';
 import {title, memoryUse, selectedValues} from './domain/model.mjs';
@@ -38,7 +39,10 @@ import {showComparison} from './ui/comparison.mjs';
 import {supportEntries,idolEntries,skinEntries} from './domain/catalog-selectors.mjs';
 import {filterMemories,canCompareMemory,inheritanceSkillKey} from './domain/memories.mjs';
 import {isPreviewAccount} from './domain/account.mjs';
-import {profileData,storedProfiles,saveAccountDirectory,accountDataSummary,clearAccountData} from './application/storage.mjs';
+import {profileData,storedProfiles,accountDataSummary,clearAccountData} from './application/storage.mjs';
+
+const disposeResourceImages=mountResourceImages();
+window.addEventListener('pagehide',event=>{if(!event.persisted)disposeResourceImages();});
 
 const profileExperience=new Map();
 let accountLevelTask=null,accountLevelFailed=false;
@@ -62,7 +66,6 @@ function refreshAccountLabels(){
     accountLevelTask=loadMaster('account').then(()=>render()).catch(()=>{accountLevelFailed=true;}).finally(()=>{accountLevelTask=null;});
   }
 }
-class AccountImportError extends Error {}
 function ensureProfileOption(profile){
   $('profile').querySelector('[data-empty-profile]')?.remove();
   if(![...$('profile').options].some(option=>option.value===profile))$('profile').add(new Option(isPreviewAccount(profileAccountId(profile))?t('预览账号'):t('账号{0} {1}',[[...$('profile').options].filter(option=>profileAccountId(option.value)&&!isPreviewAccount(profileAccountId(option.value))).length+1,maskedAccountId(profileAccountId(profile))]),profile));
@@ -71,35 +74,15 @@ async function refreshProfileOptions(){
   const stored=await storedProfiles(),profiles=new Set(stored.map(key=>String(key).replace(/^selection:/,'')).filter(profile=>validProfile(profile)&&(features.previewAccount||!isPreviewAccount(profileAccountId(profile)))));
   const records=await Promise.all([...profiles].map(async profile=>[profile,(await profileData(profile)).ordinary?.snapshot?.producerExp]));
   profileExperience.clear();for(const [profile,exp] of records)profileExperience.set(profile,exp);
-  if(!profiles.has(state.profile))state.profile=[...profiles][0]??null;
+  const profile=profiles.has(state.profile)?state.profile:[...profiles][0]??null;
   let accountNumber=0;
   $('profile').replaceChildren(...[...profiles].map(profile=>new Option(isPreviewAccount(profileAccountId(profile))?t('预览账号'):t('账号{0} {1}',[++accountNumber,maskedAccountId(profileAccountId(profile))]),profile)));
   if(!profiles.size){const empty=new Option(t('未导入账号'),'');empty.dataset.emptyProfile='';$('profile').append(empty);}
-  $('profile').value=state.profile??'';
-  refreshAccountLabels();
+  $('profile').value=profile??'';
+  refreshAccountLabels();return profile;
 }
-async function activateSnapshotAccount(snapshot){
-  const profile=accountProfile(snapshot.publicUserId);
-  if(!profile)throw new AccountImportError(t('采集数据缺少有效的游戏账号 ID。'));
-  if(profile===state.profile)return false;
-  persist();state.profile=profile;ensureProfileOption(profile);$('profile').value=profile;
-  const {ordinary,selection}=await profileData(profile);
-  state.snapshot=ordinary?.snapshot??null;state.selectionSnapshot=selection?.snapshot?restoreSelectionSnapshot(selection.snapshot):null;
-  if(state.snapshot&&!snapshotFitsProfile(state.snapshot,profile)||state.selectionSnapshot&&!snapshotFitsProfile(state.selectionSnapshot,profile)){
-    state.snapshot=null;state.selectionSnapshot=null;throw new AccountImportError(t('档案中的游戏账号 ID 不匹配，已停止载入。'));
-  }
-  const preferences=readPreferences(profile);
-  state.views=createViews(preferences?.views);state.idolArt=restoreIdolArt(preferences?.idolArt);state.selected.clear();state.detail=null;
-  loadLibrary();return true;
-}
-function readPreferences(profile){
-  let raw;try{raw=localStorage.getItem(`gakumas-web:view:${profile}`);}catch{}
-  const preferences=parsePreferences(raw);
-  if(preferences.recovered)message(t('视图偏好已恢复默认，账号数据保留。'),true);
-  return preferences;
-}
-function savedProfile(){try{return normalizeProfile(localStorage.getItem(PROFILE_PREFERENCE_KEY));}catch{return null;}}
-const state={profile:savedProfile(),tab:'memories',views:createViews(),snapshot:null,selectionSnapshot:null,library:null,selected:new Set(),detail:null,supportTargets:new Map(),idolTargets:new Map(),idolArt:{}};
+const accountSessions=createAccountSessionManager();
+const state={profile:readLastAccount(),lifecycleId:null,tab:'memories',views:createViews(),snapshot:null,selectionSnapshot:null,library:null,selected:new Set(),detail:null,supportTargets:new Map(),idolTargets:new Map(),idolArt:{}};
 const pageSize=40;
 let viewRun=0;
 const viewTiming=createViewTiming({ready:masterReadyFor,version:()=>contentManager.status().version});
@@ -125,8 +108,7 @@ function message(text,error=false,{transient=false}={}){
 function persist(){
   if(!validProfile(state.profile))return;
   try {
-    localStorage.setItem(PROFILE_PREFERENCE_KEY,state.profile);
-    localStorage.setItem(`gakumas-web:view:${state.profile}`,JSON.stringify({views:state.views,tab:state.tab,idolArt:state.idolArt}));
+    persistAccountSession(state);
   } catch { message(t('视图偏好保存失败，刷新后可能需要重新筛选。'),true); }
 }
 
@@ -218,7 +200,7 @@ function updateTabCount(tab,count){
   }
   if(tab==='achievements'){
     const counts=achievementViewCounts(state.snapshot,state.views.achievements);
-    renderTabCount(tab,counts.count,counts.total);const output=$('count-'+tab);output.textContent=t('资料 {0}',[output.textContent]);output.title=t('公共成就资料：{0} / {1} 条',[counts.count,counts.total]);return;
+    renderTabCount(tab,counts.count,counts.total);const output=$('count-'+tab);output.title=t('公共成就资料：{0} / {1} 条',[counts.count,counts.total]);return;
   }
   const s=state.snapshot,filters=state.views[tab];
   if(tab==='selectionMemories'){renderTabCount(tab,count,state.selectionSnapshot?.count);return;}
@@ -326,12 +308,12 @@ function renderSeasonPage(){
   if(!state.snapshot){host.replaceChildren(el('p',t('请先导入对应账号的数据。'),'empty-result'));return;}
   if(seasonComponent){if(seasonMemoryRequest){seasonComponent.useMemory?.(seasonMemoryRequest);seasonMemoryRequest=null;}return;}
   if(!masterReadyFor('seasonSimulation')){host.replaceChildren(el('p',t('正在准备卡片资料，账号导入不受影响。'),'small muted'));return;}
-  if(seasonOpening)return;
+  if(seasonOpening||loading)return;
   seasonOpening=true;const ticket=++seasonGeneration,profile=state.profile,snapshot=state.snapshot;
   host.replaceChildren(el('p',t('正在准备赛季模拟…'),'small muted'));
   void import('./ui/season-simulation.mjs').then(module=>{
     if(ticket!==seasonGeneration||state.profile!==profile||state.snapshot!==snapshot)return;
-    seasonComponent=module.createSeasonSimulation({profile,memories:snapshot.memories,idolCards:snapshot.idolCards,supportCards:snapshot.supportCards,producerExp:snapshot.producerExp,initialState:seasonRestoreState,onOpenMemory:openSeasonMemory});seasonRestoreState=null;seasonSnapshot=snapshot;seasonProfile=profile;host.replaceChildren(seasonComponent.element);$('season-picker-controls').replaceChildren(...(seasonComponent.controls?[seasonComponent.controls]:[]));
+    seasonComponent=module.createSeasonSimulation({profile,lifecycleId:state.lifecycleId,memories:snapshot.memories,idolCards:snapshot.idolCards,supportCards:snapshot.supportCards,producerExp:snapshot.producerExp,initialState:seasonRestoreState,onOpenMemory:openSeasonMemory});seasonRestoreState=null;seasonSnapshot=snapshot;seasonProfile=profile;host.replaceChildren(seasonComponent.element);$('season-picker-controls').replaceChildren(...(seasonComponent.controls?[seasonComponent.controls]:[]));
     if(seasonMemoryRequest){seasonComponent.useMemory?.(seasonMemoryRequest);seasonMemoryRequest=null;}
   }).catch(()=>{
     // 模块导入失败会被当前页面缓存；重新加载程序才能真正重试，本地库存仍保留。
@@ -484,19 +466,20 @@ function closeDetail(restoreFocus=false){
 $('close-detail').onclick=()=>closeDetail(true);
 for(const [id,direction] of [['detail-prev',-1],['detail-next',1]])$(id).onclick=()=>{const values=filteredMemories(),index=values.findIndex(m=>m.key===state.detail);if(values[index+direction])openDetail(values[index+direction]);};
 document.addEventListener('keydown',event=>{if(event.key==='Escape'&&!document.querySelector('dialog[open]')&&state.detail)closeDetail(true);});
-function loadLibrary(){
-  state.library=null;
-  if(!validProfile(state.profile))return;
-  try{const library=new PersonalLibrary(state.profile);library.load();state.library=library;}
-  catch{message(t('标签与收藏读取失败，已保留原数据，请检查账号数据包。'),true);}
+// 所有账号入口共用一次安装；旧任务和页面选择在数据准备成功后统一失效。
+function applyAccountSession(session){
+  resetSeasonPage();resetDetail();state.selected.clear();clearFilterUndo();viewRun++;
+  const {warnings,ignoredDetails,...account}=session;Object.assign(state,account);
+  if(state.profile)ensureProfileOption(state.profile);$('profile').value=state.profile??'';
+  setup();syncControls();render();
+  for(const warning of warnings)message(t(warning),true);
 }
 for(const id of ['empty-import-account','import-account-directory'])$(id).onclick=()=>$('account-directory-files').click();
 $('enable-preview-account').onclick=async()=>{
   if(loading||!features.previewAccount)return;loading=true;$('profile').disabled=true;render();
   try{
-    const {installPreviewAccount}=await import('./application/preview-account.mjs');const profile=await installPreviewAccount();
-    persist();state.profile=profile;ensureProfileOption(profile);$('profile').value=profile;state.selected.clear();resetDetail();
-    await restoreProfile();if(!state.snapshot&&!state.selectionSnapshot)throw new Error('预览档案未恢复');persist();$('data-dialog').close();message(t('已启用预览账号，可随时从账号列表切回自己的账号。'),false,{transient:true});
+    persist();applyAccountSession(await accountSessions.enablePreview());persist();$('data-dialog').close();void ensureMaster();
+    message(t('已启用预览账号，可随时从账号列表切回自己的账号。'),false,{transient:true});
   }catch{message(t('预览账号启用失败，请重试；已有账号数据保留。'),true);}
   finally{loading=false;$('profile').disabled=false;render();}
 };
@@ -504,44 +487,40 @@ $('account-directory-files').onchange=async event=>{
   const files=[...event.target.files];event.target.value='';if(!files.length||loading)return;
   loading=true;$('profile').disabled=true;render();
   try{
-    const bundle=await readAccountDirectory(files),profile=accountProfile(bundle.publicUserId);
-    const {ordinary,selection}=await profileData(profile);
-    const next=combineAccountDirectory(bundle,{snapshot:ordinary?.snapshot,selectionSnapshot:selection?.snapshot?restoreSelectionSnapshot(selection.snapshot):null});
-    await saveAccountDirectory(profile,next);
-    await activateSnapshotAccount({publicUserId:bundle.publicUserId});
-    state.snapshot=next.snapshot;state.selectionSnapshot=next.selectionSnapshot;state.tab=next.snapshot?'memories':'selectionMemories';
-    state.selected.clear();resetDetail();loadLibrary();setup();syncControls();render();persist();
+    const bundle=await readAccountDirectory(files);
+    if(accountProfile(bundle.publicUserId)!==state.profile)persist();
+    const next=await accountSessions.importDirectory(bundle,state);applyAccountSession(next);persist();
     $('data-dialog').close();void ensureMaster();
     const count=next.selectionSnapshot?.details?.length??0;
     message(t('账号目录已导入，已关联 {0} 条选拔详情。',[count])+(next.ignoredDetails?t('已略过 {0} 条不在当前选拔列表中的历史详情。',[next.ignoredDetails]):''),false,{transient:true});
   }catch(error){message(error instanceof AccountDirectoryError?t(error.message):t('账号目录导入失败，请检查快照格式和存储空间；原数据保留。'),true);}
   finally{loading=false;$('profile').disabled=false;render();document.documentElement.classList.remove('profile-restoring');openMemoryLink();}
 };
-async function restoreProfile(){
+async function restoreProfile(profile=state.profile){
   loading=true;$('profile').disabled=true;render();
   try{
-    let {ordinary:saved,selection:selectionSaved}=await profileData(state.profile);
-    if(features.previewAccount&&isPreviewAccount(profileAccountId(state.profile))&&saved?.snapshot){
-      try{const {ensurePreviewProducerExp}=await import('./application/preview-account.mjs');if(await ensurePreviewProducerExp())saved=(await profileData(state.profile)).ordinary;}
-      catch{message(t('预览经验信息暂未补齐，请刷新后重试；已有数据保留。'),true);}
-    }
-    const preferences=readPreferences(state.profile);
-    state.snapshot=saved?.snapshot??null;
-    state.selectionSnapshot=selectionSaved?.snapshot?restoreSelectionSnapshot(selectionSaved.snapshot):null;
-    if(state.snapshot&&!snapshotFitsProfile(state.snapshot,state.profile)||state.selectionSnapshot&&!snapshotFitsProfile(state.selectionSnapshot,state.profile)){state.snapshot=null;state.selectionSnapshot=null;throw new AccountImportError(t('档案中的游戏账号 ID 不匹配，已停止载入。'));}
-    state.views=createViews(preferences?.views);state.tab=preferences?.tab??'memories';viewRun++;state.idolArt=restoreIdolArt(preferences?.idolArt);
-    loadLibrary();setup();syncControls();render();if(state.snapshot||state.selectionSnapshot||state.tab==='achievements')void ensureMaster();
-  }catch(error){message(error instanceof AccountImportError?error.message:t('浏览器工作副本无法恢复，请重新载入快照。'),true);}
-  finally{loading=false;$('profile').disabled=false;render();document.documentElement.classList.remove('profile-restoring');openMemoryLink();}
+    applyAccountSession(await accountSessions.restore(profile));
+    if(state.snapshot||state.selectionSnapshot||state.tab==='achievements')void ensureMaster();
+    return true;
+  }catch(error){message(error instanceof AccountSessionError?t(error.message):t('浏览器工作副本无法恢复，请重新载入快照。'),true);return false;}
+  finally{$('profile').value=state.profile??'';loading=false;$('profile').disabled=false;render();document.documentElement.classList.remove('profile-restoring');openMemoryLink();}
 }
-$('profile').onchange=async()=>{persist();state.profile=normalizeProfile($('profile').value);resetSeasonPage();try{localStorage.setItem(PROFILE_PREFERENCE_KEY,state.profile);}catch{message(t('视图偏好保存失败，刷新后可能需要重新筛选。'),true);}state.snapshot=null;state.selectionSnapshot=null;state.library=null;state.selected.clear();resetDetail();await restoreProfile();};
+$('profile').onchange=async()=>{
+  const profile=normalizeProfile($('profile').value);$('profile').value=state.profile??'';persist();
+  if(await restoreProfile(profile))try{rememberAccount(state.profile);}catch{message(t('视图偏好保存失败，刷新后可能需要重新筛选。'),true);}
+};
 for(const button of document.querySelectorAll('[data-tab]'))button.onclick=()=>{
   if(loading||(!state.snapshot&&!state.selectionSnapshot))return;
   // 手动导航结束链接定位，避免资料就绪后再次打开旧链接并切回原页签。
   if(location.hash)history.replaceState(null,'',location.pathname+location.search);
   state.tab=button.dataset.tab;viewRun++;resetDetail();syncControls();render();persist();if(state.snapshot||state.selectionSnapshot||state.tab==='achievements')void ensureMaster();
 };
-for(const [id,key] of FILTER_BINDINGS)$(id).addEventListener($(id).matches('button[role=switch]')?'click':id==='search'?'input':'change',()=>{view()[key]=$(id).matches('button[role=switch]')?!view()[key]:$(id).type==='checkbox'?$(id).checked:$(id).value;view().page=0;
+for(const [id,key] of FILTER_BINDINGS)$(id).addEventListener($(id).matches('button[role=switch]')?'click':id==='search'?'input':'change',()=>{view()[key]=$(id).matches('button[role=switch]')?!view()[key]:$(id).type==='checkbox'?$(id).checked:$(id).value;
+  if(key==='selectionLoadoutCollapsed'){
+    for(const section of $('list').querySelectorAll('.selection-loadout'))section.open=!view()[key];
+    persist();return;
+  }
+  view().page=0;
   if(id==='purpose')resetDetail();
   if(id==='search'){
     clearTimeout(searchTimer);
@@ -579,7 +558,6 @@ $('use-season-memory').onclick=()=>useMemoryForSeason(state.snapshot?.memories.f
 for(const name of ['compare','data','resources','help','idol'])$('close-'+name).onclick=()=>$(name+'-dialog').close();
 $('resources-open').onclick=()=>openDialog($('resources-dialog'),{dismissOnBackdrop:true});
 $('data-open').onclick=()=>{$('data-message').hidden=true;$('data-message').textContent='';renderAccountOverview();openDialog($('data-dialog'),{dismissOnBackdrop:true});};$('help-open').onclick=()=>openDialog($('help-dialog'),{dismissOnBackdrop:true});$('empty-import').onclick=()=>$('import-account-package').click();
-$('help-account-open').onclick=()=>{$('help-dialog').close();$('data-open').focus({preventScroll:true});$('data-open').click();};
 function linkedMasterScope(){
   const params=new URLSearchParams(location.hash.slice(1));
   for(const [key,tab] of [['selection-loadout','selectionMemories'],['selection-memory','selectionMemories'],['memory','memories'],['idol','idolCards'],['support','supportCards'],['skin','idolCardSkins']])if(params.has(key))return tab;
@@ -588,12 +566,12 @@ function linkedMasterScope(){
 async function ensureMaster(forLink=false){
   const scope=forLink===true||location.hash?linkedMasterScope():state.tab;
   viewTiming.begin(state.tab,viewRun);
-  if(masterReadyFor(scope)){viewTiming.complete();$('load-master').hidden=true;$('master-status').textContent=t('主数据已载入 · 公开插图按需缓存');openCatalogLink();return;}
+  if(masterReadyFor(scope)){viewTiming.complete();$('load-master').hidden=true;$('master-status').textContent=t('当前页面所需资料已载入。');openCatalogLink();return;}
   if(masterTasks.has(scope))return masterTasks.get(scope);
   masterFailures.delete(scope);
   $('load-master').disabled=true;$('master-status').textContent=t('正在读取本地主数据…');
   const task=loadMaster(scope).then(async()=>{
-    if(masterReadyFor(state.tab)){$('load-master').hidden=true;$('master-status').textContent=t('主数据已载入 · 公开插图按需缓存');}
+    if(masterReadyFor(state.tab)){$('load-master').hidden=true;$('master-status').textContent=t('当前页面所需资料已载入。');}
     markLoading('package-ready',{scope});setup();
     if(state.tab==='memories')await prepareMemoryFilterOptions(state.snapshot,view());
     viewTiming.complete();syncControls();render();openCatalogLink();if(masterReadyFor('memories')&&state.detail)openDetail(state.snapshot.memories.find(m=>m.key===state.detail));
@@ -635,7 +613,7 @@ onLocaleChange(()=>{
     openDetail(state.snapshot.memories.find(m=>m.key===state.detail));
     document.querySelectorAll('#detail-content details').forEach((node,i)=>{node.open=expanded[i]??node.open;});
   }
-  $('master-status').textContent=masterReadyFor(state.tab)?t('主数据已载入 · 公开插图按需缓存'):t('正在准备本地主数据');
+  $('master-status').textContent=masterReadyFor(state.tab)?t('当前页面所需资料已载入。'):t('正在准备本地主数据');
   $('message').hidden=true;
 });
 setupContentControls({loaded:()=>ensureMaster(),canReload:()=>!loading});
@@ -645,11 +623,7 @@ setupAccountPackage({
   capture:()=>captureAccountBackup(state.profile,{views:state.views,tab:state.tab,idolArt:state.idolArt},state.library.data),
   restore:async payload=>{
     if(accountProfile(payload.publicUserId)!==state.profile)persist();
-    const next=await importAccountBackup(payload);
-    state.profile=next.profile;ensureProfileOption(next.profile);$('profile').value=next.profile;
-    state.snapshot=next.snapshot;state.selectionSnapshot=next.selectionSnapshot;
-    state.views=createViews(next.preferences.views);state.idolArt=restoreIdolArt(next.preferences.idolArt);state.tab=next.preferences.tab;
-    state.selected.clear();resetDetail();loadLibrary();setup();syncControls();render();persist();
+    applyAccountSession(await accountSessions.restoreBackup(payload));persist();
     $('data-dialog').close();void ensureMaster();
   },
   lock:value=>{loading=value;$('profile').disabled=value;render();},report:message,
@@ -661,32 +635,28 @@ cleanupChannel?.addEventListener('message',event=>{
 setupAccountCleanup({
   target:()=>({profile:state.profile,label:$('profile').selectedOptions[0]?.textContent??state.profile}),
   summary:accountDataSummary,
-  remove:clearAccountData,
+  remove:async profile=>{resetSeasonPage({preserve:true});await clearAccountData(profile);},
   complete:async profile=>{
+    cleanupChannel?.postMessage({profile});
     history.replaceState(null,'',location.pathname+location.search);
     for(const dialog of document.querySelectorAll('dialog[open]'))if(dialog.id!=='account-cleanup-dialog')dialog.close();
-    state.snapshot=null;state.selectionSnapshot=null;state.library=null;state.selected.clear();state.idolArt={};state.views=createViews();state.tab='memories';
-    resetDetail();groups.clear();expandedFilters.clear();
+    applyAccountSession(accountSessions.empty());groups.clear();expandedFilters.clear();
     for(const map of [state.supportTargets,state.idolTargets])for(const key of map.keys())if(key.startsWith(profile+':'))map.delete(key);
     for(const id of ['list','detail-content','comparison','idol-content'])$(id).replaceChildren();
     for(const dialog of document.querySelectorAll('.selection-details-dialog'))dialog.replaceChildren();
-    const remaining=[...new Set((await storedProfiles()).map(key=>String(key).replace(/^selection:/,'')))].filter(key=>key!==profile&&validProfile(key));
-    state.profile=remaining[0]??null;
-    localStorage.setItem(PROFILE_PREFERENCE_KEY,state.profile);await refreshProfileOptions();await restoreProfile();
-    cleanupChannel?.postMessage({profile});
+    if(!await restoreProfile(await refreshProfileOptions()))throw new Error('account_restore_failed');
+    rememberAccount(state.profile);
   },
   lock:value=>{loading=value;$('profile').disabled=value;render();},report:message,
 });
-await refreshProfileOptions();
-$('profile').value=state.profile??'';
-await restoreProfile();
+await restoreProfile(await refreshProfileOptions());
 if(state.snapshot||state.selectionSnapshot)markLoading('account-restored');
 
 function skinOptions(held){
   const info=skinInfo(held),id=info.idolCardId;
   return {...favoriteContext('idolCardSkins',held.idolCardSkinId),
     idolHeld:state.snapshot?.idolCards?.find(card=>card.idolCardId===id),
-    getArt:()=>state.idolArt[id],onArt:art=>{state.idolArt[id]=art;persist();render();}};
+    getArt:()=>state.idolArt[id],onArt:art=>{state.idolArt[id]=art;persist();}};
 }
 
 // 分享链接使用公开账号与条目标识；旧卡片链接仍按当前档案定位。

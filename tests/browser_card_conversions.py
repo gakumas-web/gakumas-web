@@ -134,7 +134,7 @@ def check(url):
         settings().locator('input[value=after]').check()
         close_settings()
         page.locator('[data-memory-index="0"] [data-edit-card="2"]').click()
-        page.locator(f'.contest-loadout-choice[data-choice-id="{AFTER}"] input').check()
+        page.locator(f'.contest-loadout-choice[data-choice-id="{AFTER}"] [role="radio"]').click()
         page.locator('.contest-loadout-footer .primary').click()
         expect(page.locator('#contest-loadout-editor')).not_to_be_visible()
         expect(slot(BEFORE)).to_have_attribute('data-retained','false')

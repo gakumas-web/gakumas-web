@@ -1,8 +1,8 @@
 {
   "format": 1,
   "description": "人工核对的公开身份与固定上游定义对应关系；模拟沿用上游实现，包括已知差异，不在本项目重写效果。来源或目标指纹变化时必须重新核对。",
-  "engineCommit": "58c7148cb1d097b78f66faa4a9ab6d5212f083b7",
-  "effectsRevision": "2b7d52fd7d517da9c0d4945d81850ee19693ba11f7da4d4693ec491cc268b0d1",
+  "engineCommit": "1b55572fa82979264edb744e287b5c55213c9ef3",
+  "effectsRevision": "3d5759ca591b9898c0952a1ea1f98a571b4c350d93f2cc81058913c8692286e0",
   "cards": {
     "[\"p_card-02-ido-3_086\",0]": {
       "engineId": 464,

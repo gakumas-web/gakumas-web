@@ -1,3 +1,4 @@
+import {appendContestCriteria} from './contest-criteria.mjs';
 import {el} from './dom.mjs';
 import {t} from '../i18n.mjs';
 import {planLabel} from '../domain/catalog.mjs';
@@ -16,10 +17,8 @@ export function contestStageSummary(stage,{withinSeason=false}={}){
   plan.append(el('span',contestPlanName(stage.planType)));heading.append(el('strong',withinSeason?t('舞台 {0}',[stage.kind==='contest'?stage.stageNumber:stage.preset.stage]):contestStageName(stage)),plan);
   if(stage.preset?.preview&&!stage.custom)heading.append(el('small',t('预告'),'badge'));
   summary.append(heading);
-  if(stage.criteria){
-    const bar=el('span','','contest-criteria-bar'),labels=el('span','','contest-criteria-labels');bar.setAttribute('aria-hidden','true');
-    attributes.forEach((key,index)=>{const value=stage.criteria[key],part=el('span'),label=el('span',`${short[index]} ${Number((value*100).toFixed(1))}%`);part.style.flexGrow=String(value);part.dataset.attribute=key;label.dataset.attribute=key;bar.append(part);labels.append(label);});summary.append(bar,labels);
-  }else summary.append(el('small',t('属性分配未收录'),'muted'));
+  if(stage.criteria)appendContestCriteria(summary,stage.criteria);
+  else summary.append(el('small',t('属性分配未收录'),'muted'));
   const turns=el('span','','contest-turn-counts');turns.append(el('span',t('{0} 回合',[stage.turn])));
   if(stage.turnCounts)turns.append(el('span',attributes.map((key,index)=>`${short[index]} ${stage.turnCounts[key]}`).join(' / ')));
   summary.append(turns);return summary;

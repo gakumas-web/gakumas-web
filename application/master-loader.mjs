@@ -1,5 +1,5 @@
 import {installMaster} from '../domain/catalog.mjs';
-import {installEffectPresentation} from '../ui/effect-view.mjs';
+import {installEffectCatalog} from '../domain/effect-catalog.mjs';
 import {takeMaster} from './master-prefetch.mjs';
 
 export const masterDependencies={
@@ -41,6 +41,6 @@ export async function loadMaster(scope='full'){
   for(const data of packages.values()){
     const {tables,...rest}=data;Object.assign(input,rest);if(tables)Object.assign(input.tables,tables);
   }
-  installMaster(input);installEffectPresentation(input);
+  installMaster(input);installEffectCatalog(input);
   for(const name of packages.keys())installed.add(name);
 }

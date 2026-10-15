@@ -19,7 +19,7 @@ def check():
             board.locator(f'[data-edit-card="{slot}"]').click();page.locator('#contest-loadout-owned').uncheck();page.locator('#contest-loadout-enhanced').check()
             ids=page.locator('.contest-loadout-choice[data-source="common"]').evaluate_all('(nodes)=>nodes.map(e=>e.dataset.choiceId)')
             target=page.evaluate('''async ids=>{const {contestSimulationReference}=await import('./domain/catalog.mjs');const {contestCardCost}=await import('./domain/contest-card-cost.mjs');return ids.find(id=>contestCardCost(contestSimulationReference('card',{id,upgradeCount:1,customizes:[]}).record)===204);}''',ids);assert target
-            page.locator(f'.contest-loadout-choice[data-choice-id="{target}"] > input').check();page.locator('.contest-loadout-footer .primary').click()
+            page.locator(f'.contest-loadout-choice[data-choice-id="{target}"] [role="radio"]').click();page.locator('.contest-loadout-footer .primary').click()
         expect(total).to_have_text('1020');expect(total).to_have_class('contest-memory-capacity-total is-overflow');assert total.evaluate('e=>getComputedStyle(e).color')=='rgb(198, 40, 40)';assert int(total.evaluate('e=>getComputedStyle(e).fontWeight'))>=700
         board.screenshot(path=artifact_path('local/ui-visual-refinement/contest-capacity-overflow.png'))
         for slot in range(1,6):
@@ -28,7 +28,7 @@ def check():
             edit.click();page.locator('#contest-loadout-owned').uncheck();page.locator('#contest-loadout-enhanced').check()
             ids=page.locator('.contest-loadout-choice[data-source="common"]').evaluate_all('(nodes)=>nodes.map(e=>e.dataset.choiceId)')
             target=page.evaluate('''async ids=>{const {contestSimulationReference}=await import('./domain/catalog.mjs');const {contestCardCost}=await import('./domain/contest-card-cost.mjs');return ids.find(id=>contestCardCost(contestSimulationReference('card',{id,upgradeCount:1,customizes:[]}).record)===39);}''',ids);assert target
-            page.locator(f'.contest-loadout-choice[data-choice-id="{target}"] > input').check();page.locator('.contest-loadout-footer .primary').click()
+            page.locator(f'.contest-loadout-choice[data-choice-id="{target}"] [role="radio"]').click();page.locator('.contest-loadout-footer .primary').click()
         expect(total).to_have_text('195');expect(total).to_have_class('contest-memory-capacity-total is-underflow');assert total.evaluate('e=>getComputedStyle(e).color')=='rgb(36, 92, 189)';assert int(total.evaluate('e=>getComputedStyle(e).fontWeight'))>=700
         board.screenshot(path=artifact_path('local/ui-visual-refinement/contest-capacity-underflow.png'));assert not errors,errors;browser.close()
     print('主副标题容量、六张卡单卡容量、桌面/窄屏及实际换卡超限红色/不足蓝色粗体验证通过。')

@@ -21,10 +21,10 @@ function database() {
 async function transaction(stores,mode,action) {
   const db=await database();
   try{return await new Promise((resolve,reject)=>{
-    const tx=db.transaction(stores,mode);let result;
+    const tx=db.transaction(stores,mode);let result,failure;
     tx.oncomplete=()=>resolve(typeof result==='function'?result():result?.result);
-    tx.onerror=()=>reject(tx.error);tx.onabort=()=>reject(tx.error);
-    try{result=action(tx);}catch(error){tx.abort();reject(error);}
+    tx.onerror=()=>reject(failure??tx.error);tx.onabort=()=>reject(failure??tx.error);
+    try{result=action(tx,error=>{failure=error;tx.abort();});}catch(error){tx.abort();reject(error);}
   });}finally{db.close();}
 }
 export function workspaceData(profile) {
@@ -63,15 +63,24 @@ export async function saveAccountDirectory(profile,{history=[],snapshot,selectio
   const entries=await Promise.all(history.map(async value=>({profile,id:await snapshotId(value),snapshot:value,importedAt:new Date().toISOString()})));
   const previous=settings?new Map([...settings.keys()].map(key=>[key,localStorage.getItem(key)])):null;
   const touched=[];
-  try{await transaction(['profiles','snapshots'],'readwrite',tx=>{
+  try{return await transaction(['profiles','snapshots'],'readwrite',(tx,abort)=>{
     const store=tx.objectStore('snapshots');
     for(const entry of new Map(entries.map(value=>[value.id,value])).values()){
       const request=store.get([profile,entry.id]);request.onsuccess=()=>{if(!request.result)store.add(entry);};
     }
-    const profiles=tx.objectStore('profiles');
-    if(snapshot)profiles.put({snapshot},profile);
-    if(selectionSnapshot)profiles.put({snapshot:selectionSnapshot},'selection:'+profile);
+    const profiles=tx.objectStore('profiles'),ordinary=profiles.get(profile),selection=profiles.get('selection:'+profile);let pending=2,lifecycleId;
+    // 同账号更新保留标识；删除后重建生成新标识，旧工作副本的缺省标识保持为 null。
+    const ready=()=>{
+      if(--pending)return;
+      try{
+        lifecycleId=ordinary.result?.snapshot||selection.result?.snapshot?(ordinary.result?.lifecycleId??selection.result?.lifecycleId??null):crypto.randomUUID();
+        if(snapshot)profiles.put({snapshot,lifecycleId},profile);
+        if(selectionSnapshot)profiles.put({snapshot:selectionSnapshot,lifecycleId},'selection:'+profile);
+      }catch(error){abort(error);}
+    };
+    ordinary.onsuccess=selection.onsuccess=ready;
     if(settings)for(const [key,value] of settings)if(previous.get(key)!==value){localStorage.setItem(key,value);touched.push(key);}
+    return ()=>lifecycleId;
   });}catch(error){
     // localStorage 不属于 IndexedDB 事务；普通写入错误时恢复其导入前内容。
     // 先回收新增或扩大的值，再恢复较大的旧值；未成功写入的键不触碰。
@@ -141,10 +150,23 @@ export function simulationHistory(profile,stageKey){
     const store=tx.objectStore('simulationRuns');return stageKey?store.index('profileStage').getAll([profile,stageKey]):store.index('profile').getAll(profile);
   }).then(rows=>rows.filter(hasSimulationEvents).sort((a,b)=>b.createdAt.localeCompare(a.createdAt)||b.id.localeCompare(a.id)));
 }
-export function saveSimulationRun(profile,entry){
+// 与账号删除共用 profiles 事务锁；已排队或其它页签的迟到写入不能重建孤立记录。
+function writeAccountRecord(profile,lifecycleId,storeName,write){
+  return transaction(['profiles',storeName],'readwrite',(tx,abort)=>{
+    const profiles=tx.objectStore('profiles'),ordinary=profiles.get(profile),selection=profiles.get('selection:'+profile);let pending=2;
+    const ready=()=>{
+      if(--pending)return;
+      if(!ordinary.result?.snapshot&&!selection.result?.snapshot){abort(Object.assign(new Error('account_unavailable'),{code:'account_unavailable'}));return;}
+      if(lifecycleId===undefined||lifecycleId!==(ordinary.result?.lifecycleId??selection.result?.lifecycleId??null)){abort(Object.assign(new Error('account_session_expired'),{code:'account_session_expired'}));return;}
+      try{write(tx.objectStore(storeName));}catch(error){abort(error);}
+    };
+    ordinary.onsuccess=selection.onsuccess=ready;
+  });
+}
+export function saveSimulationRun(profile,entry,lifecycleId){
   if(!validProfile(profile)||entry.format!==1||!hasSimulationEvents(entry)||typeof entry.id!=='string'||typeof entry.stageKey!=='string'||!Number.isFinite(Date.parse(entry.createdAt)))return Promise.reject(new Error('无效模拟记录'));
-  return transaction(['simulationRuns'],'readwrite',tx=>{
-    const store=tx.objectStore('simulationRuns');store.put({...entry,profile});const request=store.index('profileStage').getAll([profile,entry.stageKey]);
+  return writeAccountRecord(profile,lifecycleId,'simulationRuns',store=>{
+    store.put({...entry,profile});const request=store.index('profileStage').getAll([profile,entry.stageKey]);
     request.onsuccess=()=>{const rows=request.result.sort((a,b)=>b.createdAt.localeCompare(a.createdAt)||b.id.localeCompare(a.id));for(const row of rows.slice(SIMULATION_HISTORY_LIMIT))store.delete([profile,row.id]);};
   });
 }
@@ -159,9 +181,9 @@ export function savedSimulationLoadouts(profile){
   return transaction(['simulationLoadouts'],'readonly',tx=>tx.objectStore('simulationLoadouts').index('profile').getAll(profile))
     .then(rows=>rows.sort((a,b)=>b.updatedAt.localeCompare(a.updatedAt)||b.id.localeCompare(a.id)));
 }
-export function saveSimulationLoadout(profile,entry){
+export function saveSimulationLoadout(profile,entry,lifecycleId){
   if(!validProfile(profile)||entry.format!==1||typeof entry.id!=='string'||!entry.name?.trim()||entry.name.length>60||!entry.loadout?.memories?.every(Boolean)||entry.loadout.memories.length!==2)return Promise.reject(new Error('无效回忆编组'));
-  return transaction(['simulationLoadouts'],'readwrite',tx=>tx.objectStore('simulationLoadouts').put({...entry,profile}));
+  return writeAccountRecord(profile,lifecycleId,'simulationLoadouts',store=>store.put({...entry,profile}));
 }
 export function deleteSimulationLoadout(profile,id){
   if(!validProfile(profile)||typeof id!=='string')return Promise.reject(new Error('无效回忆编组'));

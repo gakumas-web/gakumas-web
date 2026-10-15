@@ -105,7 +105,7 @@ export function openSelectionPicker(view,key,values,isCard,onChange,createAvaila
     const plan=$('selection-picker-plan').value,flow=$('selection-picker-flow'),eligible=values.filter(value=>(!plan||value.metadata.plan===plan)&&(!hasNControl||showN.checked||value.metadata.rarity!=='N'||draft.includes(value.key)));
     const hasFlow=id=>!id||eligible.some(value=>id==='unclassified'?!value.metadata.flows.length:value.metadata.flows.includes(id));
     if(!hasFlow(flow.value))flow.value='';
-    for(const {input,buttons} of iconGroups)for(const button of buttons){const id=button.dataset.value,selected=id===input.value;button.hidden=input===flow&&!hasFlow(id)||hasNControl&&input.id==='selection-picker-rarity'&&id==='N'&&!showN.checked;button.setAttribute('aria-checked',String(selected));button.tabIndex=selected?0:-1;}
+    for(const group of iconGroups)group.sync({isVisible:id=>(group.input!==flow||hasFlow(id))&&(!hasNControl||group.input.id!=='selection-picker-rarity'||id!=='N'||showN.checked)});
   }
   function draw(){
     closeRewardPopover();visuals.reset();inputs.clear();list.replaceChildren();
@@ -263,7 +263,7 @@ function customizeItemContent(item){
 }
 function selectionLoadout(entry,collapsed,detail){
   const section=el('details','','selection-loadout'),memory=entry.memory;
-  section.append(el('summary',t('P 道具 {0} · 技能卡合计 {1}',[memory.produceItems.length+memory.produceCustomizeItems.length,memory.produceCards.length])));
+  section.append(el('summary',t('已持有 · P 道具 {0} · 技能卡合计 {1}',[memory.produceItems.length+memory.produceCustomizeItems.length,memory.produceCards.length])));
   let rendered=false,initialToggle=!collapsed;
   let placeholder;
   const render=()=>{
@@ -370,7 +370,7 @@ function openAbilityPicker(view,values,onChange,createAvailability){
   function syncIcons(){
     const eligible=filterSelectionChoices(hif,{plan:plan.value}),hasFlow=id=>!id||eligible.some(value=>id==='unclassified'?!value.metadata.flows.length:value.metadata.flows.includes(id));
     if(!hasFlow(flow.value))flow.value='';
-    for(const {input,buttons} of iconGroups)for(const button of buttons){const id=button.dataset.value,selected=id===input.value;button.hidden=input===flow&&!hasFlow(id);button.setAttribute('aria-checked',String(selected));button.tabIndex=selected?0:-1;}
+    for(const group of iconGroups)group.sync({isVisible:id=>group.input!==flow||hasFlow(id)});
   }
   function draw(){
     visuals.reset();inputs.clear();list.replaceChildren();

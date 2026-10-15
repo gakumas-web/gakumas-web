@@ -1,4 +1,4 @@
-import {uiIconURL} from '../resources.mjs';
+import {assetURL,uiIconURL} from '../resources.mjs';
 import {el} from './dom.mjs';
 import {t} from '../i18n.mjs';
 import {skillThumbnail} from './illustrations.mjs';
@@ -10,7 +10,7 @@ function costLine(visual){
   for(const cost of visual.costsKnown===false?[]:visual.costs){
     const value=el('span','','support-skill-header-cost');value.dataset.costKind=cost.kind;
     if(cost.icon){
-      const icon=el('img');icon.src=cost.icon;icon.alt='';
+      const icon=el('img');icon.src=cost.kind==='status'?assetURL(cost.icon):uiIconURL(cost.icon);icon.alt='';
       if(cost.kind==='status'){
         const frame=el('span','','support-skill-header-status-icon'),background=el('img');background.src=uiIconURL('skill-cost-status-bg.webp');background.alt='';icon.className='foreground';frame.append(background,icon);value.append(frame);
       }else value.append(icon);

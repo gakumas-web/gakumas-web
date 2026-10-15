@@ -16,7 +16,8 @@ def check():
           const profile=document.querySelector('#profile').value;
           for(const [season,characterId,name] of [[53,'hski','咲季编组'],[52,'hski','咲季旧舞台'],[53,'ttmr','手毬编组']]){
             const stage=contestCatalog().choices.find(stage=>stage.id===`contest:pvp_rate_config-${season}:0`),memory={characterId,planType:2,...request.params,produceCard:request.cards[0].reference,examBattleProduceCards:request.cards.map(card=>card.reference),examBattleProduceItemIds:request.items.map(item=>item.id)};
-            await saveSimulationLoadout(profile,createSavedLoadout({stage,loadout:{memories:[memory,memory],manual:{}}},name));
+            const {profileData}=await import('./application/storage.mjs'),records=await profileData(profile);
+            await saveSimulationLoadout(profile,createSavedLoadout({stage,loadout:{memories:[memory,memory],manual:{}}},name),records.ordinary?.lifecycleId??records.selection?.lifecycleId??null);
           }
         }''',request)
         page.locator('.season-loadout-library-open').click();dialog=page.locator('#contest-loadout-library');dialog.locator('.loadout-library-tabs').get_by_role('button',name='已保存',exact=True).click();expect(dialog.locator('.loadout-library-entry')).to_have_count(3)

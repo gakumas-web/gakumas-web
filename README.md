@@ -1,88 +1,50 @@
 # 回忆整理室 · gakumas-web
 
-## 独立内容分包（0.5.0）
+《学园偶像大师》的浏览器本地库存与编组工具，支持回忆、选拔回忆、偶像卡、支援卡、主题装扮、成就及赛季模拟。服务器提供静态程序和公开资料；账号文件在浏览器读取并保存在当前来源的 IndexedDB，不上传库存。
 
-支持内容格式 1：分包业务版本独立，未变化文件重新校验后直接复用；整套内容齐备后再应用。预览期旧结构已退役，公共内容与账号库存继续分开。当前格式最低需要部署 Web 0.5.0，详情见 [内容维护](docs/content.md)。源码升级不自动改写现有本机部署。
+使用采集器导出的账号目录或本工具的账号数据包即可，无需游戏令牌、CA 私钥或采集器网络接口。界面维护简体中文与日文，游戏名称及完整效果正文保留原文。
 
-## 统一图片缓存（0.4.0）
+[文档索引](docs/README.md) · [产品定位](PRODUCT.md) · [设计规范](DESIGN.md) · [安全说明](SECURITY.md)
 
-新图片交付索引让浏览器首次下载固定 Release 基础包，后续复用本地缓存并只补充 CDN 增量，不要求用户选择两种来源。部署、进度和失败恢复见[图片缓存说明](docs/image-delivery.md)。源码默认仍无图片源，只接受当前图片交付格式 1。
+## 使用与备份
 
+1. 通过「导入账号目录」选择包含 `inventory/`、`selection/`、`selection-details/` 的单个账号目录，或导入已有账号数据包。
+2. 按文件中的账号标识和采集时间合并数据；目录名称不作为身份依据，也不会持续监控采集目录。新采集后重新选择目录更新。
+3. 使用「导出账号数据包」备份或迁移，可选密码加密。密码只在浏览器内使用，不保存或发送。
 
-学园偶像大师的浏览器本地库存管理器，预览版本。支持回忆、选拔回忆、偶像卡、支援卡、主题装扮与成就。服务器只提供静态网页和公开目录；库存文件在浏览器读取，保存到本机 IndexedDB，不上传到服务器。
+换电脑、浏览器、域名或清理站点数据前先导出备份。网站没有账号登录或云同步。单个快照最多 20 MiB，单次目录导入最多 200 MiB；当前仅接受 `gakumas-capture` 完整 schema 1，具体见[文件合同](docs/snapshot-contract.md)。
 
-本项目与采集器、公开内容及图片维护项目独立。使用采集器导出的账号目录或本工具的账号数据包即可，不需要游戏令牌、CA 私钥、协议材料或采集器网络接口。公开卡片资料由 gakumas-data 单独发布，不必随卡池变化重新构建 Web 程序。
-
-## Windows 便携版
-
-每次成功部署会生成 Windows x64 Release 包。完整解压后双击 `gakumas-web.exe`，浏览器打开 `http://127.0.0.1:18765/`，无需额外运行环境。便携包复用同次 Pages 构建，包含相同的公开资料、图片和预览账号开关。制品校验、复用已有运行及发布流程见[便携版说明](docs/portable-release.md)。
+已启用内置预览的部署可从「账号 → 启用预览」体验；它使用独立档案，详见[预览账号](docs/preview-account.md)。编组规则和支持边界见[赛季模拟](docs/contest-simulation.md)。
 
 ## 本地运行
 
-需要 Python 3.11+ 构建静态文件；浏览器使用原生 JavaScript 模块，无需安装前端依赖。Node.js 22+ 仅用于单元测试。
+需要 Python 3.11+。浏览器使用原生 JavaScript 模块，无需安装前端依赖；Node.js 22+ 用于开发测试和模拟候选池审计。
 
 ```sh
 python3 -B tools/build.py
 python3 -B -m http.server 18765 --bind 127.0.0.1 --directory dist
 ```
 
-也可执行 `npm run preview` 快速启动 `dist/`。当前本地测试工作区使用 `npm run preview:local` 启动 `local/ui-visual-refinement/dist/`，其中包含正在验收的界面改动。两者均使用 Python 标准库静态服务，无需安装后端框架。
+打开 `http://127.0.0.1:18765/`，也可用 `npm run preview` 启动同一个 `dist/`。不要通过 `file://` 打开；正式发布只提供构建后的 `dist/`。
 
-打开 `http://127.0.0.1:18765/`。不要使用 `file://`，也不要把源码根目录直接作为公网文件目录；正式发布目录为 `dist/`。
+干净构建只有程序，默认没有公开游戏目录和图片。在「资料与图片 → 导入内容包」安装 gakumas-data 的内容包，或由部署者配置初始内容。安装与更新见[公共内容](docs/content.md)，图片开关见[资源配置](docs/resources.md)。
 
-干净构建只包含程序，不附带游戏目录或图片。在「账号数据管理 → 卡片资料」导入 gakumas-data 的内容包，即可离线使用目录；也可由部署者独立安装内容目录或配置 HTTPS 内容频道，见 [内容更新](docs/content.md)。
+## 部署与便携版
 
-## Docker
+| 方式 | 入口与说明 |
+| --- | --- |
+| Docker | `docker compose up --build -d`，默认访问 `http://127.0.0.1:18765/`；运行阶段是非 root Nginx，使用只读文件系统和临时 `/tmp`。 |
+| GitHub Pages | 手动运行 [Pages 工作流](.github/workflows/pages.yml)，从固定内容包构建站点；基础图片转为同源用途包，CDN 增量按声明来源读取。详见 [Pages 发布](docs/github-pages.md)。 |
+| Windows 便携版 | 解压后运行 `gakumas-web.exe`，无需额外运行环境。工作流生成便携制品；只有显式开启 `publish_portable` 才公开 Release。详见[便携版说明](docs/portable-release.md)。 |
 
-```sh
-docker compose up --build -d
-```
+公网部署使用 HTTPS，备份加密依赖 Web Crypto；本地回环 HTTP 可用。不要将库存或凭据目录挂入容器或静态服务器。预览开关、内容来源与图片模式都在构建时确定，不能仅靠修改运行中容器的环境变量切换。
 
-默认访问 `http://127.0.0.1:18765/`。镜像使用构建阶段生成的静态产物，运行阶段仅有非 root Nginx；无需 Python 服务、数据库、账号配置或库存卷挂载。容器采用只读文件系统和临时 `/tmp`。
+## 开发与维护
 
-如需远程访问，使用自己的 HTTPS 反向代理连接该端口。普通远程 HTTP 不属于完整支持环境：加密数据包依赖 Web Crypto。不要把库存目录或密钥目录挂入容器。
+Web 维护程序和浏览器交互，gakumas-data 交付公开内容，gakumas-assets 交付图片。项目之间通过明确的文件、版本和哈希交接；数据合并、图片上传、内容发布和站点部署是不同阶段。
 
-## GitHub Pages
+[开发与发布维护](docs/maintenance.md)说明模块分层、账号生命周期、模拟任务职责和交付顺序；[加载验证](docs/loading-validation.md)说明浏览器与性能证据的范围。算法研究工具位于 [tools/algorithm-evaluation/](tools/algorithm-evaluation/README.md)，不参与站点构建。
 
-仓库内提供手动触发的 [Pages 工作流](.github/workflows/pages.yml)。在 GitHub 仓库设置中将 Pages 来源选为 GitHub Actions，然后运行该工作流；它只上传 `dist/`。
+程序版本以 [package.json](package.json) 为准，实际部署以站点 `release.json` 的版本、提交和运行号为准。内容、图片和库存合同分别维护，不用程序版本代替它们的身份。
 
-资源路径从模块位置计算，支持域名根目录与 `/repository/` 子目录；Docker 和 Pages 使用相同静态构建。Pages 不运行后端代码，也不保存用户库存。请根据当前平台限制与图片来源条件决定是否公开托管。
-
-## 导入、保存和迁移
-
-1. 点击「导入账号目录」，选择采集器输出的单个账号文件夹。该目录包含 `inventory/`、`selection/` 和 `selection-details/`，浏览器递归读取其中的 `snapshot.json`，忽略其他文件。
-2. 主库存、选拔列表和详情按文件内的账号标识与采集时间合并；目录名不作为身份依据。库存不会上传。
-3. 数据保存在当前浏览器当前来源的 IndexedDB，标签与偏好保存在本地。网站没有账号登录或云同步。
-4. 使用「导出账号数据包」保存备份，可选密码加密；密码只在浏览器内使用，不保存或发送。换电脑、换浏览器、换域名或清理站点数据后，需要重新导入。
-
-单个快照最多 20 MiB，单次目录导入总计最多 200 MiB。不会持续监控采集目录；新采集后重新选择目录更新。当前仅接受带 `gakumas-capture` 格式标识的完整 schema 1，不恢复开发阶段旧快照或旧备份。首次切换后重新导入账号目录；浏览器数据使用独立命名空间，不迁移旧笔记。字段边界见 [文件合同](docs/snapshot-contract.md)。
-
-## 图片与公开主数据
-
-默认 `resources/asset-lock.json` 为 `none`：不包含或请求游戏图片，使用本站占位图。游戏资源由独立的 `gakumas-assets` 项目维护，Web 不回退到 Cloudinary 等第三方源。
-
-需要图片时，显式提供资源锁：
-
-```sh
-python3 -B tools/build.py --asset-lock local/asset-lock.json
-```
-
-资源锁使用当前格式 1，启用 managed 模式后，浏览器从锁定索引的基础包与增量源取得图片并存入本机独立缓存。默认 none 不获取游戏图片。字段见 [资源配置](docs/resources.md)；本地锁和包体不入 Git，Docker 构建不读取开发者本机 local。
-
-五份公开目录由独立内容包提供，程序源码不再保存主数据来源锁、投影和更新工具。内容格式、资源包版本和库存 schema 各自独立。维护顺序见 [维护说明](docs/maintenance.md)，版权边界见 [THIRD_PARTY.md](THIRD_PARTY.md)。
-
-本机已有内容锁时，`npm run build:local` 构建程序并安装初始内容；此后只更新内容可运行 `npm run content:local`，不改写 app.mjs、HTML、CSS 或程序发布清单。
-
-## 开发与发布验证
-
-```sh
-node --test tests/*.test.mjs
-python3 -B tools/check_public.py
-python3 -B tools/build.py
-```
-
-可选浏览器验收：准备 `requirements-test.txt` 中的 Playwright 和 Chromium，启动已安装内容的静态服务后执行 `python3 -B tests/browser_static.py --url http://127.0.0.1:18765/`。无初始内容的部署可通过 `--content-bundle <文件>` 显式导入测试内容。`tests/browser_content_updates.py` 单独验证内容更新、失败保留、离线缓存、本地导入和子目录访问。所有账号样本均为合成数据。
-
-发布前可用 `python3 -B tools/check_public.py --export ../web-source-export` 导出干净源码。`.gitignore` 与 Docker 上下文均采用白名单；`local/`、`dist/`、测试输出、库存与凭据不进入源码仓库。详情见 [SECURITY.md](SECURITY.md)。
-
-代码按 AGPL-3.0 发布；游戏素材、名称与公开数据不因此改变其原有权利归属。
+代码采用 AGPL-3.0；游戏素材、名称及公开数据的权利归属见 [THIRD_PARTY.md](THIRD_PARTY.md)。

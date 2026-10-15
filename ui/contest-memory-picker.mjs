@@ -1,3 +1,6 @@
+import {createChoiceNavigation} from './choice-navigation.mjs';
+import {choiceFilterIcons} from './choice-filter-icons.mjs';
+import {updateSkillCustomizationBadge} from './memory-skill-badges.mjs';
 import {contestExtraItemLimit} from '../domain/contest-item-rules.mjs';
 import {annotateContestCardCost} from './contest-card-cost.mjs';
 import {el,openDialog} from './dom.mjs';
@@ -7,7 +10,7 @@ import {contestCardChanged,contestExtraItemCount} from '../domain/contest-loadou
 import {skillCardDetails} from './skill-card-details.mjs';
 import {characterInfo,compareCharacterFilters,planLabel,idolInfo,memoryExclusiveSkill,selectionChoiceMetadata,selectionFlowDefinitions,cardRewardInfo,itemRewardInfo} from '../domain/catalog.mjs';
 import {title,shown} from '../domain/model.mjs';
-import {characterArt,skillThumbnailFor,illustration,characterAccent,filterSymbol} from './illustrations.mjs';
+import {characterArt,skillThumbnailFor,illustration,characterAccent} from './illustrations.mjs';
 import {rewardHint,supportHint,closeRewardPopover} from './card-rewards.mjs';
 
 function memoryFlows(memory){
@@ -23,8 +26,7 @@ export function contestMemorySlot(memory,index,onChoose,onRemove,{reference,show
   else button.append(el('span','+','season-slot-plus'));
   if(showRole)slot.append(el('small',t(index===0?'主回忆':'副回忆'),'season-slot-role'));slot.append(button);
   if(selectedReference){
-    const count=(selectedReference.customizes??[]).reduce((sum,entry)=>sum+entry.customizeCount,0);
-    if(count){const badge=el('span',String(count),'selection-custom-count');badge.setAttribute('aria-label',t('附魔次数：{0}',[count]));button.append(badge);}
+    updateSkillCustomizationBadge(button,selectedReference);
     const reward=cardRewardInfo(selectedReference,memory.characterId);if(reward.versions.length)supportHint(button,()=>skillCardDetails(reward,{recorded:true,chooseVersion:false}),{container:slot});
   }
   button.onclick=onChoose;
@@ -101,41 +103,34 @@ export function openContestMemoryPicker({rows,stagePlanType,requiredCharacterId,
   closeRewardPopover();
   if(!picker){picker=el('dialog','','contest-memory-picker');picker.id='contest-memory-picker';picker.setAttribute('aria-labelledby','contest-memory-picker-title');document.body.append(picker);}
   const head=el('div','','dialog-head'),heading=el('h2',t('选择回忆'));heading.id='contest-memory-picker-title';const close=el('button',t('关闭'));close.onclick=()=>picker.close();head.append(heading,close);
-  const filters=el('div','','contest-memory-filters'),character=el('fieldset','','contest-memory-icon-filters contest-memory-characters'),flow=el('fieldset','','contest-memory-icon-filters contest-memory-flows'),sort=el('select');character.id='contest-memory-character';flow.id='contest-memory-flow';sort.id='season-memory-sort';
+  const filters=el('div','','contest-memory-filters'),character=el('fieldset','','contest-memory-icon-filters contest-memory-characters'),sort=el('select');character.id='contest-memory-character';sort.id='season-memory-sort';
   const stagePlan=({ProducePlanType_Plan1:'2',ProducePlanType_Plan2:'3',ProducePlanType_Plan3:'4'})[stagePlanType]??'';
   let characterValue=requiredCharacterId??'',planValue=stagePlan,flowValue='';
   const allIcon=()=>{const icon=el('span','','contest-filter-all');icon.setAttribute('aria-hidden','true');for(let i=0;i<4;i++)icon.append(el('i'));return icon;};
   character.setAttribute('role','radiogroup');character.setAttribute('aria-label',t('角色'));character.setAttribute('aria-disabled',String(Boolean(requiredCharacterId)));
-  const characterButtons=[];
+  const characterButtons=[],navigateCharacters=createChoiceNavigation({getButtons:()=>characterButtons,onMove:button=>button.click()});
   for(const id of ['',...[...new Set(rows.map(row=>row.memory.characterId))].sort(compareCharacterFilters)]){
     const button=el('button','','character-choice');button.dataset.characterId=id;button.setAttribute('role','radio');button.disabled=Boolean(requiredCharacterId);
     const label=id?characterInfo(id).name:t('全部角色');button.title=label;button.setAttribute('aria-label',label);
     if(id){const info=characterInfo(id);characterAccent(button,id);button.append(illustration(info.face,info.name,'filter-face'));}else button.append(allIcon());
-    button.onclick=()=>{characterValue=id;page=0;syncCharacters();draw();};button.onkeydown=event=>{
-      if(!['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(event.key))return;event.preventDefault();const direction=['ArrowLeft','ArrowUp'].includes(event.key)?-1:1,index=characterButtons.indexOf(button),next=characterButtons[(index+direction+characterButtons.length)%characterButtons.length];next.click();next.focus();
-    };characterButtons.push(button);character.append(button);
+    button.onclick=()=>{characterValue=id;page=0;syncCharacters();draw();};button.onkeydown=navigateCharacters;characterButtons.push(button);character.append(button);
   }
-  function syncCharacters(){for(const button of characterButtons){const selected=button.dataset.characterId===characterValue;button.setAttribute('aria-checked',String(selected));button.setAttribute('aria-pressed',String(selected));button.tabIndex=selected?0:-1;}}syncCharacters();
-  const plans=el('fieldset','','contest-memory-icon-filters contest-memory-plans');plans.id='contest-memory-plan';plans.setAttribute('role','radiogroup');plans.setAttribute('aria-label',t('计划'));
-  const planButtons=[];
-  for(const value of stagePlan?[Number(stagePlan)]:['',2,3,4]){
-    const button=el('button','','contest-plan-choice'),label=value?planLabel(value):t('全部');button.dataset.plan=String(value);button.title=label;button.setAttribute('aria-label',label);button.setAttribute('role','radio');button.append(value?filterSymbol(({2:'Plan1',3:'Plan2',4:'Plan3'})[value]):allIcon());
-    button.onclick=()=>{planValue=String(value);page=0;syncPlans();syncFlows();draw();};button.onkeydown=event=>{
-      if(!['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(event.key))return;event.preventDefault();const direction=['ArrowLeft','ArrowUp'].includes(event.key)?-1:1,index=planButtons.indexOf(button),next=planButtons[(index+direction+planButtons.length)%planButtons.length];next.click();next.focus();
-    };planButtons.push(button);plans.append(button);
-  }
-  function syncPlans(){for(const button of planButtons){const selected=button.dataset.plan===planValue;button.setAttribute('aria-checked',String(selected));button.tabIndex=selected?0:-1;}}syncPlans();
-  flow.setAttribute('role','radiogroup');flow.setAttribute('aria-label',t('流派'));
-  const planFlows={2:['parameter','lesson'],3:['aggressive','review'],4:['concentration','fullPower']},flowButtons=[];
-  for(const value of [{id:'',label:'全部流派'},...selectionFlowDefinitions]){
-    const button=el('button','','contest-flow-choice');button.dataset.flow=value.id;button.title=t(value.label);button.setAttribute('aria-label',t(value.label));button.setAttribute('role','radio');button.append(value.id?filterSymbol('ProduceExamEffectType_'+value.prefixes[0]):allIcon());
-    button.onclick=()=>{flowValue=value.id;page=0;syncFlows();draw();};button.onkeydown=event=>{
-      if(!['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(event.key))return;event.preventDefault();const visible=flowButtons.filter(value=>!value.hidden),direction=['ArrowLeft','ArrowUp'].includes(event.key)?-1:1,index=visible.indexOf(button),next=visible[(index+direction+visible.length)%visible.length];next.click();next.focus();
-    };flowButtons.push(button);flow.append(button);
-  }
+  function syncCharacters(){for(const button of characterButtons){const selected=button.dataset.characterId===characterValue;button.setAttribute('aria-checked',String(selected));button.tabIndex=selected?0:-1;}}syncCharacters();
+  // 图标使用公共计划键；回忆筛选与现有 data-plan 仍使用数字计划值。
+  const planValues={'':'',Plan1:'2',Plan2:'3',Plan3:'4'},planInput=el('select'),flowInput=el('select');
+  for(const [symbol,value] of Object.entries(planValues))if(!stagePlan||value===stagePlan)planInput.append(new Option(value?planLabel(Number(value)):t('全部'),symbol));
+  planInput.value=Object.keys(planValues).find(key=>planValues[key]===planValue);
+  const planIcons=choiceFilterIcons(planInput,'plan','计划',()=>{planValue=planValues[planInput.value];page=0;planIcons.sync();syncFlows();draw();},{id:'contest-memory-plan'}),plans=planIcons.group;
+  plans.classList.add('contest-memory-plans');
+  for(const button of planIcons.buttons){button.classList.add('contest-plan-choice');button.dataset.plan=planValues[button.dataset.value];}
+  for(const value of [{id:'',label:'全部流派'},...selectionFlowDefinitions])flowInput.append(new Option(t(value.label),value.id));
+  const flowIcons=choiceFilterIcons(flowInput,'flow','流派',()=>{flowValue=flowInput.value;page=0;syncFlows();draw();},{id:'contest-memory-flow'}),flow=flowIcons.group;
+  flow.classList.add('contest-memory-flows');
+  for(const button of flowIcons.buttons){button.classList.add('contest-flow-choice');button.dataset.flow=button.dataset.value;}
+  const planFlows={2:['parameter','lesson'],3:['aggressive','review'],4:['concentration','fullPower']};
   function syncFlows(){
     const allowed=planFlows[planValue];if(allowed&&flowValue&&!allowed.includes(flowValue))flowValue='';
-    for(const button of flowButtons){const id=button.dataset.flow,selected=id===flowValue;button.hidden=Boolean(allowed&&id&&!allowed.includes(id));button.setAttribute('aria-checked',String(selected));button.tabIndex=selected?0:-1;}
+    flowInput.value=flowValue;flowIcons.sync({isVisible:value=>!allowed||!value||allowed.includes(value)});
   }syncFlows();
   const planFlowRow=el('div','','contest-memory-plan-flows');planFlowRow.append(plans,flow);
 

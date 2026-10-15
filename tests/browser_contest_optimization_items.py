@@ -6,13 +6,20 @@ from playwright.sync_api import sync_playwright,expect
 
 def check(url,output=None):
  with sync_playwright() as p:
-  browser=p.chromium.launch();page=browser.new_page(viewport={'width':1280,'height':950});errors=[];page.on('pageerror',lambda error:errors.append(str(error)))
+  browser=p.chromium.launch();page=browser.new_page(viewport={'width':1280,'height':950});errors=[];uploads=[];page.on('pageerror',lambda error:errors.append(str(error)));page.on('request',lambda request:uploads.append(request.url) if request.post_data else None)
   page.goto(url,wait_until='networkidle');page.locator('#data-open').click();page.locator('#enable-preview-account').click();expect(page.locator('#inventory')).to_be_visible(timeout=60000);page.locator('[data-tab="seasonSimulation"]').click();page.locator('[data-mode="optimization"]').click()
   panel=page.locator('#contest-optimization');fixed=panel.locator('[data-optimization-item="0"]');expect(fixed).to_be_enabled();fixed.evaluate("e=>e.scrollIntoView({block:'center',behavior:'instant'})");page.mouse.move(0,0);page.wait_for_timeout(600);fixed.hover();expect(page.locator('.support-reward-popover:popover-open .support-item-description')).to_be_visible();page.keyboard.press('Escape');page.keyboard.press('Escape')
   expect(panel.locator('.season-item-empty')).to_have_count(0);expect(panel.locator('.optimization-items-open')).to_have_count(1)
   panel.locator('[data-optimization-grade="0"]').select_option('15');panel.locator('.optimization-items-open').click();dialog=page.locator('.optimization-picker');choices=dialog.locator('[role=checkbox]');assert choices.count()>=4
   for index in range(3):choices.nth(index).click()
   expect(dialog.locator('.optimization-picker-count')).to_have_text('额外道具 3/3');expect(choices.nth(3)).to_have_attribute('aria-disabled','true')
+  # 多选导航只移动活动项，限额提示项仍可聚焦但不会自动勾选。
+  checked=choices.evaluate_all('nodes=>nodes.filter(node=>node.getAttribute("aria-checked")==="true").map(node=>node.dataset.choiceId)')
+  choices.first.focus()
+  for key,last in [('End',True),('ArrowRight',False),('ArrowLeft',True),('Home',False)]:
+   page.keyboard.press(key);expect(choices.last if last else choices.first).to_be_focused()
+   assert choices.evaluate_all('nodes=>nodes.filter(node=>node.getAttribute("aria-checked")==="true").map(node=>node.dataset.choiceId)')==checked
+   expect(dialog.locator('[role=checkbox][tabindex="0"]')).to_have_count(1)
   # 实际指针仍能查看效果，名额已满时不能把第四件加入草稿。
   choices.nth(3).click(force=True);expect(dialog.locator('[aria-checked=true]')).to_have_count(3);expect(page.locator('.support-reward-popover:popover-open .support-item-description')).to_be_visible();page.keyboard.press('Escape')
   dialog.get_by_role('button',name='取消',exact=True).click();expect(panel.locator('[data-optimization-selected-item]')).to_have_count(0)
@@ -31,7 +38,7 @@ def check(url,output=None):
   page.locator('#language').select_option('ja');expect(page.locator('.optimization-items>h3')).to_contain_text('追加アイテム 2/2');page.locator('#language').select_option('zh-CN')
   if output:panel.locator('.optimization-items').screenshot(path=artifact_path(str(output/'items-form-320.png')))
   page.locator('.optimization-items-open').click();dialog=page.locator('.optimization-picker');dialog.get_by_role('button',name='清空选择').click();dialog.locator('.optimization-picker-confirm').click();expect(page.locator('[data-optimization-selected-item]')).to_have_count(0)
-  assert not errors,errors;browser.close()
+  assert not errors and not uploads,(errors,uploads);browser.close()
  print('专属效果、单入口多选、2/3名额、满额取消、草稿取消、降级保留、主副隔离及中日/三种宽度通过。')
 
 

@@ -7,7 +7,7 @@ import {createImageStore} from './image-store.mjs';
 // 下载槽同时约束待处理包；最多两个包在途，一次只解包、保存一个包。
 export function createImageManager({store=createImageStore(),fetcher=(...args)=>fetch(...args),allowedOrigins=[],downloadURLs={},concurrency=2,cacheConcurrency=8}={}){
   const listeners=new Set(),available=new Map(),verified=new Map(),urls=new Map(),jobs=new Map(),pending=new Map(),requested=new Set(),demands=new Map(),cacheQueue=[],runs=new Set();
-  let timing,currentView,completedCount=0,notificationTimer=null;
+  let timing,currentView,completedCount=0,notificationTimer=null,cancellation=0;
   let changedNames={};
   let cacheActive=0,cacheDirty=false,publishTimer=null,dirty=false,runId=0,keyNames=new Map(),exposed={};
   let index,rows=new Map(),packs=new Map(),active=0,checking=0,paused=false,processing=Promise.resolve(),epoch=0,networkBytes=0,cacheMs=0,cacheError=null,full=false;
@@ -161,7 +161,7 @@ export function createImageManager({store=createImageStore(),fetcher=(...args)=>
     settleTiming();notify(!pending.size);return includeURLs?expose():undefined;
   }
   function cancel(){
-    paused=true;releaseQueued();flush();for(const job of jobs.values()){
+    cancellation++;paused=true;releaseQueued();flush();for(const job of jobs.values()){
       if(job.phase==='queued'){job.phase='cancelled';job.resolve();}
       else job.controller?.abort();
     }settleTiming();notify(true);
@@ -171,7 +171,10 @@ export function createImageManager({store=createImageStore(),fetcher=(...args)=>
     prioritizeView(view){currentView=view;cacheDirty=true;for(const [key,priority] of demands)if(priority>0)demands.set(key,Math.max(2,priority));for(const job of jobs.values())if(job.phase==='queued'&&job.priority>0)job.priority=Math.max(2,job.priority);},
     async prepare(value){configure(value);await Promise.all([...jobs.values()].map(job=>job.promise));jobs.clear();pending.clear();requested.clear();completedCount=0;paused=false;cacheError=null;verified.clear();exposed={};runId++;return request(Object.keys(value.files),{complete:true});},
     async retry(){
+      const startedCancellation=cancellation;
       await Promise.all([...pending.values()]);
+      // 等待旧请求结束时发生的新停止操作优先，不让已排队的重试重新启动下载。
+      if(cancellation!==startedCancellation)return;
       paused=false;cacheError=null;runId++;
       for(const [id,job] of jobs)if(['failed','cancelled'].includes(job.phase))jobs.delete(id);
       return request(Object.keys(index?.files??{}).filter(name=>requested.has(imageObjectKey(name,index.files[name]))),{complete:full});

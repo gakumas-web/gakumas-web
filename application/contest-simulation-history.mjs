@@ -13,4 +13,4 @@ export function createSimulationRecord(request,stage,result,{characterId,loadout
   return structuredClone({format:1,id:crypto.randomUUID(),createdAt:new Date().toISOString(),stageKey:simulationStageKey(stage),
     stage:Object.fromEntries(keys.filter(key=>stage[key]!==undefined).map(key=>[key,stage[key]])),characterId:characterId??null,loadout:loadout??null,request,result});
 }
-export async function rememberSimulation(profile,entry){if(!profile)return false;await saveSimulationRun(profile,entry);return true;}
+export async function rememberSimulation(profile,entry,lifecycleId){if(!profile)return false;await saveSimulationRun(profile,entry,lifecycleId);return true;}

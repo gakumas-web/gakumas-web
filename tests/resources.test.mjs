@@ -28,3 +28,10 @@ test('旧图片结构即使编号为1也不能安装',async()=>{
   const {installContentResources}=await import('../resources.mjs');
   assert.throws(()=>installContentResources({format:'gakumas-assets-set',schema_version:1,version:'old',packages:[]}),/content_assets_invalid/);
 });
+
+test('导入资源服务不读取页面对象或安装 DOM 观察器',async()=>{
+  const before=Object.getOwnPropertyDescriptor(globalThis,'document');
+  Object.defineProperty(globalThis,'document',{configurable:true,get(){throw new Error('unexpected_dom_access');}});
+  try{await import('../resources.mjs?without-dom');}
+  finally{if(before)Object.defineProperty(globalThis,'document',before);else delete globalThis.document;}
+});

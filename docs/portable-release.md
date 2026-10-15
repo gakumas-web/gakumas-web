@@ -1,5 +1,7 @@
 # Windows 便携包与制品复用
 
+[文档索引](README.md)
+
 便携包包含 `gakumas-web.exe`、`www/` 静态站点、使用说明及许可证。完整解压后双击 exe，默认打开 `http://127.0.0.1:18765/`；不需要安装 Python、Node.js、Docker 或 Go。只监听本机地址，不提供账号上传接口。关闭启动窗口或按 Ctrl+C 即可停止。
 
 账号保存在浏览器中。升级时解压到新目录，关闭旧服务，再启动新版本；使用相同浏览器与地址可继续访问原有库存。更换端口、浏览器或电脑时应先从页面导出账号数据包。
@@ -35,6 +37,7 @@ Release 标签包含程序版本与运行编号；同一次运行重试补齐同
 
 ```sh
 cd tools/portable-server
+mkdir -p ../../local/portable-build
 go test ./...
 GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -buildvcs=false -ldflags='-s -w' -o ../../local/portable-build/gakumas-web.exe .
 ```

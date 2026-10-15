@@ -1,0 +1,55 @@
+name: 自动同步公共资料
+on:
+  schedule:
+    - cron: '17,47 * * * *'
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+  pages: write
+  id-token: write
+concurrency:
+  group: content-sync
+  cancel-in-progress: false
+jobs:
+  detect:
+    runs-on: ubuntu-latest
+    outputs:
+      changed: ${{ steps.source.outputs.changed }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: 核对已发布资料与线上频道
+        id: source
+        run: python -B tools/sync_content.py --check-site
+      - uses: actions/upload-artifact@v4
+        if: steps.source.outputs.changed == 'true'
+        with:
+          name: content-source
+          path: local/content-source/*.json
+          retention-days: 7
+      - name: 保存引擎更新核对报告
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: engine-update-plan
+          path: local/content-source/engine-update.json
+          if-no-files-found: ignore
+  publish:
+    needs: detect
+    if: needs.detect.outputs.changed == 'true'
+    permissions:
+      contents: write
+      actions: read
+      pages: write
+      id-token: write
+    uses: ./.github/workflows/pages.yml
+    with:
+      content_source_artifact: content-source
+      preview_account: true
+      publish: true
+      publish_portable: false

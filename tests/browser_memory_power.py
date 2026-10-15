@@ -62,7 +62,7 @@ def check(url):
             page.locator(f'[data-memory-index="{owner}"] [data-edit-card="{index}"]').click();expect(page.locator('#contest-loadout-editor')).to_be_visible()
         def select_choice(value):
             if page.locator('#contest-loadout-search').count():page.locator('#contest-loadout-search').fill(value['name'])
-            page.locator(f'.contest-loadout-choice[data-choice-id="{value["id"]}"] > input[type=checkbox]').check()
+            page.locator(f'.contest-loadout-choice[data-choice-id="{value["id"]}"] [role="radio"]').click()
         def cancel():
             if page.locator('.support-reward-popover:popover-open').count():page.keyboard.press('Escape')
             page.keyboard.press('Escape');expect(page.locator('#contest-loadout-editor')).not_to_be_visible()

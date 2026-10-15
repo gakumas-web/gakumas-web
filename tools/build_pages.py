@@ -3,6 +3,7 @@ import argparse
 import hashlib
 import json
 import os
+import shutil
 import time
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -13,20 +14,30 @@ from prepare_locks import prepare
 from resource_release import ROOT, download
 
 
-def build_pages(source, output, image_cache=None, key_only=False, preview_account=False):
+def build_pages(source, output, image_cache=None, key_only=False, preview_account=False, bundle_path=None):
     started=time.monotonic();cache_report={}
-    source=json.loads(Path(source).read_text())
+    if source is None:
+        from sync_content import resolve_source
+        source=resolve_source() or json.loads((ROOT/'resources/pages-source.json').read_text())
+    else:source=json.loads(Path(source).read_text())
+    if source.get('format')=='gakumas-content-publication':
+        from sync_content import validate_source
+        validate_source(source)
     size=source['bytes']
     if type(size) is not int or not 0<size<=128*1024*1024:
         raise ValueError('Pages 内容包大小无效')
     (ROOT/'local').mkdir(exist_ok=True)
     with TemporaryDirectory(prefix='pages-',dir=ROOT/'local') as temporary:
         root=Path(temporary);bundle=root/'content.json.gz'
-        download(source['bundle_url'],bundle,size)
+        if bundle_path is None:download(source['bundle_url'],bundle,size)
+        else:shutil.copyfile(bundle_path,bundle)
         if bundle.stat().st_size!=size or hashlib.sha256(bundle.read_bytes()).hexdigest()!=source['sha256']:
             raise ValueError('Pages 内容包大小或 SHA-256 不匹配')
         raw,manifest,files=read_bundle(bundle)
         if manifest['version']!=source['version']:raise ValueError('Pages 内容版本不匹配')
+        if source.get('format')=='gakumas-content-publication':
+            if hashlib.sha256(raw).hexdigest()!=source['manifest_sha256'] or hashlib.sha256(files['assets-index.json']).hexdigest()!=source['assets_sha256'] or json.loads(files['assets-index.json'])['version']!=source['assets_version'] or manifest['master_revision']!=source['master_revision']:
+                raise ValueError('Pages 发布引用与内容、图片身份不匹配')
         if key_only:
             from image_cache import cache_identity,cache_key
             from image_plan import catalog_groups,baseline_index,baseline_cache_hash
@@ -37,6 +48,10 @@ def build_pages(source, output, image_cache=None, key_only=False, preview_accoun
         for name,data in {**files,'manifest.json':raw}.items():(content/name).write_bytes(data)
         locks=root/'locks';prepare(content,locks)
         count=build(Path(output),locks/'asset-lock.json',locks/'content-lock.json',mirror_images=True,image_cache=image_cache,cache_report=cache_report,preview_account=preview_account)
+    if source.get('format')=='gakumas-content-publication':
+        (Path(output)/'content/publication.json').write_text(json.dumps(source,ensure_ascii=False,indent=2)+'\n')
+    engine_source=json.loads((ROOT/'tools/contest-engine-source.json').read_text())
+    (Path(output)/'content/engine-source.json').write_text(json.dumps(engine_source,ensure_ascii=False,indent=2)+'\n')
     total=sum(path.stat().st_size for path in Path(output).rglob('*') if path.is_file())
     if total>1_000_000_000:raise ValueError('Pages 站点超过 1 GB，停止发布')
     config=json.loads((Path(output)/'image-config.mjs').read_text().split('export const imageConfig=',1)[1].strip().removesuffix(';'))
@@ -44,7 +59,7 @@ def build_pages(source, output, image_cache=None, key_only=False, preview_accoun
     groups=plan['groups']
     program=sum(path.stat().st_size for path in Path(output).rglob('*') if path.is_file() and path.relative_to(output).parts[0] not in ('content','image-files'))
     content=sum(path.stat().st_size for path in (Path(output)/'content').rglob('*') if path.is_file())
-    report={'image_cache':cache_report,'build_seconds':round(time.monotonic()-started,3),'version':source['version'],'preview_account':preview_account,'program_files':count,'program_bytes':program,'content_bytes':content,'site_bytes':total,
+    report={'image_cache':cache_report,'build_seconds':round(time.monotonic()-started,3),'version':source['version'],'content_source':'publication' if source.get('format')=='gakumas-content-publication' else 'fixed','preview_account':preview_account,'program_files':count,'program_bytes':program,'content_bytes':content,'site_bytes':total,
             'image_delivery':'same-origin-baseline-and-cdn-incremental','groups':groups,'initial_image_bytes':sum(row['bytes'] for row in groups if row['group']=='core'),
             'complete_image_bytes':sum(row['bytes'] for row in groups),'compatibility_archives':'保留当前源版本的原始分段，供此前已打开的页面完成下载；新页面只请求用途包。'}
     report_path=Path(output)/'build-report.json'
@@ -70,11 +85,12 @@ def build_pages(source, output, image_cache=None, key_only=False, preview_accoun
 
 if __name__=='__main__':
     parser=argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--source',type=Path,default=ROOT/'resources/pages-source.json')
+    parser.add_argument('--source',type=Path,help='显式固定引用；默认读取已发布引用，首次尚未发布时使用随源码保留的启动包')
+    parser.add_argument('--bundle',type=Path,help='使用本地内容包，仍按固定引用校验大小、版本和全部哈希')
     parser.add_argument('--output',type=Path,default=ROOT/'dist')
     parser.add_argument('--image-cache',type=Path,help='可选图片构建缓存目录')
     parser.add_argument('--cache-key',action='store_true',help='只校验内容包并输出图片构建缓存键')
     parser.add_argument('--preview-account',action=argparse.BooleanOptionalAction,default=False,help='是否提供内置预览账号，默认关闭')
     args=parser.parse_args()
-    result=build_pages(args.source,args.output,args.image_cache,args.cache_key,args.preview_account)
+    result=build_pages(args.source,args.output,args.image_cache,args.cache_key,args.preview_account,args.bundle)
     print(result if args.cache_key else json.dumps(result,ensure_ascii=False))

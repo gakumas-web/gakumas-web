@@ -1,3 +1,4 @@
+import {updateSkillCustomizationBadge} from './memory-skill-badges.mjs';
 import {$,el,openDialog} from './dom.mjs';
 import {canCompareMemory,comparisonFieldEntries} from '../domain/memories.mjs';
 import {t,onLocaleChange} from '../i18n.mjs';
@@ -18,7 +19,7 @@ function baseOptions(){
 export function showComparison(memories,{returnFocus=()=>$('compare')}={}){
   comparing=memories.filter(canCompareMemory);if(comparing.length<2)return;
   closeRewardPopover();$('compare-base').value='0';baseOptions();$('differences-only').checked=false;
-  $('compare-base').onchange=()=>{renderComparison();revealComparisonBase();};$('differences-only').onchange=renderComparison;
+  $('compare-base').onchange=()=>{renderComparison();revealComparisonBase();};$('differences-only').onchange=syncComparisonDifferences;
   $('compare-dialog').addEventListener('close',closeRewardPopover,{once:true});
   renderComparison();openDialog($('compare-dialog'),{dismissOnBackdrop:true,returnFocus});
 }
@@ -46,8 +47,7 @@ function configIcon(field,entry,memory){
     const hint=rewardHint(reward,{label:''},false,'',{chooseVersion:false,recorded:isCard,customization:null});hint.classList.add('support-art-event');box.append(hint);
     if(isCard){
       box.dataset.cardId=entry.value.id;box.dataset.upgrade=String(entry.value.upgradeCount);
-      const count=(entry.value.customizes??[]).reduce((sum,value)=>sum+value.customizeCount,0);
-      if(count){const badge=el('span',String(count),'selection-custom-count');badge.title=t('附魔次数：{0}',[count]);hint.querySelector('button').append(badge);}
+      updateSkillCustomizationBadge(hint.querySelector('button'),entry.value);
     }
   }
   if(entry.count>1){const count=el('b',`×${entry.count}`,'comparison-count');count.title=t('数量 ×{0}',[entry.count]);box.append(count);}
@@ -69,13 +69,13 @@ function configurationPairs(baseIndex,only){
       let columns=[...entries.values()];
       const sourceRank=entry=>{const source=selectionChoiceMetadata(field==='examBattleProduceCards'?'card':'item',entry.value).source;return source==='idol'?0:source==='support'?1:2;};
       columns.sort((a,b)=>sourceRank(a)-sourceRank(b));
-      if(only)columns=columns.filter(entry=>model.different.has(entry.key));
       const group=el('section','','comparison-pair-config');group.dataset.compareField=field;group.append(el('div',t(label),'comparison-pair-caption'));
       const grid=el('div','','comparison-aligned-grid');grid.style.setProperty('--pair-columns',String(Math.max(columns.length,1)));
       model.rows.forEach((row,rowIndex)=>{
         const lookup=new Map((row??[]).map(entry=>[entry.key,entry]));
-        for(const column of columns.length?columns:[null]){
+        for(const column of [...columns,null]){
           const slot=el('div','','comparison-aligned-slot');slot.dataset.pairRow=String(rowIndex);slot.dataset.configKey=column?.key??'';slot.classList.toggle('comparison-base-column',rowIndex===0);
+          slot.dataset.compareDifferent=String(column&&model.different.has(column.key));if(!column)slot.dataset.compareEmpty='';
           const entry=column&&lookup.get(column.key);
           if(entry){const icon=configIcon(field,entry,rowIndex===0?base:memory);icon.classList.toggle('comparison-config-different',model.different.has(entry.key));slot.append(icon);}
           else slot.append(el('span',row===null?t('未记录'):'—','comparison-empty'));
@@ -104,10 +104,9 @@ function mobileSummary(baseIndex,only,stats){
     head.append(heading);table.append(head);const body=el('tbody');
     for(const {field,label,values,format} of stats){
       const baseline=values[baseIndex],value=values[index],unknown=[baseline,value].some(entry=>entry===undefined||entry===null);
-      if(only&&value===baseline&&!unknown)continue;
-      const row=el('tr','','comparison-stat-row');row.dataset.compareField=field;const labelCell=el('th',label);labelCell.scope='row';row.append(labelCell,statCell(field,baseline,baseline,true,format),statCell(field,value,baseline,false,format));body.append(row);
+      const row=el('tr','','comparison-stat-row');row.dataset.compareDifferent=String(value!==baseline||unknown);row.dataset.compareField=field;const labelCell=el('th',label);labelCell.scope='row';row.append(labelCell,statCell(field,baseline,baseline,true,format),statCell(field,value,baseline,false,format));body.append(row);
     }
-    if(!body.childNodes.length){const row=el('tr'),cell=el('td',t('这些回忆的已记录数值相同。'),'comparison-equal');cell.colSpan=3;row.append(cell);body.append(row);}
+    {const row=el('tr'),cell=el('td',t('这些回忆的已记录数值相同。'),'comparison-equal');row.dataset.compareEmpty='';cell.colSpan=3;row.append(cell);body.append(row);}
     table.append(body);pair.append(table);summary.append(pair);
   });return summary;
 }
@@ -118,6 +117,20 @@ function syncComparisonViewport(){
   revealComparisonBase();
 }
 
+function syncComparisonDifferences(){
+  closeRewardPopover();const only=$('differences-only').checked;
+  for(const row of $('comparison').querySelectorAll('.comparison-stat-row'))row.hidden=only&&row.dataset.compareDifferent!=='true';
+  for(const body of $('comparison').querySelectorAll('tbody')){
+    const empty=body.querySelector('[data-compare-empty]');if(empty)empty.hidden=[...body.querySelectorAll('.comparison-stat-row')].some(row=>!row.hidden);
+  }
+  for(const grid of $('comparison').querySelectorAll('.comparison-aligned-grid')){
+    const slots=[...grid.children].filter(slot=>!slot.hasAttribute('data-compare-empty'));
+    for(const slot of slots)slot.hidden=only&&slot.dataset.compareDifferent!=='true';
+    const columns=slots.filter(slot=>slot.dataset.pairRow==='0'&&!slot.hidden).length;
+    grid.style.setProperty('--pair-columns',String(Math.max(columns,1)));
+    for(const empty of grid.querySelectorAll('[data-compare-empty]'))empty.hidden=columns>0;
+  }
+}
 function renderComparison(){
   closeRewardPopover();
   const baseIndex=Number($('compare-base').value)||0,only=$('differences-only').checked;
@@ -128,14 +141,14 @@ function renderComparison(){
   const body=el('tbody');
   const add=(field,label,values,format=shown)=>{
     const unknown=values.some(value=>value===undefined||value===null),different=new Set(values).size>1;
-    if(only&&!different&&!unknown)return;
-    const row=el('tr','','comparison-stat-row');row.dataset.compareField=field;const labelCell=el('th',label);labelCell.scope='row';row.append(labelCell);
+    const row=el('tr','','comparison-stat-row');row.dataset.compareDifferent=String(different||unknown);row.dataset.compareField=field;const labelCell=el('th',label);labelCell.scope='row';row.append(labelCell);
     values.forEach((value,index)=>row.append(statCell(field,value,values[baseIndex],index===baseIndex,format)));body.append(row);
   };
   for(const {field,label,values,format} of stats)add(field,label,values,format);
-  if(!body.childNodes.length&&!['examBattleProduceCards','examBattleProduceItemIds'].some(field=>comparisonFieldEntries(comparing,field).hasDifference)){const row=el('tr'),cell=el('td',t('这些回忆的已记录数值与配置相同。'),'comparison-equal');cell.colSpan=comparing.length+1;row.append(cell);body.append(row);}
+  if(!['examBattleProduceCards','examBattleProduceItemIds'].some(field=>comparisonFieldEntries(comparing,field).hasDifference)){const row=el('tr'),cell=el('td',t('这些回忆的已记录数值与配置相同。'),'comparison-equal');row.dataset.compareEmpty='';cell.colSpan=comparing.length+1;row.append(cell);body.append(row);}
   const configurations=el('section','','comparison-config-scroll');configurations.setAttribute('aria-label',`${t('考试技能卡')} · ${t('考试 P 道具')}`);configurations.tabIndex=compactComparison.matches?0:-1;configurations.append(configurationPairs(baseIndex,only));
   table.append(body);$('comparison').setAttribute('aria-label',t('比较回忆'));$('comparison').replaceChildren(table,mobileSummary(baseIndex,only,stats),configurations);
+  syncComparisonDifferences();
   $('compare-dialog').querySelector('.comparison-help').textContent=t(compactComparison.matches?'差值相对基准 · 技能卡和 P 道具可横向滚动 · 点击图标查看效果':'差值相对基准 · 横向滚动查看其他回忆 · 点击图标查看效果');
 }
 

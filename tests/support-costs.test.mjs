@@ -1,5 +1,3 @@
-import {imageConfig} from '../image-config.mjs';
-import {assetURL} from '../resources.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {installMaster,supportSkillVisual} from '../domain/catalog.mjs';
@@ -19,21 +17,18 @@ function install(){
   ]},abilityIcons:{examIcons:{ExamLesson:'lesson.webp',ExamCardPlayAggressive:'img_motivation.webp',ExamParameterBuff:'img_condition.webp'}}});
 }
 test('普通体力与直接体力使用不同图标，强化版本保持对应消耗',()=>{
-  const previous={...imageConfig};
-  Object.assign(imageConfig,{icons:['skill-stamina.webp','skill-stamina-direct.webp'],iconURLs:{'skill-stamina.webp':'blob:https://example.invalid/stamina','skill-stamina-direct.webp':'blob:https://example.invalid/direct'}});
-  try{
   install();const normal=supportSkillVisual({id:'normal',upgradeCount:1}).costs[0];
   const direct=supportSkillVisual({id:'direct',upgradeCount:1}).costs[0];
   assert.equal(normal.kind,'stamina');assert.equal(direct.kind,'direct');assert.notEqual(normal.icon,direct.icon);
+  assert.equal(normal.icon,'skill-stamina.webp');assert.equal(direct.icon,'skill-stamina-direct.webp');
   assert.equal(direct.label,'体力');assert.equal(direct.value,2);
   assert.equal(supportSkillVisual({id:'direct',upgradeCount:0}).costs[0].value,3);
-  }finally{Object.assign(imageConfig,previous);}
 });
 test('状态消耗使用状态底板类型和对应图标，やる気标为干劲',()=>{
   install();const motivation=supportSkillVisual({id:'motivation',upgradeCount:1}).costs;
-  assert.equal(motivation.length,1);assert.equal(motivation[0].kind,'status');assert.equal(motivation[0].label,'干劲');assert.equal(motivation[0].icon,assetURL('img_motivation.webp'));
+  assert.equal(motivation.length,1);assert.equal(motivation[0].kind,'status');assert.equal(motivation[0].label,'干劲');assert.equal(motivation[0].icon,'img_motivation.webp');
   const condition=supportSkillVisual({id:'condition',upgradeCount:1}).costs[0];
-  assert.equal(condition.kind,'status');assert.equal(condition.label,'好调');assert.equal(condition.icon,assetURL('img_condition.webp'));
+  assert.equal(condition.kind,'status');assert.equal(condition.label,'好调');assert.equal(condition.icon,'img_condition.webp');
 });
 
 test('Legend 使用 LR 素材名，主动与精神卡分别取对应边框',()=>{

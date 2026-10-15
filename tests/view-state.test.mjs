@@ -44,15 +44,22 @@ test('保存视图只恢复当前字段，退役阅读模式不进入运行状�
   assert.equal('layout' in restored,false);assert.equal('supportAttribute' in restored,false);assert.equal('skinImmersive' in restored,false);
   assert.deepEqual(restored.idolCharacter,['hski']);
 });
-test('筛选标签与清空共用字段，保留范围、稀有度、排序和其它页条件',()=>{
+test('稀有度归入筛选标签和清空范围，保留持有范围、排序和其它页条件',()=>{
   const view=createView({ownership:'unowned',idolRarity:'SSR',catalogSort:'character',idolCharacter:['hski','ttmr'],idolPlan:'Plan1',supportSkills:['exact-effect'],query:'名称',page:3});
-  assert.deepEqual(activeFilterKeys('idolCards',view),['idolCharacter','idolPlan']);
+  assert.deepEqual(activeFilterKeys('idolCards',view),['idolCharacter','idolPlan','idolRarity']);
   resetFilters(view,'idolCards');
   assert.deepEqual(activeFilterKeys('idolCards',view),[]);assert.equal(view.page,0);
-  assert.deepEqual([view.ownership,view.idolRarity,view.catalogSort,view.supportSkills,view.query],['unowned','SSR','character',['exact-effect'],'名称']);
+  assert.deepEqual([view.ownership,view.idolRarity,view.catalogSort,view.supportSkills,view.query],['unowned','','character',['exact-effect'],'名称']);
   resetFilters(view,'idolCards',{keys:['query']});assert.equal(view.query,'');
   assert.deepEqual(activeFilterKeys('memories',createView()),[]);
   assert.deepEqual(activeFilterKeys('selectionMemories',createView({selectionProtection:'protected'})),[]);
+});
+
+test('支援稀有度独立保存，参与筛选计数并由清空恢复全部',()=>{
+  const views=createViews({supportCards:{supportRarity:'SR'},idolCards:{idolRarity:'SSR'}});
+  assert.deepEqual(activeFilterKeys('supportCards',views.supportCards),['supportRarity']);
+  resetFilters(views.supportCards,'supportCards');assert.equal(views.supportCards.supportRarity,'');
+  assert.equal(views.idolCards.idolRarity,'SSR');
 });
 
 test('关联角色默认同时满足，开关独立保存且清空恢复默认，不单独计入筛选标签',()=>{

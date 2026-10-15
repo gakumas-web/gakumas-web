@@ -1,15 +1,11 @@
+import {createContestWorkerClient} from './contest-worker-client.mjs';
 import {simulationWorkerCount} from './contest-compute-preferences.mjs';
 import {recommendationPairs,recommendationPairCount,recommendationPhases,recommendationRoughLimit,recommendationStatistics,promoteRecommendations,compareRecommendations,recommendationRefinements,RECOMMENDATION_FINAL_BUDGETS,RECOMMENDATION_LIMIT} from '../domain/contest-recommendations.mjs';
 import {createContestSimulationRequest} from '../domain/contest-engine-request.mjs';
 
 function simulationWorker(){
-  const worker=new Worker(new URL('./contest-simulation-worker.mjs',import.meta.url),{type:'module'});let pending=null,timer;
-  const settle=(error,result)=>{const current=pending;if(!current)return;pending=null;clearTimeout(timer);error?current.reject(error):current.resolve(result);};
-  worker.onmessage=({data})=>{if(!pending)return;if(data.type==='progress')pending.onProgress(data.completed);else if(data.type==='result')settle(null,data.result);else settle(Object.assign(new Error(data.code),{code:data.code,details:data.details}));};
-  worker.onerror=event=>{event.preventDefault();settle(Object.assign(new Error('engine_failed'),{code:'engine_failed'}));};
-  return {run(request,{runs,seed,mode,sessionId,offset=0,onProgress=()=>{}}){
-    return new Promise((resolve,reject)=>{pending={resolve,reject,onProgress};timer=setTimeout(()=>{settle(Object.assign(new Error('simulation_timeout'),{code:'simulation_timeout'}));worker.terminate();},Math.max(120000,runs*60));worker.postMessage({request,runs,seed,mode,sessionId,offset});});
-  },cancel(){settle(new DOMException('Recommendation cancelled','AbortError'));worker.terminate();}};
+  const client=createContestWorkerClient({cancelMessage:'Recommendation cancelled'});
+  return {run(request,{onProgress,offset=0,...options}){return client.run({request,...options,offset},onProgress);},cancel:client.cancel};
 }
 
 // 每个 Worker 串行处理组合，随机状态互不共享；同一轮使用相同种子，减少额外抽样差异。

@@ -32,6 +32,7 @@
 /resources/*
 !/resources/content-source.json
 !/resources/pages-source.json
+!/resources/content-publication.json
 !/resources/asset-lock.json
 !/resources/preview-account.json
 !/resources/*.example.json

@@ -1,9 +1,10 @@
+import {effectCatalog} from '../domain/effect-catalog.mjs';
 import {contentManager} from '../application/content-manager.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {cardInfo,characterInfo} from '../domain/catalog.mjs';
 
-const input=scope=>({scope,revision:'same-version',characters:{hski:'花海咲季'},...(scope==='effects'?{tables:{ProduceCard:[{id:'test-card',upgradeCount:0,name:'测试技能',descriptions:[],definition:{}}]}}:{})});
+const input=scope=>({scope,revision:'same-version',characters:{hski:'花海咲季'},...(scope==='effects'?{abilityIcons:{examIcons:{ExamLesson:'img_lesson.webp'}},semantics:{tables:{ProduceDescriptionLabel:[{id:'test-label',text:'标签'}]}},tables:{ProduceEffect:[{id:'test-effect'}],ProduceCard:[{id:'test-card',upgradeCount:0,name:'测试技能',descriptions:[],definition:{}}]}}:{})});
 test('分包并发只取一次；成就晚返回不清空技能目录，装扮只依赖基础目录',async()=>{
   const original=contentManager.take,calls=[];let release;
   contentManager.take=async scope=>{calls.push(scope);return scope==='achievements'?new Promise(resolve=>{release=()=>resolve(input(scope));}):input(scope);};
@@ -13,8 +14,10 @@ test('分包并发只取一次；成就晚返回不清空技能目录，装扮�
     const achievements=loader.loadMaster('achievements');
     await Promise.all([loader.loadMaster('memories'),loader.loadMaster('memories')]);
     assert.equal(cardInfo({id:'test-card',upgradeCount:0,customizes:[]}).name,'测试技能');
+    assert.equal(effectCatalog().cards[0].id,'test-card');assert.ok(effectCatalog().effects.has('test-effect'));assert.ok(effectCatalog().labels.has('test-label'));assert.equal(effectCatalog().icons.examIcons.ExamLesson,'img_lesson.webp');
     release();await achievements;
     assert.equal(cardInfo({id:'test-card',upgradeCount:0,customizes:[]}).name,'测试技能');assert.equal(characterInfo('hski').name,'花海咲季');
+    assert.equal(effectCatalog().cards[0].id,'test-card');assert.ok(effectCatalog().effects.has('test-effect'));assert.ok(effectCatalog().labels.has('test-label'));
     assert.deepEqual(calls.sort(),['abilities','achievements','catalog','effects']);assert.ok(loader.masterReadyFor('achievements'));assert.ok(loader.masterReadyFor('memories'));assert.ok(!loader.masterReadyFor('supportCards'));
   }finally{contentManager.take=original;}
 });

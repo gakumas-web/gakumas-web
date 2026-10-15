@@ -10,7 +10,9 @@ export const CHOICE_GROUPS=[
     ['selection-grade-chips','selection-grade','selectionGrade',false,'selectionMemories'],
     ['memory-character-chips','character','character',true,'memories'],
     ['idol-plan-chips','idol-plan','idolPlan',false,'idolCards'],
+    ['idol-rarity-chips','idol-rarity','idolRarity',false,'idolCards'],
     ['support-plan-chips','support-plan','supportPlan',false,'supportCards'],
+    ['support-rarity-chips','support-rarity','supportRarity',false,'supportCards'],
     ['support-type-chips','support-type','supportType',false,'supportCards'],
     ['memory-plan-chips','plan','plan',false,'memories'],
     ['memory-grade-chips','memory-grade','memoryGrade',false,'memories'],
@@ -70,14 +72,14 @@ export function createViews(saved={}){
   }));
 }
 
-// 已选标签与清空操作共用字段范围；持有范围、稀有度和排序独立保留。
+// 已选标签与清空操作共用字段范围；持有范围和排序独立保留。
 const FILTER_FIELDS={
   seasonSimulation:[],
   achievements:['achievementCategory','achievementState','achievementReward'],
   memories:['character','memoryGrade','customTag','plan','skill','ability','memoryExamSkill','memoryExamItem','memoryExamSkillAll','memoryExamItemAll'],
   selectionMemories:['customTag','selectionCharacter','selectionPlan','selectionGrade','selectionSkill','selectionItem','selectionSkillAll','selectionItemAll'],
-  idolCards:['idolCharacter','idolPlan','idolEffect'],
-  supportCards:['supportCharacter','supportCharacterAll','supportType','supportPlan','supportPlanCommon','supportReward','supportSkills'],
+  idolCards:['idolCharacter','idolPlan','idolRarity','idolEffect'],
+  supportCards:['supportCharacter','supportCharacterAll','supportType','supportPlan','supportRarity','supportPlanCommon','supportReward','supportSkills'],
   idolCardSkins:['skinCharacter','skinTheme'],
 };
 export function activeFilterKeys(tab,view){

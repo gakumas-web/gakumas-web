@@ -152,7 +152,7 @@ export function renderFilterChoices(containerId,inputId,key,faces,v,onChange){
     button.setAttribute('aria-label',option.text);button.setAttribute('aria-pressed',String(active));
     if(faces&&option.value){characterAccent(button,option.value);const face=illustration(characterInfo(option.value).face,option.text,'filter-face');face.setAttribute('aria-hidden','true');button.append(face);}
     if(!faces){const symbol=filterSymbol(['plan','selection-plan'].includes(inputId)?({2:'Plan1',3:'Plan2',4:'Plan3'}[option.value]):option.value);if(symbol)button.append(symbol);}
-    button.append(el('span',option.text));
+    if(!['idolRarity','supportRarity'].includes(key)||!option.value)button.append(el('span',option.text));
     const check=el('span',active?'✓':'','choice-check');check.setAttribute('aria-hidden','true');button.append(check);
     button.onclick=()=>onChange(key,nextChoice(v[key],option.value));
     container.append(button);

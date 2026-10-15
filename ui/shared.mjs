@@ -8,12 +8,12 @@ const statFields = [['vocal', 'Vo'], ['dance', 'Da'], ['visual', 'Vi'], ['stamin
 export function accountIdentity(id,suffix=''){
   const label=value=>suffix?`${value} ${suffix}`:value;
   if(isPreviewAccount(id)){const row=el('div','','account-identity');row.append(el('strong',label(t('预览账号'))),el('span',t('演示数据'),'small muted'));return row;}
-  const row=el('div','','account-identity'),value=el('code',label(maskedAccountId(id))),toggle=el('button',t('显示账号'),'account-visibility');
+  const row=el('div','','account-identity'),value=el('code',label(maskedAccountId(id))),toggle=el('button',t('显示账号 ID'),'account-visibility');
   let revealed=false;
   toggle.setAttribute('aria-pressed','false');
   toggle.onclick=()=>{
     revealed=!revealed;value.textContent=label(revealed?id:maskedAccountId(id));
-    toggle.textContent=t(revealed?'隐藏账号':'显示账号');toggle.setAttribute('aria-pressed',String(revealed));
+    toggle.textContent=t(revealed?'隐藏账号 ID':'显示账号 ID');toggle.setAttribute('aria-pressed',String(revealed));
   };
   row.append(value,toggle);return row;
 }

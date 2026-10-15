@@ -8,6 +8,18 @@ from playwright.sync_api import sync_playwright,expect
 from browser_static import fixtures,ROOT
 
 
+
+def check_icon_navigation(page,group):
+    buttons=group.locator('button:visible');initial=group.locator('[aria-checked=true]').get_attribute('data-value')
+    buttons.first.focus()
+    for key,last in [('End',True),('ArrowRight',False),('ArrowLeft',True),('Home',False)]:
+        page.keyboard.press(key);target=buttons.last if last else buttons.first
+        expect(target).to_be_focused();expect(target).to_have_attribute('aria-checked','true')
+        expect(group.locator('button:visible[tabindex="0"]')).to_have_count(1)
+        expect(group.locator('button[hidden][tabindex="0"]')).to_have_count(0)
+    group.locator(f'button[data-value="{initial}"]').click()
+
+
 def check(url='http://127.0.0.1:8080/'):
     with TemporaryDirectory(dir=ROOT/'local',prefix='choice-icons-') as temporary,sync_playwright() as p:
         browser=p.chromium.launch();page=browser.new_page(viewport={'width':1280,'height':1000});errors=[];uploads=[]
@@ -35,6 +47,7 @@ def check(url='http://127.0.0.1:8080/'):
             if page.locator('#filter-toggle').get_attribute('aria-expanded')=='false':page.locator('#filter-toggle').click()
             page.locator('#'+opener).click();expect(page.locator('#selection-picker')).to_be_visible()
             assert page.locator('.selection-choice-icon-filters [role="radiogroup"]').count()==3
+            for group in page.locator('.selection-choice-icon-filters [role=radiogroup]').all():check_icon_navigation(page,group)
             assert page.locator('.selection-picker-filters select:visible, #contest-loadout-enhanced, #contest-loadout-owned').count()==0
             if kind=='card':
                 expect(page.locator('#selection-picker-show-n')).not_to_be_checked();expect(page.locator('#selection-picker-rarity-icons [data-value="N"]')).not_to_be_visible()

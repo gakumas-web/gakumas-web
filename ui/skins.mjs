@@ -12,6 +12,7 @@ function skinArtwork(held,info,options,kind){
   const {idolHeld,getArt=()=>undefined,onArt=()=>{}}=options;
   const variants=info.hasIdolArt?idolArtVariants({...idolHeld,idolCardId:info.idolCardId,idolCardSkinId:''}):[];
   const image=el('div'),label=el('label','','idol-card-art-options'),toggle=el('input');
+  if(info.hasIdolArt)image.dataset.skinArtId=info.idolCardId;
   let selected=getArt()??((idolHeld?.levelLimitRank??0)>=3?'upgraded':'base');
   toggle.type='checkbox';toggle.setAttribute('role','switch');toggle.setAttribute('aria-label',t('特训后卡面'));
   label.append(toggle,el('span',t('特训后卡面')));
@@ -19,7 +20,12 @@ function skinArtwork(held,info,options,kind){
     const art=variants.find(value=>value.id===selected)??variants[0];
     image.replaceChildren(illustration(art?.image??info.image,`${info.character} · ${info.name}`,kind,{characterId:info.characterId,fullResolution:true}));toggle.checked=art?.id==='upgraded';
   }
-  toggle.onchange=()=>{selected=toggle.checked?'upgraded':'base';draw();onArt(selected);};draw();
+  image.addEventListener('skin-art-change',event=>{if(selected!==event.detail){selected=event.detail;draw();}});
+  toggle.onchange=()=>{
+    selected=toggle.checked?'upgraded':'base';draw();onArt(selected);
+    // 只同步同一卡片的列表与详情，保留其它装扮的图片节点和开关焦点。
+    for(const target of document.querySelectorAll('[data-skin-art-id]'))if(target!==image&&target.dataset.skinArtId===info.idolCardId)target.dispatchEvent(new CustomEvent('skin-art-change',{detail:selected}));
+  };draw();
   return {image,control:variants.some(art=>art.id==='upgraded')?label:null};
 }
 export function skinEntry({held,info},options={}){

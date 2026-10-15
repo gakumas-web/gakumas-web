@@ -1,5 +1,6 @@
 """通过内置预览验证模拟附魔加减、次数上限、取消与应用。"""
 from browser_artifacts import artifact_path
+from browser_choice_icon_filters import check_icon_navigation
 from browser_simulation_helpers import select_season
 from playwright.sync_api import sync_playwright, expect
 
@@ -10,17 +11,27 @@ def check(url):
         page.on('pageerror',lambda error:errors.append(str(error)))
         page.on('request',lambda request:uploads.append(request.url) if request.post_data else None)
         page.goto(url,wait_until='networkidle');page.locator('#data-open').click();page.locator('#enable-preview-account').click();expect(page.locator('#inventory')).to_be_visible(timeout=60000)
-        page.locator('#season-simulation-open').click();select_season(page,'contest:pvp_rate_config-53');page.locator('[data-stage-id="contest:pvp_rate_config-53:0"]').click();page.get_by_role('tab',name='自选编组模拟',exact=True).click();page.locator('.season-memory-slot-pick').first.click();page.locator('.contest-memory-option').first.locator('.contest-memory-choose').click();page.locator('[data-customize-memory="0"]').click()
+        page.locator('#season-simulation-open').click();select_season(page,'contest:pvp_rate_config-53');page.locator('[data-stage-id="contest:pvp_rate_config-53:0"]').click();page.locator('[data-mode=selected]').click();page.locator('.season-memory-slot-pick').first.click();page.locator('.contest-memory-option').first.locator('.contest-memory-choose').click();page.locator('[data-customize-memory="0"]').click()
         board=page.locator('[data-memory-index="0"]');before=board.locator('[data-config-id]').evaluate_all('(nodes)=>nodes.map(e=>[e.dataset.configId,e.textContent])')
         def open_editor():
             board.locator('[data-edit-card="2"]').click();expect(page.locator('#contest-loadout-editor')).to_be_visible();page.locator('#contest-loadout-owned').uncheck()
         open_editor();page.locator('#contest-loadout-enhanced').check()
+        radios=page.locator('.contest-loadout-groups [role=radio]')
+        expect(page.locator('.contest-loadout-groups')).to_have_attribute('role','radiogroup')
+        expect(page.locator('.contest-loadout-choice input')).to_have_count(0)
+        expect(radios.locator('xpath=..').locator('button[tabindex="0"]')).to_have_count(1)
+        first=radios.first;first.focus();page.keyboard.press('ArrowRight');expect(radios.nth(1)).to_be_focused();expect(radios.nth(1)).to_have_attribute('aria-checked','true')
+        page.keyboard.press('ArrowLeft');expect(first).to_be_focused();expect(first).to_have_attribute('aria-checked','true')
+        expect(page.locator('.contest-loadout-groups [aria-checked=true]')).to_have_count(1)
+        page.keyboard.press('End');expect(radios.last).to_be_focused();expect(radios.last).to_have_attribute('aria-checked','true')
+        page.keyboard.press('ArrowRight');expect(first).to_be_focused();page.keyboard.press('Home');expect(first).to_have_attribute('tabindex','0')
+        for group in page.locator('.contest-loadout-filters [role=radiogroup]').all():check_icon_navigation(page,group)
         candidate=page.evaluate('''async()=>{const {cardCustomizations,supportSkillVisual}=await import('./domain/catalog.mjs');return [...document.querySelectorAll('.contest-loadout-choice[data-choice-kind="cards"]')].map(node=>({id:node.dataset.choiceId,data:cardCustomizations({id:node.dataset.choiceId,upgradeCount:1,customizes:[]})})).find(row=>row.data?.maximum>1&&row.data.options.length>1&&row.data.options.every(option=>option.levels[0]?.level===1)&&['damage','block'].some(key=>JSON.stringify(supportSkillVisual({id:row.id,upgradeCount:1,customizes:[]})[key])!==JSON.stringify(supportSkillVisual({id:row.id,upgradeCount:1,customizes:[{id:row.data.options[0].id,customizeCount:1}]})[key])));}''')
         assert candidate
-        def select():page.locator(f'.contest-loadout-choice[data-choice-id="{candidate["id"]}"] > input').check()
+        def select():page.locator(f'.contest-loadout-choice[data-choice-id="{candidate["id"]}"] [role="radio"]').click()
         select();panel=page.locator('.contest-inline-customizer')
         expect(panel.locator('.contest-customizer-stepper')).to_have_count(len(candidate['data']['options']))
-        assert panel.locator('input[type=checkbox]').count()==0
+        assert panel.locator('input').count()==0
         for _ in range(candidate['data']['maximum']):
             available=panel.locator('[data-step="1"]:enabled')
             if not available.count():break
@@ -28,7 +39,7 @@ def check(url):
         values=list(map(int,panel.locator('output').all_text_contents()));assert sum(values)==candidate['data']['maximum'];assert panel.locator('[data-step="1"]:enabled').count()==0
         panel.locator('[data-step="-1"]:enabled').first.click();assert sum(map(int,panel.locator('output').all_text_contents()))==sum(values)-1
         assert page.locator('.contest-clear-customizations,.contest-customizer-header').count()==0
-        page.locator(f'.contest-loadout-choice:not([data-choice-id="{candidate["id"]}"]) > input').first.check();select();assert all(value=='0' for value in panel.locator('output').all_text_contents());assert panel.locator('[data-step="-1"]:enabled').count()==0
+        page.locator(f'.contest-loadout-choice:not([data-choice-id="{candidate["id"]}"]) [role="radio"]').first.click();select();assert all(value=='0' for value in panel.locator('output').all_text_contents());assert panel.locator('[data-step="-1"]:enabled').count()==0
         panel.locator('[data-step="1"]:enabled').first.click()
         art=page.locator(f'.contest-loadout-choice[data-choice-id="{candidate["id"]}"] .contest-loadout-art');expect(art.locator('.selection-custom-count')).to_have_text('1');art.hover();popup=page.locator('#'+art.get_attribute('aria-controls'));expect(popup.locator('.support-skill-description')).to_be_visible();assert popup.locator('input,.contest-customizer-stepper').count()==0;expect(page.locator('.contest-selected-card .selection-custom-count')).to_have_text('1')
         # 已构建的浮层、候选缩略图和当前预览必须随附魔加减一起更新。
@@ -36,6 +47,13 @@ def check(url):
             expected=page.evaluate('''async id=>{const {skillThumbnailFor}=await import('./ui/illustrations.mjs');const customizes=[...document.querySelectorAll('.contest-customizer-stepper')].map(row=>({id:row.dataset.customizeId,customizeCount:Number(row.querySelector('output').value)})).filter(row=>row.customizeCount);const node=skillThumbnailFor({id,upgradeCount:1,customizes});return ['.support-skill-damage','.support-skill-block'].map(selector=>node.querySelector(selector)?.textContent??null);}''',candidate['id'])
             for locator in [art,page.locator('.contest-selected-card'),popup.locator('.support-skill-artwork')]:
                 assert locator.evaluate("node=>['.support-skill-damage','.support-skill-block'].map(selector=>node.querySelector(selector)?.textContent??null)")==expected
+            count=sum(map(int,panel.locator('output').all_text_contents()))
+            for target in [art,page.locator('.contest-selected-card')]:
+                badge=target.locator(':scope > .selection-custom-count')
+                expect(target).to_have_accessible_description(f'附魔次数：{count}' if count else '')
+                if count:
+                    expect(badge).to_have_count(1);expect(badge).to_have_text(str(count));expect(badge).to_have_attribute('aria-label',f'附魔次数：{count}')
+                else:expect(badge).to_have_count(0)
             return expected
         changed=check_linked_values();panel.locator('[data-step="-1"]:enabled').first.click();plain=check_linked_values();assert changed!=plain
         panel.locator('[data-step="1"]:enabled').first.click();assert check_linked_values()==changed
@@ -52,6 +70,9 @@ def check(url):
         page.evaluate('''async id=>{const {contestCustomizationCatalog}=await import('./domain/catalog.mjs'),{openContestLoadoutEditor}=await import('./ui/contest-loadout-editor.mjs'),{prepareSnapshot}=await import('./domain/model.mjs');const data=await(await fetch('./resources/preview-account.json')).json(),snapshot=await prepareSnapshot(data.documents.find(d=>d.source==='user_get'));const memory=snapshot.memories.find(m=>m.key===document.querySelector('[data-memory-index="0"] .season-memory-board').dataset.memoryKey);window.linkedOriginal={id,upgradeCount:0,customizes:[]};openContestLoadoutEditor({catalog:contestCustomizationCatalog(),memory,memoryIndex:0,slotIndex:2,current:window.linkedOriginal,onApply:value=>window.linkedApplied=value});}''',candidate['id'])
         expect(page.locator('#contest-loadout-enhanced')).not_to_be_checked();page.locator('.contest-loadout-footer .primary').click()
         assert page.evaluate('JSON.stringify(window.linkedOriginal)===JSON.stringify(window.linkedApplied)')
+        page.locator('.contest-card-conversions-open').click()
+        check_icon_navigation(page,page.locator('#contest-conversion-plan'))
+        page.locator('#contest-card-conversion-dialog .dialog-head button').click()
         assert not errors and not uploads,(errors,uploads);browser.close()
     print('附魔短名称、加减与上限、换卡清空、强化重置、取消隔离、应用及桌面/窄屏布局验证通过。')
 

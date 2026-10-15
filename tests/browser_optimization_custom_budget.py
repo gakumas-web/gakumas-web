@@ -47,7 +47,7 @@ def check(url):
         expect(panel.locator('.optimization-custom-budget')).not_to_be_visible()
         presets=page.evaluate("async()=> (await import('./application/contest-optimization-client.mjs')).OPTIMIZATION_BUDGETS")
         strength.select_option('deep');expect(advanced.locator('summary')).to_contain_text('极致')
-        strength.select_option('custom');expect(inputs).to_have_count(12)
+        strength.select_option('custom');expect(inputs).to_have_count(13)
         for key,value in presets['deep'].items():expect(panel.locator(f'[data-optimization-budget="{key}"]')).to_have_value(str(value))
         error=panel.locator('#optimization-budget-error');start=panel.locator('.optimization-start')
         for field,value in [('population',''),('samples','10001'),('generations','1.5'),('polishRounds','-1')]:
@@ -61,6 +61,12 @@ def check(url):
         budget={'population':4,'generations':2,'samples':2,'polishParents':1,'polishNeighbors':2,'polishRounds':1,'polishRuns':2,'reviewCandidates':3,'screenRuns':3,'reviewRuns':4,'finalCandidates':2,'finalRuns':5}
         for key,value in budget.items():panel.locator(f'[data-optimization-budget="{key}"]').fill(str(value))
         expect(error).not_to_be_visible();expect(start).to_be_enabled()
+        # 单项合法的组合仍可能超出产品上限，必须在启动前拒绝。
+        for key,value in {'population':256,'generations':128,'samples':100}.items():panel.locator(f'[data-optimization-budget="{key}"]').fill(str(value))
+        expect(error).to_contain_text('超过单次任务允许');expect(start).to_be_disabled()
+        for key in ['population','generations','samples']:panel.locator(f'[data-optimization-budget="{key}"]').fill(str(budget[key]))
+        limit=panel.locator('[data-optimization-budget="totalRunLimit"]');limit.fill('1')
+        expect(error).to_contain_text('至少需要 30 次');expect(start).to_be_disabled();limit.fill('250000')
         panel.locator('[data-optimization-budget="finalCandidates"]').fill('4')
         expect(error).to_have_text('最终编组数不能超过候选编组数。')
         panel.locator('[data-optimization-budget="finalCandidates"]').fill('2')
@@ -82,6 +88,20 @@ def check(url):
         assert any(row['runs']==3 for row in batches),batches
         assert len(finals)==2 and all(row['runs']==5 for row in finals),finals
         page.wait_for_function('activeOptimizationWorkers===0',timeout=15000)
+        # 小额度走正式控制器，须保留复评、标明提前结束并回收 Worker。
+        limit.fill('34');expect(panel.locator('.optimization-budget-limit-note').first).to_be_visible();start.click()
+        expect(panel.locator('.optimization-output .optimization-budget-limit-note')).to_contain_text('提前结束探索',timeout=60000)
+        summary=panel.locator('.optimization-summary').inner_text()
+        import re
+        assert int(re.search(r'共 (\d+) 次模拟',summary).group(1))<=34,summary
+        page.wait_for_function('activeOptimizationWorkers===0',timeout=15000)
+        previous=panel.locator('.optimization-output').inner_text()
+        limit.fill('250000');panel.locator('[data-optimization-budget="generations"]').fill('128')
+        start.click();panel.locator('.optimization-stop').click()
+        expect(panel.locator('.optimization-status')).to_have_text('搜索已停止，保留上次完成结果。')
+        assert panel.locator('.optimization-output').inner_text()==previous
+        page.wait_for_function('activeOptimizationWorkers===0',timeout=15000)
+        panel.locator('[data-optimization-budget="generations"]').fill(str(budget['generations']))
         # 舞台重绘会重建配置表单，自定义数值应随当前配置一起保留。
         other=page.locator(f'.season-stage-tab:not([data-stage-id="{setup["stageId"]}"])').first
         other.click();page.locator(f'.season-stage-tab[data-stage-id="{setup["stageId"]}"]').click()

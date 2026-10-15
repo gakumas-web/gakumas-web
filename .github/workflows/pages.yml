@@ -18,6 +18,24 @@ on:
         description: '同时公开发布已验证的 Windows 便携版 Release'
         type: boolean
         default: false
+  workflow_call:
+    inputs:
+      content_source_artifact:
+        description: '本轮已固定并校验的公共资料引用制品'
+        type: string
+        required: true
+      reuse_run_id:
+        type: string
+        default: ''
+      preview_account:
+        type: boolean
+        default: true
+      publish:
+        type: boolean
+        default: true
+      publish_portable:
+        type: boolean
+        default: false
 permissions:
   contents: read
   actions: read
@@ -58,11 +76,20 @@ jobs:
         run: |
           [[ "$REUSE_RUN_ID" =~ ^[0-9]+$ ]] || exit 1
           gh run download "$REUSE_RUN_ID" --repo "$GITHUB_REPOSITORY" --name portable-site --dir dist
+      - name: 读取自动更新固定引用
+        if: inputs.reuse_run_id == '' && inputs.content_source_artifact != ''
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ inputs.content_source_artifact }}
+          path: local/content-source
+      - name: 固定本次手动构建的内容引用
+        if: inputs.reuse_run_id == '' && inputs.content_source_artifact == ''
+        run: python -B tools/sync_content.py --allow-bootstrap
       - name: 计算图片缓存身份
         if: inputs.reuse_run_id == ''
         id: image-key
         run: |
-          pages_image_key="$(python -B tools/build_pages.py --cache-key)"
+          pages_image_key="$(python -B tools/build_pages.py --source local/content-source/pages-source.json --cache-key)"
           echo "key=$pages_image_key" >> "$GITHUB_OUTPUT"
       - name: 恢复图片构建缓存
         if: inputs.reuse_run_id == ''
@@ -80,9 +107,9 @@ jobs:
           ENABLE_PREVIEW_ACCOUNT: ${{ inputs.preview_account }}
         run: |
           if [ "$ENABLE_PREVIEW_ACCOUNT" = "true" ]; then
-            python -B tools/build_pages.py --image-cache local/pages-image-cache --preview-account
+            python -B tools/build_pages.py --source local/content-source/pages-source.json --image-cache local/pages-image-cache --preview-account
           else
-            python -B tools/build_pages.py --image-cache local/pages-image-cache --no-preview-account
+            python -B tools/build_pages.py --source local/content-source/pages-source.json --image-cache local/pages-image-cache --no-preview-account
           fi
       - name: 保存新生成的图片缓存
         if: steps.site.outputs.cache_saved == 'true'
@@ -91,6 +118,41 @@ jobs:
         with:
           path: local/pages-image-cache/${{ steps.image-key.outputs.key }}
           key: ${{ steps.image-key.outputs.key }}-${{ github.run_id }}-${{ github.run_attempt }}
+      - name: 准备固定版本的引擎打包器
+        if: inputs.reuse_run_id == ''
+        run: |
+          python -m pip install PyYAML==6.0.3
+          npm install --prefix local/engine-tools --no-save --ignore-scripts esbuild@0.28.1
+      - name: 核对并应用引擎追加数据
+        if: inputs.reuse_run_id == ''
+        id: engine-update
+        run: |
+          if [ -f local/content-source/engine-update.json ]; then
+            python -B tools/update_contest_engine.py --site dist --esbuild local/engine-tools/node_modules/.bin/esbuild --plan local/content-source/engine-update.json --apply
+          else
+            python -B tools/update_contest_engine.py --site dist --esbuild local/engine-tools/node_modules/.bin/esbuild --apply
+          fi
+      - name: 用通过校验的引擎重建站点
+        if: steps.engine-update.outputs.updated == 'true'
+        env:
+          ENABLE_PREVIEW_ACCOUNT: ${{ inputs.preview_account }}
+        run: |
+          if [ "$ENABLE_PREVIEW_ACCOUNT" = "true" ]; then
+            python -B tools/build_pages.py --source local/content-source/pages-source.json --image-cache local/pages-image-cache --preview-account
+          else
+            python -B tools/build_pages.py --source local/content-source/pages-source.json --image-cache local/pages-image-cache --no-preview-account
+          fi
+      - name: 保存引擎候选与固定来源
+        if: always() && inputs.reuse_run_id == ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: engine-update
+          path: |
+            local/engine-update/*.json
+            local/engine-update/candidate/tools/contest-*.json
+            local/engine-update/candidate/domain/contest-engine-map.mjs
+            local/engine-update/candidate/domain/upstream-contest-engine.mjs
+          if-no-files-found: ignore
       - name: 核对站点制品身份
         id: site-identity
         env:
@@ -201,6 +263,21 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: 读取自动更新固定引用
+        if: inputs.content_source_artifact != ''
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ inputs.content_source_artifact }}
+          path: local/content-source
+      - name: 拒绝被新版本取代的自动发布
+        if: inputs.content_source_artifact != ''
+        run: python -B tools/sync_content.py --verify-current local/content-source/pages-source.json
       - name: 发布
         id: deployment
         uses: actions/deploy-pages@v4

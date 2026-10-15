@@ -96,6 +96,27 @@ def check(browser_path=None):
                 page.wait_for_function("()=>[detachedIcon,clonedIcon,lateIcon].every(i=>i.src.startsWith('blob:')&&i.complete&&i.naturalWidth===1&&!i.hidden)&&detachedSvg.firstChild.getAttribute('href').startsWith('blob:')")
                 page.evaluate('()=>{for(const node of [detachedIcon,clonedIcon,lateIcon,detachedSvg])node.remove()}')
                 assert len(requested)==1 and requested[0].startswith('/release/one/')
+                # 在不启动应用的独立页面核对资源导入无 DOM 副作用，以及适配器完整释放。
+                probe=context.new_page();probe.on('pageerror',lambda error:errors.append(str(error)))
+                probe.route('**/resource-bridge-probe',lambda route:route.fulfill(content_type='text/html',body='<!doctype html><title>Resource bridge</title>'))
+                probe.goto(url+'resource-bridge-probe')
+                probe.evaluate("""async index=>{
+                    window.bridgeObservers=[];const NativeObserver=MutationObserver;
+                    window.MutationObserver=class extends NativeObserver{constructor(...args){super(...args);window.bridgeObservers.push(this);}disconnect(){this.ended=true;super.disconnect();}};
+                    const resources=await import('./resources.mjs');if(bridgeObservers.length!==0)throw Error('资源导入启动了 DOM 观察器');
+                    const manager=resources.imageManager;window.bridgeAvailable=0;window.bridgeStatus=0;
+                    for(const [method,key] of [['onAvailable','bridgeAvailable'],['subscribe','bridgeStatus']]){const original=manager[method];manager[method]=(...args)=>{window[key]++;const unsubscribe=original(...args);return()=>{window[key]--;unsubscribe();};};}
+                    const {mountResourceImages}=await import('./ui/resource-images.mjs');window.disposeBridge=mountResourceImages();window.ownedBridgeObserver=bridgeObservers.at(-1);
+                    window.pendingURL=resources.appURL('ui-icons/unavailable.svg')+'#resource='+encodeURIComponent('ui-icons/first.png');
+                    window.bridgeImage=new Image();bridgeImage.hidden=true;bridgeImage.src=pendingURL;document.body.append(bridgeImage);
+                    await resources.installContentResources(index);await manager.request(['ui-icons/first.png']);
+                }""",index('one'))
+                probe.wait_for_function('bridgeImage.src.startsWith("blob:")&&bridgeImage.complete&&bridgeImage.naturalWidth===1&&!bridgeImage.hidden')
+                assert probe.evaluate('[!ownedBridgeObserver.ended,bridgeAvailable,bridgeStatus]')==[True,1,1]
+                probe.evaluate('disposeBridge();disposeBridge();window.afterDispose=new Image();afterDispose.src=pendingURL;document.body.append(afterDispose)')
+                probe.evaluate('()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)))')
+                assert probe.evaluate('[ownedBridgeObserver.ended,bridgeAvailable,bridgeStatus]')==[True,0,0]
+                assert probe.evaluate('afterDispose.src===pendingURL');probe.close()
                 page.reload(wait_until='networkidle');page.locator('#resources-open').click();ready(page);assert len(requested)==1
                 update(page,'two');assert len(requested)==2 and requested[-1].startswith('/cdn/objects/')
                 assert show_image(page,'second.png')['width']==1
@@ -107,10 +128,10 @@ def check(browser_path=None):
                 install(site,root/'locks-multi/content-lock.json',asset_lock=root/'locks-multi/asset-lock.json')
                 second_path=urlsplit(index('multi')['baseline']['packages'][1]['url']).path;blocked.add(second_path)
                 retry_context=browser.new_context();retry_page=retry_context.new_page();retry_page.goto(url,wait_until='networkidle');retry_page.locator('#resources-open').click()
-                expect(retry_page.locator('#image-retry')).to_be_visible(timeout=20000)
+                expect(retry_page.locator('#resource-retry')).to_be_visible(timeout=20000)
                 retry_page.evaluate("""async()=>{const {uiIconURL}=await import('./resources.mjs');const {watchImage}=await import('./ui/image-loading.mjs');const image=new Image();image.id='failed-image-probe';watchImage(image,()=>{image.dataset.ready='true';},()=>{image.dataset.failed='true';});image.src=uiIconURL('second.png');document.body.append(image);}""")
                 expect(retry_page.locator('#failed-image-probe')).to_have_attribute('data-failed','true')
-                before=len(requested);blocked.clear();retry_page.locator('#image-retry').click();retry_page.wait_for_load_state('networkidle')
+                before=len(requested);blocked.clear();retry_page.locator('#resource-retry').click();retry_page.wait_for_load_state('networkidle')
                 ready(retry_page)
                 expect(retry_page.locator('#failed-image-probe')).to_have_attribute('data-ready','true')
                 assert requested[before:]==[second_path]

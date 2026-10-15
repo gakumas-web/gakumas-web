@@ -10,7 +10,7 @@ def check(url):
   expect(page.locator('.optimization-fields')).to_be_enabled(timeout=30000);expect(page.locator('.optimization-pool-audit')).to_have_count(0);assert page.evaluate('auditChecks')>0
   metadata=page.evaluate("async()=>{const {contestEngineMap}=await import('./domain/contest-engine-map.mjs');return contestEngineMap.source}")
   credit=page.locator(f'a[href="https://github.com/{metadata["repository"]}/commit/{metadata["commit"]}"]');expect(credit).to_contain_text(metadata['commit'][:7]);expect(credit).to_have_attribute('title',metadata['commit'])
-  code=page.evaluate("""async()=>{const {startContestOptimization}=await import('./application/contest-optimization-client.mjs');const input={probes:[{key:'item:synthetic-missing-fixed',kind:'item',entry:{id:'synthetic-missing-fixed',record:null}}],fixedProbes:['item:synthetic-missing-fixed']};try{await startContestOptimization({input,stage:{}},{budget:{population:1}}).promise;return 'unexpected-success';}catch(error){return error.code;}}""")
+  code=page.evaluate("""async()=>{const {startContestOptimization,OPTIMIZATION_BUDGETS}=await import('./application/contest-optimization-client.mjs');const input={probes:[{key:'item:synthetic-missing-fixed',kind:'item',entry:{id:'synthetic-missing-fixed',record:null}}],fixedProbes:['item:synthetic-missing-fixed']};try{await startContestOptimization({input,stage:{}},{budget:{...OPTIMIZATION_BUDGETS.standard,population:1}}).promise;return 'unexpected-success';}catch(error){return error.code;}}""")
   assert code=='optimization_unsupported_fixed' and page.evaluate('auditScores')==0
   assert not errors,errors;browser.close()
  print('候选池前置检查、固定道具零评分失败和锁定引擎提交署名通过。')

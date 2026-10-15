@@ -1,6 +1,6 @@
 {
   "repository": "gakumas-tools/gakumas-tools",
-  "commit": "58c7148cb1d097b78f66faa4a9ab6d5212f083b7",
+  "commit": "1b55572fa82979264edb744e287b5c55213c9ef3",
   "files": {
     "LICENSE": "08053f49a20b921dfa1b6f10e0b6d88d374fb93d93bd5477bfa23c4fb4a53523",
     "packages/gakumas-data/data/customizations.js": "a582c1028719663a88ac95f0e9b89dad46a8f41b94ea97ecfd8d3a00e01a94e0",
@@ -15,10 +15,10 @@
     "packages/gakumas-data/json/customizations.json": "54deb7d19eb305b18d5e7e7f359afa922aa8ecc8b2e595e280f43dffb381ee60",
     "packages/gakumas-data/json/idols.json": "c14ce8e4310e366a3bf751a4f11b857ad4be775c689fd40db3deb3a77285b26e",
     "packages/gakumas-data/json/p_drinks.json": "2cf514aee1d5bf563c4536f631d41d3b657215aea3290ade26b5832664490410",
-    "packages/gakumas-data/json/p_idols.json": "8cdb76c78fca447d4ef172960ca400783da5b244a7152a262328b522acefb355",
-    "packages/gakumas-data/json/p_items.json": "57ce941a2b42fe756c442b40006c6096f87a8b9673eb6410e6a8a440591e3ad4",
-    "packages/gakumas-data/json/skill_cards.json": "d87898fac44ec32da9264ee507667728a30211b7df8d29dff69d22914b1989fd",
-    "packages/gakumas-data/json/stages.json": "d2ff1b5a9512d6a79d3d324825c6c24d03c7a4ee30ca43d6f2578cd70096144a",
+    "packages/gakumas-data/json/p_idols.json": "7880f93e8f730e876429eb0eb8c6db99f52bf4cfde2ed125a97c632a9962e921",
+    "packages/gakumas-data/json/p_items.json": "0df439b40fdaf2da190cd376eb5cbf546289b406082a98bdad4ee6734937331d",
+    "packages/gakumas-data/json/skill_cards.json": "011c45e47138204d56fa7f315e366718d2b47e1878044c73014dc406f378aead",
+    "packages/gakumas-data/json/stages.json": "1a85635c5c47117967eb4aaaec66452c1c2351f16c9c89e0e309df9cf6c44def",
     "packages/gakumas-data/package.json": "c90de2d4383c3d80df0e8fd0c9873f86121aa5267d03b9e36b6db8954a98520d",
     "packages/gakumas-data/utils/contestPower.js": "57687d7f0d2a35773cc3bed7eb5c5cca0f5953b67d87bbbefdbabb00958ad1cd",
     "packages/gakumas-data/utils/effects.js": "a66b55a93d73a21f6a82802554eef5a535f047cdca949902a257fd448ef84ef8",

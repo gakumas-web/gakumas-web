@@ -146,3 +146,16 @@ test('生成的眠気保留卡面引用，逐回合手牌选择和分组状态�
     }
   }
 });
+
+test('Agitato 咲季普通和强化专属卡及道具通过正式校验并完成比赛',async()=>{
+  const additions=JSON.parse(fs.readFileSync(new URL('./fixtures/public-data/agitato-saki.json',import.meta.url)));
+  for(const upgrade of [0,1]){
+    const request=structuredClone(fixture.requests.find(row=>row.plan==='logic'));
+    request.cards[0]=additions.cards[upgrade];request.items=[additions.items[upgrade]];
+    const prepared=await prepareContestSimulation(request);
+    assert.ok(prepared.idol.cards.some(card=>card.id===887+upgrade));
+    const result=await runContestSimulation(request,{runs:3,seed:42});
+    assert.equal(result.runs,3);assert.ok(result.scores.every(Number.isFinite));
+    assert.ok(result.representative.turns.some(turn=>turn.cards.some(name=>name.includes('スイートトラップ'))));
+  }
+});

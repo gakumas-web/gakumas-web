@@ -77,13 +77,13 @@ export function deckArt(memory, compact = false, {renderItem} = {}) {
   return groups;
 }
 export function filterSymbol(value){
-  const icons={Common:'plan-common',Plan1:'plan1',Plan2:'plan2',Plan3:'plan3',
+  const icons={R:'rarity-r',SR:'rarity-sr',SSR:'rarity-ssr',Common:'plan-common',Plan1:'plan1',Plan2:'plan2',Plan3:'plan3',
     Vocal:'vocal',Dance:'dance',Visual:'visual',Assist:'assist',vocal:'vocal',dance:'dance',visual:'visual',
     ProduceExamEffectType_ExamParameterBuff:'examparameterbuff',ProduceExamEffectType_ExamReview:'examreview',
     ProduceExamEffectType_ExamLessonBuff:'examlessonbuff',ProduceExamEffectType_ExamConcentration:'examconcentration',
     ProduceExamEffectType_ExamFullPower:'examfullpower',ProduceExamEffectType_ExamCardPlayAggressive:'examcardplayaggressive'};
   const name=icons[value];if(!name)return null;
-  const frame=node('span','','filter-symbol'+(name.startsWith('exam')?' exam-symbol':''));frame.setAttribute('aria-hidden','true');
+  const frame=node('span','','filter-symbol'+(name.startsWith('exam')?' exam-symbol':name.startsWith('rarity-')?' rarity-symbol':''));frame.setAttribute('aria-hidden','true');
   const image=document.createElement('img');image.alt='';image.src=uiIconURL(name==='plan-common'?'plan-common.png':`${name}.webp`);image.width=24;image.height=24;
   watchImage(image);frame.append(image);return frame;
 }
@@ -110,7 +110,7 @@ function skillCosts(visual){
     const chip=el('span','','support-skill-cost');chip.dataset.costKind=cost.kind;
     chip.setAttribute('aria-label',`${cost.label} ${cost.value}`);
     if(cost.kind==='status')chip.append(skillImage(uiIconURL('skill-cost-status-bg.webp'),'cost-background'));
-    if(cost.icon)chip.append(skillImage(cost.icon,'cost-symbol')); 
+    if(cost.icon)chip.append(skillImage(cost.kind==='status'?assetURL(cost.icon):uiIconURL(cost.icon),'cost-symbol'));
     chip.append(el('b',cost.value?`−${cost.value}`:'0'));costs.append(chip);
   }
   return costs;

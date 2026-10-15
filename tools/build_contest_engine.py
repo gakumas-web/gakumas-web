@@ -10,7 +10,7 @@ import unicodedata
 from contest_status_effects import effect_change,EVIDENCE_PATH,EVIDENCE
 
 ROOT=Path(__file__).resolve().parents[1]
-COMMIT='58c7148cb1d097b78f66faa4a9ab6d5212f083b7'
+COMMIT=json.loads((ROOT/'tools/contest-engine-source.json').read_text())['commit']
 PLANS={'ProducePlanType_Common':'free','ProducePlanType_Plan1':'sense','ProducePlanType_Plan2':'logic','ProducePlanType_Plan3':'anomaly'}
 
 def canonical(value):return json.dumps(value,ensure_ascii=False,sort_keys=True,separators=(',',':'))

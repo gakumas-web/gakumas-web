@@ -29,8 +29,9 @@ export function loadoutPreview(loadout,conversionRules){
   return preview;
 }
 
-export function createContestLoadoutLibrary({profile,getCurrent,onRestore,onChange}){
+export function createContestLoadoutLibrary({profile,lifecycleId,getCurrent,onRestore,onChange}){
   const element=el('div','','season-loadout-actions'),open=el('button',t('读取回忆编组'),'season-loadout-library-open'),save=el('button',t('保存编组'),'season-loadout-save');element.append(open,save);
+  element.append(el('span',t('仅保存到当前浏览器，不包含在账号数据包中。'),'small muted loadout-local-notice'));
   let dialog=null,disposed=false,available=false,view='history',revision=0;
   function show(source=null){
     if(disposed||dialog)return;
@@ -89,7 +90,7 @@ export function createContestLoadoutLibrary({profile,getCurrent,onRestore,onChan
       if(!name.value.trim()){name.setCustomValidity(t('请输入编组名称。'));name.reportValidity();return;}
       busy=true;submit.disabled=true;cancel.disabled=true;list.inert=true;const entry=createSavedLoadout(pending.entry,name.value,pending.previous);
       try{
-        await saveSimulationLoadout(profile,entry);
+        await saveSimulationLoadout(profile,entry,lifecycleId);
         if(active()){pending=null;form.hidden=true;view='saved';selectedStage='all';selectedIdol='all';await refresh();status.textContent=t('编组已保存。');savedTab.focus();}
       }catch{if(active())status.textContent=t('编组保存失败，请重试。');}
       finally{busy=false;submit.disabled=false;cancel.disabled=false;list.inert=false;}

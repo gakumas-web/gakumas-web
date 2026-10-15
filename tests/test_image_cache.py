@@ -2,6 +2,7 @@
 from functools import partial
 from http.server import SimpleHTTPRequestHandler,ThreadingHTTPServer
 import hashlib
+import gzip
 import json
 import os
 from pathlib import Path
@@ -108,3 +109,20 @@ class ImageCacheTest(unittest.TestCase):
         self.assertEqual(cold['image_cache']['key'],key);self.assertEqual(warm['image_cache']['status'],'hit');self.assertGreaterEqual(warm['build_seconds'],0)
         first=inventory(self.root/'pages-cold/dist');second=inventory(self.root/'pages-warm/dist')
         first.pop('build-report.json');second.pop('build-report.json');self.assertEqual(first,second)
+
+    def test_local_published_bundle_checks_identity_without_downloading_it(self):
+        document=json.loads(gzip.decompress(self.bundle.read_bytes()));manifest=json.loads(document['manifest'])
+        manifest['master_revision']='a'*64
+        document['manifest']=json.dumps(manifest,separators=(',',':'))
+        document['manifest_sha256']=hashlib.sha256(document['manifest'].encode()).hexdigest()
+        raw=gzip.compress(json.dumps(document).encode(),mtime=0);bundle=self.root/'offline.json.gz';bundle.write_bytes(raw)
+        index=document['files']['assets-index.json']
+        source={'format':'gakumas-content-publication','schema_version':1,'version':'one',
+                'bundle_url':'https://cnb.cool/birdnest_333/gakumas-data/-/releases/download/content-one/gakumas-content-one.json.gz',
+                'bytes':len(raw),'sha256':hashlib.sha256(raw).hexdigest(),'manifest_sha256':document['manifest_sha256'],
+                'master_revision':'a'*64,'assets_sha256':hashlib.sha256(index.encode()).hexdigest(),'assets_version':json.loads(index)['version'],
+                'data_commit':'1'*40,'asset_commit':'2'*40}
+        path=self.root/'publication.json';path.write_text(json.dumps(source))
+        self.assertTrue(build_pages(path,None,key_only=True,bundle_path=bundle));self.assertEqual(self.requests,[])
+        source['assets_sha256']='b'*64;path.write_text(json.dumps(source))
+        with self.assertRaisesRegex(ValueError,'发布引用'):build_pages(path,None,key_only=True,bundle_path=bundle)

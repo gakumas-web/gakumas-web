@@ -1,3 +1,4 @@
+import {createChoiceNavigation} from './choice-navigation.mjs';
 import {updateMemoryPower} from '../domain/memory-power.mjs';
 import {memoryPower} from '../domain/catalog.mjs';
 import {contestExtraItemLimit} from '../domain/contest-item-rules.mjs';
@@ -9,6 +10,7 @@ import {accountProducerLevel} from '../domain/catalog.mjs';
 import {createContestSeasonPicker} from './contest-season-picker.mjs';
 import {contestStageSummary,contestStageName,contestPlanName} from './contest-stage-summary.mjs';
 import {el} from './dom.mjs';
+import {createInfoDisclosure} from './info-disclosure.mjs';
 import {t} from '../i18n.mjs';
 import {contestCatalog,contestCardConversions,contestCardNoDeckDuplication,cardRewardInfo,itemRewardInfo,memoryExclusiveSkill,contestCustomizationCatalog,contestFixedItemIds} from '../domain/catalog.mjs';
 import {contestMemoryEntries,contestMemoryTotals,contestMemoryCards,contestSupportBonus,contestSeasonGroups} from '../domain/contest-simulation.mjs';
@@ -33,7 +35,7 @@ function stageItem(reward){
   const description=el('div','','season-stage-item-description'),content=semanticContent({entries:[reward.description]});content.querySelector('h4')?.remove();description.append(content);row.append(hint,description);return row;
 }
 
-export function createSeasonSimulation({profile,memories,idolCards=[],supportCards,producerExp,initialState,onOpenMemory}){
+export function createSeasonSimulation({profile,lifecycleId,memories,idolCards=[],supportCards,producerExp,initialState,onOpenMemory}){
   const catalog=contestCatalog(),groups=contestSeasonGroups(catalog.choices),element=el('section','','season-simulation-dialog season-simulation-page');element.id='season-simulation-page';element.setAttribute('aria-label',t('赛季模拟'));
   if(!groups.length){element.append(el('p',t('当前资料尚未包含比赛配置，请更新资料后重试。')));return {element,dispose(){}};}
   const tabs=el('div','','season-stage-tabs'),content=el('section','','season-stage-content');tabs.setAttribute('role','tablist');tabs.setAttribute('aria-label',t('选择舞台'));content.id='season-stage-content';content.setAttribute('role','tabpanel');
@@ -79,14 +81,15 @@ export function createSeasonSimulation({profile,memories,idolCards=[],supportCar
     if(!group)return;picker.update(group);
     if(currentGroup!==group.id){
       currentGroup=group.id;tabs.dataset.stageCount=String(group.stages.length);tabs.style.setProperty('--stage-count',String(group.stages.length));tabs.replaceChildren();
+      const navigateStages=createChoiceNavigation({getButtons:()=>[...tabs.children],onMove:button=>button.click()});
       for(const [index,value] of group.stages.entries()){
         const button=el('button','','season-stage-tab');button.id=`season-stage-tab-${index}`;button.dataset.stageId=value.id;button.setAttribute('role','tab');button.setAttribute('aria-controls',content.id);button.setAttribute('aria-label',contestStageName(value));button.append(contestStageSummary(value,{withinSeason:true}));button.onclick=()=>activate(value);
-        button.onkeydown=event=>{if(!['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Home','End'].includes(event.key))return;event.preventDefault();const next=event.key==='Home'?0:event.key==='End'?group.stages.length-1:(index+(['ArrowLeft','ArrowUp'].includes(event.key)?-1:1)+group.stages.length)%group.stages.length;activate(group.stages[next]);tabs.children[next].focus();};tabs.append(button);
+        button.onkeydown=navigateStages;tabs.append(button);
       }
     }
     for(const button of tabs.children){const selected=button.dataset.stageId===stage.id;button.setAttribute('aria-selected',String(selected));button.tabIndex=selected?0:-1;if(selected)content.setAttribute('aria-labelledby',button.id);}
     if(!workspaces.has(stage.id)){
-      const workspace=createStageWorkspace({profile,memories,idolCards,supportCards,producerExp,stage,getConversionRules,onOpenConversions:openConversions,initialState:saved.get(stage.id),onOpenMemory,onTaskChange:(mode,task)=>taskChanged(stage,mode,task),onQuickStage:(targetId,loadout)=>{
+      const workspace=createStageWorkspace({profile,lifecycleId,memories,idolCards,supportCards,producerExp,stage,getConversionRules,onOpenConversions:openConversions,initialState:saved.get(stage.id),onOpenMemory,onTaskChange:(mode,task)=>taskChanged(stage,mode,task),onQuickStage:(targetId,loadout)=>{
         const target=catalog.choices.find(value=>value.id===targetId);if(!target)return;
         activate(target);workspaces.get(target.id).useLoadout(loadout);content.scrollIntoView({block:'start'});
       },onRestore:entry=>{
@@ -105,7 +108,7 @@ export function createSeasonSimulation({profile,memories,idolCards=[],supportCar
   }};
 }
 
-function createStageWorkspace({profile,memories,idolCards,supportCards,producerExp,stage,getConversionRules,onOpenConversions,initialState,onOpenMemory,onRestore,onQuickStage,onTaskChange}){
+function createStageWorkspace({profile,lifecycleId,memories,idolCards,supportCards,producerExp,stage,getConversionRules,onOpenConversions,initialState,onOpenMemory,onRestore,onQuickStage,onTaskChange}){
   const dialog=el('div','','season-stage-workspace'),body=el('div','','season-simulation-body');dialog.append(body);
   const catalog=contestCatalog(),editCatalog=contestCustomizationCatalog(),ownedIdols=new Map(idolCards.map(card=>[card.idolCardId,card]));
   const rules=el('div','','season-stage-rules'),ruleSection=el('section','','season-rules-section'),ruleTitle=el('h2',t('舞台规则')),results=el('section','','season-memory-results');ruleTitle.id='season-rules-title';ruleSection.setAttribute('aria-labelledby',ruleTitle.id);const ruleHeading=el('div','','season-rules-heading season-section-heading'),rulePlan=el('span','','contest-stage-plan season-rules-plan');ruleHeading.append(ruleTitle,rulePlan);ruleSection.append(ruleHeading,rules);body.append(ruleSection,results);
@@ -116,7 +119,7 @@ function createStageWorkspace({profile,memories,idolCards,supportCards,producerE
   const bonus=contestSupportBonus(supportCards);
   const methodHint=el('p','','small muted'),loadoutBody=el('div','','season-loadout-body');loadoutBody.append(pickers,team,slots);results.append(el('p',t('选择主回忆和副回忆后即可开始模拟，属性、P 道具与卡组会自动带入。副回忆仅加算 20% 属性（含体力，向下取整），不提供 P 道具。'),'small muted'),contestRulesHelp(contestRatingRules()),count,loadoutBody,methodHint);
   let simulationPanel;
-  const loadoutLibrary=createContestLoadoutLibrary({profile,getCurrent:()=>({stage:currentStage,loadout:captureSimulationLoadout(drafts,manual,selected)}),onRestore,onChange:()=>simulationPanel?.refreshHistory()});loadoutBody.prepend(loadoutLibrary.element);
+  const loadoutLibrary=createContestLoadoutLibrary({profile,lifecycleId,getCurrent:()=>({stage:currentStage,loadout:captureSimulationLoadout(drafts,manual,selected)}),onRestore,onChange:()=>simulationPanel?.refreshHistory()});loadoutBody.prepend(loadoutLibrary.element);
   const recommendations=createContestRecommendations({getContext:()=>({memories,stage:currentStage,supportCards,manual:{...manual},conversionRules:getConversionRules()}),onRestore,onOpenMemory,onSave:entry=>loadoutLibrary.saveEntry(entry),initialState:initialState?.recommendations,onTaskChange:task=>onTaskChange('recommended',task)});
   const ownership={idolCardIds:new Set(idolCards.map(card=>card.idolCardId)),supportCardIds:new Set((supportCards??[]).map(card=>card.supportCardId)),supportsKnown:supportCards!==undefined,producerLevel:accountProducerLevel(producerExp)};
   const optimization=createContestOptimization({profile,getContext:()=>({stage:currentStage,idolCards,supportCards,producerLevel:ownership.producerLevel,manual:{...manual},conversionRules:getConversionRules()}),onRestore,onSave:entry=>loadoutLibrary.saveEntry(entry),initialState:initialState?.optimization,onTaskChange:task=>onTaskChange('optimization',task)});
@@ -171,9 +174,7 @@ function createStageWorkspace({profile,memories,idolCards,supportCards,producerE
     for(const gimmick of currentStage.gimmicks){const item=el('div','','season-gimmick');item.append(el('strong',t('第 {0} 回合',[gimmick.startTurn])),effectReading('',{descriptionParts:gimmick.descriptions,leadingEffectIcons:true}));rules.append(item);}
     const columns=el('div','','season-stage-columns'),effects=el('div','','season-stage-effects'),reference=el('div','','season-stage-reference');
     for(const id of currentStage.produceItemIds)effects.append(stageItem(itemRewardInfo(id)));columns.append(effects,reference);
-    const guide=el('details','','season-stage-guide'),guideTitle=el('summary',t('基础规则和属性评分曲线'));
-    const infoIcon=document.createElementNS('http://www.w3.org/2000/svg','svg'),infoPath=document.createElementNS(infoIcon.namespaceURI,'path');
-    infoIcon.setAttribute('viewBox','0 0 24 24');infoIcon.setAttribute('aria-hidden','true');infoPath.setAttribute('d','M12 11v6M12 7h.01M22 12a10 10 0 1 1-20 0 10 10 0 0 1 20 0Z');infoIcon.append(infoPath);guideTitle.prepend(infoIcon);guide.append(guideTitle);
+    const guide=createInfoDisclosure(t('基础规则和属性评分曲线'),'season-stage-guide');
     if(currentStage.setting){
       const values=el('dl','','season-basic-values');
       for(const [key,label] of [['handLimit','手牌上限'],['holdLimit','保留上限'],['turnStartDistribute','回合开始抽牌'],['examTurnEndRecoveryStamina','回合结束体力恢复']])values.append(el('dt',t(label)),el('dd',String(currentStage.setting[key])));guide.append(values);
@@ -196,7 +197,7 @@ function createStageWorkspace({profile,memories,idolCards,supportCards,producerE
     selected=(entry.loadout.originals??entry.loadout.memories).map((memory,index)=>memory?{...structuredClone(memory),key:`simulation-${entry.id}-${index}`,simulationRestored:true}:null);
     drafts=entry.loadout.memories.map((memory,index)=>memory?{...structuredClone(memory),key:selected[index].key,simulationRestored:true}:null);editing=[false,false];drawSelection();simulationPanel.showSelected();return true;
   }
-  simulationPanel=createContestSimulationPanel({profile,onOpenConversions,stage:currentStage,supportBonus:bonus,onTaskChange:task=>onTaskChange('selected',task),quickStages:contestSeasonGroups(catalog.choices).flatMap(group=>group.stages).filter(target=>target.kind==='contest'&&target.id!==currentStage.id&&target.planType===currentStage.planType),onQuickStage:currentStage.kind==='contest'?targetId=>onQuickStage(targetId,{selected,drafts}):undefined,getInput:()=>({request:createContestSimulationRequest(drafts,currentStage,supportCards,manual,getConversionRules()),stage:currentStage,loadout:captureSimulationLoadout(drafts,manual,selected),characterId:drafts[0]?.characterId}),onRestore:entry=>{
+  simulationPanel=createContestSimulationPanel({profile,lifecycleId,onOpenConversions,stage:currentStage,supportBonus:bonus,onTaskChange:task=>onTaskChange('selected',task),quickStages:contestSeasonGroups(catalog.choices).flatMap(group=>group.stages).filter(target=>target.kind==='contest'&&target.id!==currentStage.id&&target.planType===currentStage.planType),onQuickStage:currentStage.kind==='contest'?targetId=>onQuickStage(targetId,{selected,drafts}):undefined,getInput:()=>({request:createContestSimulationRequest(drafts,currentStage,supportCards,manual,getConversionRules()),stage:currentStage,loadout:captureSimulationLoadout(drafts,manual,selected),characterId:drafts[0]?.characterId}),onRestore:entry=>{
     return onRestore(entry);
   }});
   if(initialState)currentStage=initialState.stage;drawStage();

@@ -1,5 +1,6 @@
 """通过合成账号导入验证计划、流派只筛选 HIF 分组，并保留隐藏的已选能力。"""
 from browser_artifacts import artifact_path
+from browser_choice_icon_filters import check_icon_navigation
 import json
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -49,6 +50,7 @@ def check(url):
         opener.click()
         expect(page.locator('#selection-picker')).to_be_visible()
         expect(page.locator('.selection-choice-icon-filters [role="radiogroup"]')).to_have_count(2)
+        for group in page.locator('.selection-choice-icon-filters [role=radiogroup]').all():check_icon_navigation(page,group)
         expect(page.locator('#selection-picker-hint')).to_contain_text('仅作用于 HIF 技能卡')
         non_hif = page.locator('.ability-picker-group:not([data-ability-group="hif"]) input')
         unchanged = non_hif.evaluate_all('(nodes)=>nodes.map(node=>[node.value,node.disabled])')

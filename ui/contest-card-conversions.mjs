@@ -12,7 +12,7 @@ export function openContestCardConversionSettings({choices,level,preferences,onC
   if(!dialog){dialog=el('dialog','','contest-conversion-dialog');dialog.id='contest-card-conversion-dialog';dialog.setAttribute('aria-labelledby','contest-card-conversion-title');dialog.addEventListener('close',closeRewardPopover);document.body.append(dialog);}
   const head=el('div','','dialog-head'),title=el('h2',t('技能卡转换状态')),close=el('button',t('关闭'));
   title.id='contest-card-conversion-title';close.onclick=()=>dialog.close();head.append(title,close);
-  const error=el('p','','message');error.hidden=true;error.setAttribute('role','alert');
+  const error=el('p','','message error');error.hidden=true;error.setAttribute('role','alert');
   const pairs=new Map(choices.filter(choice=>choice.conversion).map(choice=>[choice.conversion.beforeProduceCardId,choice.conversion]));
   const byId=new Map(choices.map(choice=>[choice.id,choice]));
   const panel=el('section','','contest-card-conversions');
@@ -28,7 +28,7 @@ export function openContestCardConversionSettings({choices,level,preferences,onC
   function filterRows(){
     closeRewardPopover();
     for(const row of list.children)row.hidden=Boolean(plan.value&&row.dataset.plan!==plan.value);
-    for(const button of planFilter.buttons){const selected=button.dataset.value===plan.value;button.setAttribute('aria-checked',String(selected));button.tabIndex=selected?0:-1;}
+    planFilter.sync();
     panel.scrollTop=0;
   }
 

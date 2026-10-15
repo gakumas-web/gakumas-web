@@ -1,3 +1,4 @@
+import {createContestWorkerClient} from './contest-worker-client.mjs';
 import {optimizationConfigurationKey,optimizationFinalDiagnostics} from '../domain/contest-optimization-diagnostics.mjs';
 import {compareOptimizationRows,optimizationCompetition,optimizationStructureKey,diverseOptimizationRows,optimizationRefinements} from '../domain/contest-optimization-selection.mjs';
 import {simulationWorkerCount} from './contest-compute-preferences.mjs';
@@ -5,19 +6,14 @@ import {createContestSimulationRequest} from '../domain/contest-engine-request.m
 import {createOptimizationProblem,optimizationPopulation,optimizationRandom} from '../domain/contest-optimization.mjs';
 import {recommendationStatistics} from '../domain/contest-recommendations.mjs';
 import {supportedOptimizationInput} from './contest-optimization-input.mjs';
+import {OPTIMIZATION_RUN_LIMIT,validateOptimizationBudget} from '../domain/contest-optimization-budget.mjs';
 
 export const OPTIMIZATION_BUDGETS={
-  standard:{population:80,generations:28,samples:24,screenRuns:64,polishParents:3,polishNeighbors:48,polishRounds:2,polishRuns:32,reviewCandidates:32,reviewRuns:128,finalCandidates:20,finalRuns:500},
-  deep:{population:80,generations:56,samples:32,screenRuns:128,polishParents:5,polishNeighbors:64,polishRounds:3,polishRuns:48,reviewCandidates:48,reviewRuns:256,finalCandidates:20,finalRuns:500},
+  standard:{population:80,generations:28,samples:24,screenRuns:64,polishParents:3,polishNeighbors:48,polishRounds:2,polishRuns:32,reviewCandidates:32,reviewRuns:128,finalCandidates:20,finalRuns:500,totalRunLimit:OPTIMIZATION_RUN_LIMIT},
+  deep:{population:80,generations:56,samples:32,screenRuns:128,polishParents:5,polishNeighbors:64,polishRounds:3,polishRuns:48,reviewCandidates:48,reviewRuns:256,finalCandidates:20,finalRuns:500,totalRunLimit:OPTIMIZATION_RUN_LIMIT},
 };
 const rank=compareOptimizationRows;
-function workerClient(){
-  const worker=new Worker(new URL('./contest-simulation-worker.mjs',import.meta.url),{type:'module'});let pending,timer;
-  const settle=(error,result)=>{const current=pending;pending=null;clearTimeout(timer);if(current)error?current.reject(error):current.resolve(result);};
-  worker.onmessage=({data})=>{if(data.type==='progress')pending?.onProgress(data.completed);else if(data.type==='result')settle(null,data.result);else settle(Object.assign(new Error(data.code),{code:data.code,details:data.details}));};
-  worker.onerror=event=>{event.preventDefault();settle(Object.assign(new Error('engine_failed'),{code:'engine_failed'}));};
-  return {run(data,onProgress=()=>{}){return new Promise((resolve,reject)=>{pending={resolve,reject,onProgress};timer=setTimeout(()=>{settle(Object.assign(new Error('simulation_timeout'),{code:'simulation_timeout'}));worker.terminate();},Math.max(120000,(data.runs??0)*60));worker.postMessage(data);});},cancel(){settle(new DOMException('Optimization cancelled','AbortError'));worker.terminate();}};
-}
+const workerClient=()=>createContestWorkerClient({cancelMessage:'Optimization cancelled'});
 
 // 页面与发布审计共用相同的选项投影和正式 Worker 校验协议。
 export function startContestCompatibilityAudit(options){
@@ -26,10 +22,11 @@ export function startContestCompatibilityAudit(options){
 
 // 每次评分仍走正式舞台引擎；搜索、复评与最终结果分别使用独立样本种子。
 export function startContestOptimization({input,stage,supportCards,manual={},conversionRules={}},{seed=crypto.getRandomValues(new Uint32Array(1))[0],multiCore=false,budget=OPTIMIZATION_BUDGETS.deep,diagnosticDetails=false,onProgress=()=>{}}={}){
-  let cancelled=false,totalRuns=0,evaluated=0,lastProgress=0;const workers=[];
+  let cancelled=false,totalRuns=0,evaluated=0,lastProgress=0,budgetLimited=false;const workers=[];
   const assertActive=()=>{if(cancelled)throw new DOMException('Optimization cancelled','AbortError');};
   const progress=(value,force=false)=>{const now=performance.now();if(force||now-lastProgress>=80){lastProgress=now;onProgress({...value,totalRuns,evaluated});}};
   const promise=(async()=>{
+    const checked=validateOptimizationBudget(budget);budget=checked.budget;
     for(let index=0;index<Math.min(simulationWorkerCount(multiCore),budget.population);index++)workers.push(workerClient());
     progress({phase:'validate',completed:0,total:input.probes.length},true);
     let validated=0;const supported=new Set(),unsupported=[];
@@ -55,7 +52,7 @@ export function startContestOptimization({input,stage,supportCards,manual={},con
         const record=(decision,blockedBy=[])=>{if(details&&['review','refine'].includes(phase))details.allocations.push({phase,key,offset,targetRuns:runs,needed,decision,blockedBy,remaining:Math.max(0,runLimit-reserved)});};
         if(old===null){record('unsupported');return false;}
         if(needed<=0){record('at_target');return false;}
-        if(reserved+needed>runLimit){record('budget_skipped',[...(reserved+needed>stageLimit?['review_budget']:[]),...(reserved+needed>totalAvailable?['total_limit']:[])]);return false;}
+        if(reserved+needed>runLimit){if(reserved+needed>totalAvailable)budgetLimited=true;record('budget_skipped',[...(reserved+needed>stageLimit?['review_budget']:[]),...(reserved+needed>totalAvailable?['total_limit']:[])]);return false;}
         record('scheduled');reserved+=needed;return true;
       });let next=0,completed=0,best=[...cache.values()].filter(Boolean).sort(rank)[0]?.stats.score;
       const notify=force=>progress({phase,generation,generations,completed,total:pending.length,best},force);
@@ -82,6 +79,7 @@ export function startContestOptimization({input,stage,supportCards,manual={},con
       for(let generation=1;generation<=generations&&population.length;generation++){
         assertActive();ranked=await evaluate(population,{phase,runs,roundSeed,generation,generations,cache});
         if(!ranked.length)break;
+        if(budgetLimited)break;
         if(generation<generations)population=optimizationPopulation(problem,{size,random,ranked});
       }
       return [...cache.values()].filter(Boolean).sort(rank);
@@ -100,6 +98,7 @@ export function startContestOptimization({input,stage,supportCards,manual={},con
         for(const parent of parents)for(const genome of problem.neighbors(parent.genome,random,budget.polishNeighbors,excluded)){genomes.push(genome);excluded.add(problem.key(genome));}
         await evaluate(genomes,{phase:'polish',runs:budget.polishRuns,roundSeed:(seed^0xd3a2646c)>>>0,generation:round,generations:budget.polishRounds,cache});
         polished=[...cache.values()].filter(Boolean).sort(rank);parents=diverse(polished);
+        if(budgetLimited)break;
       }
     }
     // 保留原探索前列，也给独立样本下更可靠的局部改进结果留出复筛名额。
@@ -144,13 +143,13 @@ export function startContestOptimization({input,stage,supportCards,manual={},con
     await Promise.all(workers.map(async worker=>{
       while(next<finalists.length){
         assertActive();const candidate=finalists[next++],value=request(candidate.genome),sessionId=`optimization:${candidate.key}`;let previous=0;
-        await worker.run({mode:'session-start',request:value,sessionId,runs:budget.finalRuns,seed:(seed^0x27d4eb2f)>>>0},count=>{totalRuns+=count-previous;previous=count;progress({phase:'final',completed,total:finalists.length});});assertActive();
-        const result=await worker.run({mode:'session-finish',sessionId,runs:0});assertActive();totalRuns+=result.detailRuns;
+        await worker.run({mode:'session-start',request:value,sessionId,runs:budget.finalRuns,seed:(seed^0x27d4eb2f)>>>0},count=>{totalRuns+=count-previous;phaseRuns.final=(phaseRuns.final??0)+count-previous;previous=count;progress({phase:'final',completed,total:finalists.length});});assertActive();
+        const result=await worker.run({mode:'session-finish',sessionId,runs:0});assertActive();totalRuns+=result.detailRuns;phaseRuns.details=(phaseRuns.details??0)+result.detailRuns;
         rows.push({key:candidate.key,genome:candidate.genome,structure:candidate.structure,stats:recommendationStatistics(result.scores),result,memories:problem.materialize(candidate.genome)});completed++;progress({phase:'final',completed,total:finalists.length},true);
       }
     }));
     rows.sort(rank);if(details)details.final=optimizationFinalDiagnostics(rows);
-    return {diagnostics:{...problem.diagnostics,phaseRuns,...(details?{details}:{}),reviewStructures:new Set([...reviewPool.values()].map(row=>row.structure)).size},rows,seed,totalRuns,evaluated,explored:exploredKeys.size,unsupported,skipped,missingCosts:input.missingCosts,settings:budget};
+    return {diagnostics:{...problem.diagnostics,phaseRuns,budgetLimited,budgetEstimate:checked.estimate,...(details?{details}:{}),reviewStructures:new Set([...reviewPool.values()].map(row=>row.structure)).size},rows,seed,totalRuns,evaluated,explored:exploredKeys.size,unsupported,skipped,missingCosts:input.missingCosts,settings:budget};
   })().finally(()=>{for(const worker of workers)worker.cancel();});
   return {promise,cancel(){cancelled=true;for(const worker of workers)worker.cancel();}};
 }

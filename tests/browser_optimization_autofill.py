@@ -1,4 +1,4 @@
-"""通过真实推荐表单与 Worker 验证倍率反推、体力保留和双屏宽布局。"""
+"""通过真实推荐表单与 Worker 验证属性加减、倍率反推、体力保留和响应式布局。"""
 from browser_artifacts import artifact_path
 
 import json
@@ -34,6 +34,13 @@ def check(url):
         page.locator('#account-directory-files').set_input_files(str(folder));expect(page.locator('#inventory')).to_be_visible(timeout=60000);page.locator('#season-simulation-open').click();select_season(page,setup['season']);page.locator(f'.season-stage-tab[data-stage-id="{setup["stageId"]}"]').click()
         tabs=page.locator('.simulation-mode-tabs');assert tabs.locator('button').evaluate_all('nodes=>nodes.map(node=>node.dataset.mode)')==['recommended','optimization','selected','history']
         tabs.locator('[data-mode=optimization]').click();panel=page.locator('#contest-optimization');expect(panel).to_be_visible();expect(panel.locator('.optimization-start')).to_be_enabled()
+        # 共用构建函数后，两个原生说明仍支持键盘展开，并保留各自正文。
+        for selector in ['.season-stage-guide','.simulation-score-help']:
+            disclosure=page.locator(selector);summary=disclosure.locator(':scope > summary')
+            expect(disclosure).to_have_count(1);expect(summary.locator('svg[aria-hidden=true] path')).to_have_count(1)
+            summary.focus();page.keyboard.press('Enter');expect(disclosure).to_have_attribute('open','')
+            expect(disclosure.locator(':scope > :not(summary)').first).to_be_visible()
+            summary.click();expect(disclosure).not_to_have_attribute('open','')
         for index in [0,1]:
             panel.locator(f'[data-slot="{index}"] .season-memory-slot-pick').click();page.locator(f'.optimization-picker [data-choice-id="{request["cards"][0]["reference"]["id"]}"]').click();page.locator('.optimization-picker-confirm').click()
             panel.locator(f'[data-optimization-grade="{index}"]').select_option('15')
@@ -41,16 +48,55 @@ def check(url):
         expect(panel.locator('[data-optimization-custom-count],[data-optimization-custom-cards]')).to_have_count(0)
         expect(panel.locator('.recommendation-character-count')).to_have_text('1')
         expect(panel.locator('.optimization-total > p:visible')).to_have_count(1)
-        expect(panel.locator('.optimization-multiplier small')).to_have_text(['当前倍率']*3)
+        heading=panel.locator('.optimization-attributes-heading')
+        expect(heading).to_have_count(1)
+        expect(heading.locator(':scope > span')).to_have_text(['属性','属性值','当前倍率'])
+        expect(panel.locator('.optimization-multiplier small')).to_have_count(0)
         expect(panel.locator('.optimization-multiplier-empty:visible')).to_have_count(3)
         expect(panel.locator('[data-attribute="stamina"] .optimization-multiplier')).to_have_count(0)
         expect(panel.locator('[data-optimization-multiplier]:visible')).to_have_count(0)
-        help_panel=panel.locator('.optimization-input-help')
-        expect(help_panel).not_to_have_attribute('open','')
-        help_panel.locator('summary').focus();page.keyboard.press('Enter')
+        expect(panel.locator('input[data-optimization-slider]')).to_have_count(0)
+        expect(panel.locator('.optimization-total-heading .optimization-autofill')).to_have_count(1)
+        expect(panel.locator('.optimization-total-heading .optimization-autofill-undo')).to_have_count(1)
+        footer=panel.locator('.optimization-total-footer')
+        expect(footer).to_have_count(1)
+        expect(footer.locator('.optimization-autofill-notice')).to_have_count(1)
+        help_toggle=footer.locator('button.optimization-input-help-toggle')
+        help_panel=footer.locator('div.optimization-input-help.info-disclosure')
+        expect(help_toggle).to_have_count(1)
+        expect(help_panel).to_have_count(1)
+        expect(help_toggle).to_contain_text('填写说明')
+        expect(help_toggle).to_have_attribute('aria-expanded','false')
+        help_id=help_panel.get_attribute('id');assert help_id and help_toggle.get_attribute('aria-controls')==help_id
+        for key,deltas,min_value in [('vocal',['-100','-10','10','100'],'0'),('dance',['-100','-10','10','100'],'0'),('visual',['-100','-10','10','100'],'0'),('stamina',['-1','1'],'1')]:
+            field=panel.locator(f'.optimization-field[data-attribute="{key}"]');input_field=field.locator('input[data-optimization-attribute]')
+            expect(field.locator('.optimization-attribute-control')).to_have_count(1)
+            expect(input_field).to_have_count(1);expect(input_field).to_have_attribute('min',min_value);expect(input_field).to_have_value('')
+            assert field.locator('button[data-optimization-delta]').evaluate_all('nodes=>nodes.map(node=>node.dataset.optimizationDelta)')==deltas
+            for delta in deltas:
+                expect(field.locator(f'button[data-optimization-delta="{delta}"]')).to_have_count(1)
+            for delta in deltas:
+                if delta.startswith('-'):expect(field.locator(f'button[data-optimization-delta="{delta}"]')).to_be_disabled()
+        vocal_field=panel.locator('.optimization-field[data-attribute="vocal"]');vocal_input=panel.locator('[data-optimization-attribute="vocal"]')
+        vocal_field.locator('button[data-optimization-delta="10"]').click();expect(vocal_input).to_have_value('10')
+        vocal_input.press('ArrowUp');expect(vocal_input).to_have_value('11')
+        vocal_input.press('ArrowDown');expect(vocal_input).to_have_value('10')
+        vocal_field.locator('button[data-optimization-delta="-100"]').click();expect(vocal_input).to_have_value('0')
+        for delta in ['-100','-10']:expect(vocal_field.locator(f'button[data-optimization-delta="{delta}"]')).to_be_disabled()
+        vocal_input.fill('6001');expect(vocal_input).to_have_value('6001')
+        vocal_field.locator('button[data-optimization-delta="100"]').click();expect(vocal_input).to_have_value('6101')
+        vocal_field.locator('button[data-optimization-delta="-10"]').focus();page.keyboard.press('Enter');expect(vocal_input).to_have_value('6091')
+        expect(panel.locator('[data-optimization-multiplier="vocal"]')).to_be_visible()
+        vocal_input.fill('');expect(vocal_input).to_have_value('');expect(panel.locator('[data-optimization-multiplier]:visible')).to_have_count(0)
+        stamina_input=panel.locator('[data-optimization-attribute="stamina"]');stamina_field=panel.locator('.optimization-field[data-attribute="stamina"]')
+        stamina_field.locator('button[data-optimization-delta="1"]').click();expect(stamina_input).to_have_value('1');expect(stamina_field.locator('button[data-optimization-delta="-1"]')).to_be_disabled()
+        stamina_input.fill('');expect(stamina_input).to_have_value('')
+        expect(help_panel).to_be_hidden()
+        help_toggle.focus();page.keyboard.press('Enter')
+        expect(help_toggle).to_have_attribute('aria-expanded','true');expect(help_panel).to_be_visible()
         expect(help_panel.locator('p').first).to_be_visible()
         expect(help_panel).to_contain_text('体力保持不变')
-        help_panel.locator('summary').click()
+        help_toggle.click();expect(help_toggle).to_have_attribute('aria-expanded','false');expect(help_panel).to_be_hidden()
         for width in [1280,320]:
             page.set_viewport_size({'width':width,'height':1000})
             expect(panel.locator('[data-optimization-attribute="vocal"]')).to_have_attribute('placeholder','未填写')
@@ -71,7 +117,8 @@ def check(url):
           return suggestContestParameters({...request,supportBonus:0.001});
         }''',request)
         stamina=panel.locator('[data-optimization-attribute="stamina"]')
-        stamina.fill('');button.click();expect(button).to_be_enabled();expect(stamina).to_have_value('')
+        # 先完成空体力的失焦校验，避免校验信息触发滚动后点击落在旧坐标。
+        stamina.fill('');button.focus();button.click();expect(button).to_be_enabled();expect(stamina).to_have_value('')
         expect(panel.locator('.optimization-autofill-notice')).to_be_visible()
         for key,value in expected['params'].items():
             expect(panel.locator(f'[data-optimization-attribute="{key}"]')).to_have_value(str(value))
@@ -84,32 +131,95 @@ def check(url):
         if expected['limited']:expect(panel.locator('.optimization-autofill-notice')).to_contain_text('超过舞台可达上限')
         else:expect(panel.locator('.optimization-autofill-notice')).to_have_text('已填入参考属性，体力未变。')
         panel.locator('[data-optimization-attribute="vocal"]').fill('123')
+        vocal_field.locator('button[data-optimization-delta="10"]').click()
         panel.locator('.optimization-autofill-undo').click()
-        expect(panel.locator('[data-optimization-attribute="vocal"]')).to_have_value('123')
-        for key in ['dance','visual']:expect(panel.locator(f'[data-optimization-attribute="{key}"]')).to_have_value('1')
+        expect(panel.locator('[data-optimization-attribute="vocal"]')).to_have_value('133')
+        for key in ['dance','visual']:
+            expect(panel.locator(f'[data-optimization-attribute="{key}"]')).to_have_value('1')
         expect(stamina).to_have_value('77')
         expect(panel.locator('.optimization-autofill-notice')).to_be_hidden()
         assert page.evaluate('optimizationMessages.some(row=>row.mode==="suggest-parameters")')
         assert not page.evaluate('optimizationMessages.some(row=>row.mode?.startsWith("session-"))')
         button.click();expect(button).to_be_enabled()
         expect(panel.locator('[data-optimization-multiplier="vocal"]')).to_be_visible()
+        # 调整一项时，其余倍率不能清空或重绘，正常计算也不能推动页脚。
+        stable={key:panel.locator(f'[data-optimization-multiplier="{key}"]').inner_text() for key in ['dance','visual']}
+        stable_inputs={key:panel.locator(f'[data-optimization-attribute="{key}"]').input_value() for key in stable}
+        footer_offset=panel.locator('.optimization-total-footer').evaluate('e=>e.getBoundingClientRect().top-e.closest(".optimization-total").getBoundingClientRect().top')
+        page.evaluate("""()=>{window.untouchedMultiplierMutations=[];window.multiplierObserver=new MutationObserver(records=>untouchedMultiplierMutations.push(...records.map(record=>record.type)));for(const key of ['dance','visual'])multiplierObserver.observe(document.querySelector(`[data-optimization-multiplier="${key}"]`).parentElement,{attributes:true,childList:true,characterData:true,subtree:true});}""")
+        vocal_field.locator('button[data-optimization-delta="10"]').click()
+        expect(panel.locator('.optimization-multiplier-status')).to_be_hidden()
+        for key,value in stable.items():
+            expect(panel.locator(f'[data-optimization-multiplier="{key}"]')).to_be_visible()
+            expect(panel.locator(f'[data-optimization-multiplier="{key}"]')).to_have_text(value)
+        assert abs(panel.locator('.optimization-total-footer').evaluate('e=>e.getBoundingClientRect().top-e.closest(".optimization-total").getBoundingClientRect().top')-footer_offset)<1
+        expect(panel.locator('[data-optimization-multiplier="vocal"]')).to_be_visible()
+        saved_vocal=vocal_input.input_value();vocal_input.fill('')
+        expect(panel.locator('[data-optimization-multiplier="vocal"]')).to_be_hidden()
+        expect(panel.locator('[data-optimization-multiplier]:visible')).to_have_count(2)
+        vocal_input.fill(saved_vocal);expect(panel.locator('[data-optimization-multiplier="vocal"]')).to_be_visible()
+        for key,value in stable_inputs.items():expect(panel.locator(f'[data-optimization-attribute="{key}"]')).to_have_value(value)
+        assert page.evaluate('untouchedMultiplierMutations')==[]
+        page.evaluate('multiplierObserver.disconnect()')
+        count=page.evaluate('optimizationMessages.filter(row=>row.mode==="multipliers").length')
+        stamina.fill('78');expect(panel.locator('.optimization-total')).to_have_attribute('aria-busy','false')
+        expect(panel.locator('[data-optimization-multiplier]:visible')).to_have_count(3)
+        page.wait_for_timeout(250)
+        assert page.evaluate('optimizationMessages.filter(row=>row.mode==="multipliers").length')==count
+        stamina.fill('77')
+        # 快速连续修改不同属性，取消前一请求后也要补齐所有待算项。
+        vocal_input.fill('124');panel.locator('[data-optimization-attribute="dance"]').fill('125')
+        for key in ['vocal','dance']:expect(panel.locator(f'[data-optimization-multiplier="{key}"]')).to_be_visible()
+        preview_params={key:int(panel.locator(f'[data-optimization-attribute="{key}"]').input_value()) for key in ['vocal','dance','visual','stamina']}
+        preview_expected=page.evaluate("""async request=>{const {previewContestMultipliers}=await import('./domain/contest-engine-runner.mjs');return previewContestMultipliers({...request,supportBonus:0.001});}""",{**request,'params':preview_params})
+        for key in ['vocal','dance']:
+            actual=float(panel.locator(f'[data-optimization-multiplier="{key}"]').inner_text().removesuffix('%'))
+            assert abs(actual-preview_expected[key]*100)<0.051,(key,actual,preview_expected)
+        expect(panel.locator('[data-optimization-multiplier="visual"]')).to_have_text(stable['visual'])
+        # 只注入预览消息传输失败，重试和新输入仍执行正式 Worker 计算。
+        page.evaluate('''()=>{const Native=Worker;window.previewFault=false;window.previewFaultDelay=250;window.previewFaultSent=false;window.previewFaultDelivered=false;
+          window.Worker=class extends Native{postMessage(value,...rest){if(value.mode==='multipliers'&&window.previewFault){window.previewFault=false;window.previewFaultSent=true;setTimeout(()=>{this.dispatchEvent(new ErrorEvent('error',{message:'synthetic multiplier transport failure',cancelable:true}));window.previewFaultDelivered=true;},window.previewFaultDelay);return;}super.postMessage(value,...rest);}};
+        }''')
+        vocal=panel.locator('[data-optimization-attribute="vocal"]');preview_status=panel.locator('.optimization-multiplier-status')
+        page.evaluate('previewFault=true');vocal.fill('125')
+        expect(preview_status).to_be_hidden()
+        expect(panel.locator('[data-optimization-multiplier="vocal"]')).to_be_hidden()
+        expect(panel.locator('[data-optimization-multiplier]:visible')).to_have_count(2)
+        expect(preview_status).to_contain_text('倍率暂未计算成功',timeout=15000)
+        expect(vocal).to_have_value('125');expect(panel.locator('[data-optimization-multiplier]:visible')).to_have_count(2)
+        preview_status.get_by_role('button',name='重试倍率计算').click()
+        expect(panel.locator('[data-optimization-multiplier="vocal"]')).to_be_visible();expect(preview_status).to_be_hidden()
+        page.evaluate('previewFault=true;previewFaultDelay=600;previewFaultSent=false;previewFaultDelivered=false');vocal.fill('126')
+        page.wait_for_function('()=>previewFaultSent');vocal.fill('127')
+        expect(panel.locator('[data-optimization-multiplier="vocal"]')).to_be_visible()
+        latest=panel.locator('[data-optimization-multiplier="vocal"]').inner_text()
+        page.wait_for_function('()=>previewFaultDelivered');expect(preview_status).to_be_hidden()
+        expect(panel.locator('[data-optimization-multiplier="vocal"]')).to_have_text(latest)
         for width in [1280,375,320]:
             page.set_viewport_size({'width':width,'height':1000})
             assert panel.evaluate('e=>e.scrollWidth<=e.clientWidth')
             assert button.evaluate('button=>button.getBoundingClientRect().width>0')
             assert panel.locator('.optimization-attributes').evaluate('''element=>{
-                const fields=[...element.children],inputs=fields.map(field=>field.querySelector('input').getBoundingClientRect());
-                return inputs.every(rect=>Math.abs(rect.left-inputs[0].left)<1)&&inputs.every((rect,index)=>!index||rect.top>=inputs[index-1].bottom)&&fields.slice(0,3).every(field=>{
-                    const input=field.querySelector('input').getBoundingClientRect(),output=field.querySelector('output').getBoundingClientRect();
-                    return output.left>=input.right&&output.top>=input.top-1&&output.bottom<=input.bottom+1;
+                const fields=[...element.children].filter(child=>child.matches('.optimization-field')),heading=element.querySelector(':scope > .optimization-attributes-heading'),headingCells=heading?[...heading.children]:[],controls=fields.map(field=>field.querySelector('.optimization-attribute-control').getBoundingClientRect()),inputs=fields.map(field=>field.querySelector('input[data-optimization-attribute]').getBoundingClientRect());
+                return headingCells.length===3&&controls.slice(0,3).every(rect=>Math.abs(rect.left-controls[0].left)<1&&Math.abs(rect.right-controls[0].right)<1)&&inputs.every((rect,index)=>!index||rect.top>=inputs[index-1].bottom)&&fields.slice(0,3).every(field=>{
+                    const input=field.querySelector('input[data-optimization-attribute]').getBoundingClientRect(),control=field.querySelector('.optimization-attribute-control').getBoundingClientRect(),output=field.querySelector('output').getBoundingClientRect(),value=field.querySelector('[data-optimization-multiplier]'),fontSize=parseFloat(getComputedStyle(value).fontSize);
+                    return output.left>=control.right-1&&output.top>=control.top-1&&output.bottom<=control.bottom+1&&Math.abs(output.left-headingCells[2].getBoundingClientRect().left)<1&&fontSize>=16&&input.left>=control.left-1&&input.right<=control.right+1;
                 });
             }''')
-            assert panel.locator('.optimization-autofill-notice').evaluate('element=>element.getBoundingClientRect().top>=element.previousElementSibling.getBoundingClientRect().bottom')
+            notice=footer.locator('.optimization-autofill-notice')
+            expect(notice).to_be_visible();expect(help_toggle).to_be_visible();expect(help_toggle).to_have_attribute('aria-expanded','false')
+            closed=footer.evaluate('''element=>{const footer=element.getBoundingClientRect(),notice=element.querySelector('.optimization-autofill-notice').getBoundingClientRect(),toggle=element.querySelector('button.optimization-input-help-toggle').getBoundingClientRect(),relative=rect=>[rect.left-footer.left,rect.top-footer.top,rect.right-footer.left,rect.bottom-footer.top];return {footer:[footer.left,footer.top,footer.right,footer.bottom],notice:relative(notice),toggle:relative(toggle),overflow:element.scrollWidth<=element.clientWidth};}''')
+            assert closed['overflow'] and abs(closed['toggle'][1]-closed['notice'][1])<1 and closed['notice'][0]>=-1 and closed['toggle'][2]<=closed['footer'][2]-closed['footer'][0]+1,(width,closed)
+            help_toggle.click();expect(help_toggle).to_have_attribute('aria-expanded','true');expect(help_panel).to_be_visible()
+            opened=footer.evaluate('''element=>{const footer=element.getBoundingClientRect(),notice=element.querySelector('.optimization-autofill-notice').getBoundingClientRect(),toggle=element.querySelector('button.optimization-input-help-toggle').getBoundingClientRect(),help=element.querySelector('.optimization-input-help').getBoundingClientRect(),relative=rect=>[rect.left-footer.left,rect.top-footer.top,rect.right-footer.left,rect.bottom-footer.top];return {footer:[footer.left,footer.top,footer.right,footer.bottom],notice:relative(notice),toggle:relative(toggle),help:relative(help),overflow:element.scrollWidth<=element.clientWidth};}''')
+            assert opened['overflow'] and abs(opened['toggle'][0]-closed['toggle'][0])<1 and abs(opened['toggle'][1]-closed['toggle'][1])<1 and abs(opened['notice'][1]-opened['toggle'][1])<1 and opened['help'][1]>=max(opened['notice'][3],opened['toggle'][3])-1 and opened['help'][0]>=-1 and opened['help'][2]<=opened['footer'][2]-opened['footer'][0]+1,(width,closed,opened)
+            panel.locator('.optimization-total').screenshot(path=artifact_path(str(ROOT/'local/optimization-autofill'/f'attributes-help-{width}.png')))
+            help_toggle.click();expect(help_toggle).to_have_attribute('aria-expanded','false');expect(help_panel).to_be_hidden()
             panel.locator('.optimization-total').screenshot(path=artifact_path(str(ROOT/'local/optimization-autofill'/f'attributes-{width}.png')))
             if width==1280:panel.locator('.optimization-composition').screenshot(path=artifact_path(str(ROOT/'local/optimization-autofill/attributes-context-1280.png')))
         assert not errors and not uploads,(errors,uploads)
         browser.close()
-    print('真实 Worker 按当前舞台和支援反推三维；空白及已有体力均保留；上限提示、右上角按钮和双屏宽检查通过，无数据上传。')
+    print('真实 Worker 倍率计算、加减输入、参考填入与撤销、体力保留及 1280／375／320px 布局检查通过，无数据上传。')
 
 
 if __name__=='__main__':

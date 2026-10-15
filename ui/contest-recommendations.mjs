@@ -1,14 +1,14 @@
+import {createChoiceNavigation} from './choice-navigation.mjs';
 import {contestRulesHelp} from './contest-card-cost.mjs';
 import {layerSimulationMetrics} from './contest-simulation-charts.mjs';
 import {readSimulationMultiCore} from '../application/contest-compute-preferences.mjs';
 import {el} from './dom.mjs';
 import {illustration,characterAccent} from './illustrations.mjs';
 import {t,locale} from '../i18n.mjs';
-import {characterInfo,compareCharacterFilters,memoryExclusiveSkill} from '../domain/catalog.mjs';
+import {characterInfo,compareCharacterFilters} from '../domain/catalog.mjs';
 import {memoryShortId} from '../domain/model.mjs';
-import {createContestMemoryDraft} from '../domain/contest-loadout.mjs';
 import {recommendationMemories,recommendationPairCount,RECOMMENDATION_FINAL_RUNS,RECOMMENDATION_LIMIT} from '../domain/contest-recommendations.mjs';
-import {startContestRecommendations} from '../application/contest-recommendation-client.mjs';
+import {createContestRecommendationController} from '../application/contest-recommendation-controller.mjs';
 import {captureSimulationLoadout} from '../application/contest-simulation-history.mjs';
 import {comparisonScore,comparisonRange,scoreQuantile} from './contest-simulation-charts.mjs';
 import {loadoutPreview} from './contest-loadout-library.mjs';
@@ -17,16 +17,19 @@ import {errorLabels} from './contest-simulation-result.mjs';
 
 export function createContestRecommendations({getContext,onRestore,onSave,onOpenMemory,initialState,onTaskChange=()=>{}}){
   const element=el('div','','contest-recommendations');element.id='contest-recommendations';
-  const completed=new Map(initialState?.results??[]);
-  let view=null,active=null,disposed=false,cache=null,viewSignature=null,selectedCharacterId=initialState?.selectedCharacterId??null;
+  let view=null,disposed=false,cache=null,selectedCharacterId=initialState?.selectedCharacterId??null,handleSearchEvent=()=>{};
+  const search=createContestRecommendationController({initialState,onEvent:event=>{
+    if(event.type==='started')onTaskChange({state:'running',stop:search.stop});
+    else if(event.type==='completed')onTaskChange({state:'completed'});
+    else if(['stopped','failed','invalidated'].includes(event.type))onTaskChange({state:'stopped'});
+    handleSearchEvent(event);
+  }});
   function show(){
     if(disposed)return;
     const context=getContext(),eligible=recommendationMemories(context.memories,context.stage),characters=new Map();
     for(const memory of eligible)characters.set(memory.characterId,(characters.get(memory.characterId)??0)+1);
-    const signature=JSON.stringify([context.stage.id,context.manual,context.supportCards?.map(card=>card.level),context.memories.map(memory=>memory.key),context.conversionRules]);
-    if(view&&viewSignature===signature)return;
-    if(active){active.cancel();onTaskChange({state:'stopped'});}active=null;closeRewardPopover();viewSignature=signature;
-    for(const [id,result] of completed)if(result.signature!==signature)completed.delete(id);
+    if(!search.setContext(context)&&view)return;
+    closeRewardPopover();
     const currentView=el('div','','recommendation-content');view=currentView;
     const description=el('p',t('使用当前舞台与持有回忆，所有符合偶像与计划条件的回忆都参与主副组合。'),'recommendation-description small muted');
     const controls=el('div','','recommendation-controls'),idolGroup=el('fieldset','','recommendation-characters'),start=el('button',t('开始搜索'),'primary recommendation-start'),stop=el('button',t('停止'),'recommendation-stop');
@@ -35,12 +38,13 @@ export function createContestRecommendations({getContext,onRestore,onSave,onOpen
     selectedCharacterId=idol.value;
     const characterTitle=el('legend'),count=el('p',t('按回忆持有数排序'),'recommendation-count small muted');
     idolGroup.setAttribute('role','radiogroup');idolGroup.setAttribute('aria-label',t('模拟偶像(按回忆持有数排序)'));idolGroup.append(characterTitle,count);
+    const navigateCharacters=createChoiceNavigation({getButtons:()=>choices,onMove:button=>button.click()});
     for(const [id,count] of orderedCharacters){
       const info=characterInfo(id),choice=el('button','','recommendation-character'),label=t('{0}（{1} 条回忆）',[info.name,count]);
       choice.dataset.characterId=id;choice.title=label;choice.setAttribute('role','radio');choice.setAttribute('aria-label',label);characterAccent(choice,id);
       const face=illustration(info.face,info.name,'filter-face');face.setAttribute('aria-hidden','true');choice.append(face,el('span',String(count),'recommendation-character-count'));
       choice.onclick=()=>{idol.value=id;selectedCharacterId=id;status.textContent='';render();sync();};
-      choice.onkeydown=event=>{if(!['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Home','End'].includes(event.key))return;event.preventDefault();const index=choices.indexOf(choice),next=event.key==='Home'?0:event.key==='End'?choices.length-1:(index+(['ArrowLeft','ArrowUp'].includes(event.key)?-1:1)+choices.length)%choices.length;choices[next].click();choices[next].focus();};
+      choice.onkeydown=navigateCharacters;
       choices.push(choice);idolGroup.append(choice);
     }
     controls.append(start,stop);
@@ -54,24 +58,22 @@ export function createContestRecommendations({getContext,onRestore,onSave,onOpen
       el('p',t('已完成结果按舞台和偶像暂存，重新推荐成功后替换；修改比赛倍率、导入快照、切换账号或刷新页面后清除。'))
     );
     currentView.append(description,contestRulesHelp(algorithm),idolGroup,controls,status,progress,summary,list);element.replaceChildren(currentView);
-    let busy=false;
-    const visible=()=>!disposed&&view===currentView;
     const format=value=>new Intl.NumberFormat(locale(),{maximumFractionDigits:0}).format(value);
     function sync(){
       const candidates=recommendationMemories(context.memories,context.stage,idol.value),available=candidates.length;
       characterTitle.textContent=t('模拟偶像：{0} · 持有 {1} 条回忆 · {2} 个主副组合',[characterInfo(idol.value).name,available,recommendationPairCount(candidates)]);
       const missing=context.supportCards===undefined?'支援卡持有信息未采集，无法计算当前支援奖励。':context.stage.manualMultipliers&&!['vocal','dance','visual'].every(key=>Number.isFinite(context.manual[key])&&context.manual[key]>=0)?'请先填写此舞台的 Vo、Da、Vi 比赛倍率。':available<2?'至少需要同一偶像的两条符合当前舞台计划的回忆。':null;
-      if(!busy&&missing)status.textContent=t(missing);
-      start.disabled=busy||Boolean(missing);for(const choice of choices){const selected=choice.dataset.characterId===idol.value;choice.disabled=busy;choice.setAttribute('aria-checked',String(selected));choice.tabIndex=selected?0:-1;}stop.hidden=!busy;progress.hidden=!busy;
-      start.textContent=t(busy?'搜索中…':'开始搜索');
-      list.inert=busy;summary.title=busy&&cache?t('重新模拟期间显示上次完成结果。'):'';
+      if(!search.running&&missing)status.textContent=t(missing);
+      start.disabled=search.running||Boolean(missing);for(const choice of choices){const selected=choice.dataset.characterId===idol.value;choice.disabled=search.running;choice.setAttribute('aria-checked',String(selected));choice.tabIndex=selected?0:-1;}stop.hidden=!search.running;progress.hidden=!search.running;
+      start.textContent=t(search.running?'搜索中…':'开始搜索');
+      list.inert=search.running;summary.title=search.running&&cache?t('重新模拟期间显示上次完成结果。'):'';
     }
     function sourceFor(row,index){
       const memories=[cache.memories[row.main],cache.memories[row.sub]],originals=[cache.originals[row.main],cache.originals[row.sub]];
       return {id:`recommendation-${cache.report.seed}-${index}`,stage:cache.stage,loadout:captureSimulationLoadout(memories,cache.manual,originals)};
     }
     function render(){
-      closeRewardPopover();list.replaceChildren();summary.textContent='';cache=completed.get(idol.value)??null;
+      closeRewardPopover();list.replaceChildren();summary.textContent='';cache=search.resultFor(idol.value);
       if(!cache)return;
       list.append(el('p',t('推荐结果暂存于当前页面；保存编组可再次载入。载入自选并完成模拟后，结果才会记入模拟历史。'),'small muted'));
       const report=cache.report;summary.textContent=t('推荐 {0} 组 · {1} 个组合 · {2} 次模拟 · 耗时 {3} 秒 · 种子 {4}',[report.rows.length,report.combinations,report.totalRuns,cache.elapsedSeconds.toFixed(0),report.seed]);
@@ -104,25 +106,23 @@ export function createContestRecommendations({getContext,onRestore,onSave,onOpen
         const footer=el('div','','recommendation-entry-footer');footer.append(actions);entry.append(head,details,footer);list.append(entry);
       }
     }
-    start.onclick=async()=>{
-      if(busy||start.disabled)return;
-      const startedAt=performance.now();busy=true;onTaskChange({state:'running',stop:()=>active?.cancel()});render();status.textContent=t('正在枚举主副回忆组合…');progress.removeAttribute('value');sync();
-      const originals=recommendationMemories(context.memories,context.stage,idol.value),memories=originals.map(memory=>createContestMemoryDraft(memory,memoryExclusiveSkill(memory)?.reference.id));
-      const handle=startContestRecommendations({memories,stage:context.stage,supportCards:context.supportCards,manual:context.manual,conversionRules:context.conversionRules},{multiCore:readSimulationMultiCore(),onProgress:update=>{
-        if(!visible())return;
-        if(update.phase==='prepare'){status.textContent=t('正在枚举 {0}/{1} 个组合',[update.completed,update.total]);return;}
-        const phase=t(({rough:'牌效粗筛（累计 {0} 次）',screen:'牌效初筛（累计 {0} 次）',review:'复筛（累计 {0} 次）',final:'最终复评（累计 {0} 次）'})[update.phase],[update.budget]);status.textContent=t('{0}：{1}/{2} 组 · {3}/{4} 次模拟',[phase,update.completed,update.total,update.runs,update.plannedRuns]);progress.max=update.plannedRuns;progress.value=update.runs;
-      }});active=handle;
-      try{
-        const report=await handle.promise;if(!visible()||active!==handle)return;
-        cache={signature,characterId:idol.value,memories,originals,stage:context.stage,manual:context.manual,report,elapsedSeconds:(performance.now()-startedAt)/1000};completed.set(idol.value,cache);onTaskChange({state:'completed'});status.textContent='';render();
-      }catch(error){
-        if(visible())onTaskChange({state:'stopped'});
-        if(visible())status.textContent=t(error.name==='AbortError'?(completed.has(idol.value)?'推荐已停止，保留上次完成结果。':'推荐已停止，未完成最终排名。'):errorLabels[error.code]??'推荐未能完成，请重试。');
-      }finally{if(active===handle)active=null;busy=false;if(visible())sync();}
+    handleSearchEvent=event=>{
+      switch(event.type){
+        case 'started':render();status.textContent=t('正在枚举主副回忆组合…');progress.removeAttribute('value');sync();break;
+        case 'progress':{
+          const update=event.update;
+          if(update.phase==='prepare'){status.textContent=t('正在枚举 {0}/{1} 个组合',[update.completed,update.total]);break;}
+          const phase=t(({rough:'牌效粗筛（累计 {0} 次）',screen:'牌效初筛（累计 {0} 次）',review:'复筛（累计 {0} 次）',final:'最终复评（累计 {0} 次）'})[update.phase],[update.budget]);status.textContent=t('{0}：{1}/{2} 组 · {3}/{4} 次模拟',[phase,update.completed,update.total,update.runs,update.plannedRuns]);progress.max=update.plannedRuns;progress.value=update.runs;break;
+        }
+        case 'completed':status.textContent='';render();break;
+        case 'stopped':status.textContent=t(search.resultFor(idol.value)?'推荐已停止，保留上次完成结果。':'推荐已停止，未完成最终排名。');break;
+        case 'failed':status.textContent=t(errorLabels[event.error.code]??'推荐未能完成，请重试。');break;
+        case 'idle':sync();break;
+      }
     };
-    stop.onclick=()=>active?.cancel();
+    start.onclick=()=>{if(!search.running&&!start.disabled)return search.run(idol.value,{multiCore:readSimulationMultiCore()});};
+    stop.onclick=search.stop;
     render();sync();
   }
-  return {element,refresh:show,captureState:()=>({selectedCharacterId,results:[...completed]}),dispose(){disposed=true;active?.cancel();active=null;view=null;element.replaceChildren();}};
+  return {element,refresh:show,captureState:()=>({selectedCharacterId,results:search.captureResults()}),dispose(){disposed=true;search.dispose();view=null;element.replaceChildren();}};
 }

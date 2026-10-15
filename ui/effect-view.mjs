@@ -1,3 +1,4 @@
+import {effectCatalog} from '../domain/effect-catalog.mjs';
 import {assetURL,imageLoading} from '../resources.mjs';
 import {skillThumbnail} from './illustrations.mjs';
 import {supportSkillVisual} from '../domain/catalog.mjs';
@@ -8,13 +9,6 @@ import {plainText,descriptionLayout} from '../domain/semantic-text.mjs';
 import {effectSourceText} from '../domain/effect-language.mjs';
 import {iconForEffect} from '../domain/ability-summary.mjs';
 
-let catalog={}, effects=new Map(), cards=[],labels=new Map();
-export function installEffectPresentation(input) {
-  catalog=input.abilityIcons??{};
-  labels=new Map((input.semantics?.tables?.ProduceDescriptionLabel??[]).map(row=>[row.id,row]));
-  cards=input.tables.ProduceCard??[];
-  effects=new Map((input.tables.ProduceEffect??[]).map(row=>[row.id,row]));
-}
 const node=(tag,text='',className='')=>{const value=document.createElement(tag);value.textContent=text;value.className=className;return value;};
 const examTerms={技能卡使用次数增加:'ExamPlayableValueAdd',元気:'ExamBlock',好調:'ExamParameterBuff',強気:'ExamCardPlayAggressive',全力値:'ExamFullPowerPoint',消費体力減少:'ExamStaminaConsumptionDown',スキルカード使用数追加:'ExamPlayableValueAdd',Shield:'ExamBlock',Focus:'ExamLessonBuff','Good Condition':'ExamParameterBuff','Good Impression':'ExamReview','Full Power Points':'ExamFullPowerPoint',Preservation:'ExamPreservation',Aggressive:'ExamCardPlayAggressive',温存:'ExamPreservation',体力消耗降低:'ExamStaminaConsumptionDown',好印象:'ExamReview',强势:'ExamCardPlayAggressive',元气:'ExamBlock',全力值:'ExamFullPowerPoint',好调:'ExamParameterBuff',技能卡可使用次数增加:'ExamPlayableValueAdd',集中:'ExamLessonBuff'};
 function picture(icon,background,label) {
@@ -29,6 +23,7 @@ function picture(icon,background,label) {
 }
 // 正文卡片引用默认显示未强化版本；角色差分使用目录中的默认图。
 function referenceImages(cardReferences){
+  const {cards}=effectCatalog();
   const references=new Map();
   for(const reference of cardReferences){
     const matches=cards.filter(card=>card.id===reference.id&&card.upgradeCount===0);
@@ -42,9 +37,11 @@ function referenceImages(cardReferences){
   return references;
 }
 function referenceIcon(reference){
+  const {icons:catalog}=effectCatalog();
   return reference.generic?picture(catalog.examIcons.ExamCardCreateId,null,reference.name):skillThumbnail(reference,{compact:true});
 }
 function richLine(text,cardReferences=[],comparison) {
+  const {icons:catalog}=effectCatalog();
   const paragraph=node('p','','effect-reading-line');
   const appendText=text=>{
   const tokens=text.split(/(技能卡使用次数增加|Good Condition|Good Impression|Full Power Points|Preservation|Aggressive|Shield|Focus|スキルカード使用数追加|消費体力減少|元気|好調|強気|全力値|体力消耗降低|技能卡可使用次数增加|好印象|全力值|温存|强势|元气|好调|集中|[+−-]?\d+(?:\.\d+)?(?:%|％)?)/g);
@@ -99,6 +96,7 @@ function alignLeadingIcons(body){
   }
 }
 export function effectReading(raw,{descriptionParts,leadingEffectIcons=false,effectIds=[],cardReferences=[],numberChanges=[],interfaceText=['未解锁','已解锁','效果说明未解析','效果说明未收录'].includes(raw)}={}) {
+  const {icons:catalog,effects,labels}=effectCatalog();
   const block=node('div','','effect-reading');
   // 直接读取结构化说明中的卡片关联，让附魔、道具和技能正文共用同一缩略图。
   const linkedReferences=[...cardReferences,...(descriptionParts??[]).filter(part=>part.produceDescriptionType==='ProduceDescriptionType_ProduceCard'&&part.targetId&&part.text).map(part=>({id:part.targetId,name:plainText(part.text)}))];

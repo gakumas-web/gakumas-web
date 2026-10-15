@@ -1,4 +1,3 @@
-import {uiIconURL} from '../resources.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {installMaster,supportSkillVisual} from '../domain/catalog.mjs';
@@ -49,8 +48,8 @@ test('消耗按已选附魔等级合并，不重复乘次数，保留零值与�
   const visual=supportSkillVisual(reference);
   assert.equal(visual.costsKnown,true);
   assert.deepEqual(visual.costs.map(({kind,value})=>({kind,value})),[{kind:'stamina',value:1},{kind:'direct',value:1},{kind:'status',value:0}]);
-  assert.equal(visual.costs[0].icon,uiIconURL('skill-stamina.webp'));
-  assert.equal(visual.costs[1].icon,uiIconURL('skill-stamina-direct.webp'));
+  assert.equal(visual.costs[0].icon,'skill-stamina.webp');
+  assert.equal(visual.costs[1].icon,'skill-stamina-direct.webp');
   assert.equal(visual.costs[1].label,'体力');
   assert.deepEqual(supportSkillVisual({...reference,customizes:[{id:'effect',customizeCount:1}]}).costs.map(c=>c.value),[3,1,2]);
   assert.equal(supportSkillVisual({...reference,customizes:[{id:'unknown',customizeCount:1}]}).costsKnown,false);

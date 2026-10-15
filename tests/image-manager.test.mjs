@@ -113,6 +113,25 @@ test('停止任务可结束等待，重试只获取未成功对象',async()=>{
   assert.equal(images.status().phase,'cancelled');first=false;await images.retry();assert.equal(images.status().phase,'ready');images.dispose();
 });
 
+test('重试等待旧请求期间再次停止，不会在旧请求退出后自动恢复下载',async()=>{
+  let started,first=true,calls=0;
+  const downloading=new Promise(resolve=>{started=resolve;});
+  const images=createImageManager({store:memory(),allowedOrigins:['https://release.example.invalid'],fetcher:async(url,options)=>{
+    calls++;
+    if(first){
+      first=false;started();
+      await new Promise((_,reject)=>options.signal.addEventListener('abort',()=>reject(new DOMException('stopped','AbortError')),{once:true}));
+    }
+    return new Response(Buffer.from(fixture.packages[url],'base64'));
+  }});
+  try{
+    const initial=images.prepare(clone(fixture.versions.one));await downloading;
+    const retry=images.retry();images.cancel();await Promise.all([initial,retry]);
+    assert.equal(images.status().phase,'cancelled');assert.equal(calls,1);
+    await images.retry();assert.equal(images.status().phase,'ready');assert.equal(calls,2);
+  }finally{images.dispose();}
+});
+
 test('响应流超时不能冒充用户停止或图片已经就绪',async()=>{
   const images=createImageManager({store:memory(),allowedOrigins:['https://release.example.invalid'],fetcher:async()=>new Response(new ReadableStream({start(controller){controller.error(new DOMException('stream timeout','AbortError'));}}))});
   await images.prepare(fixture.versions.one);
