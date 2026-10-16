@@ -123,7 +123,7 @@ jobs:
         run: |
           python -m pip install PyYAML==6.0.3
           npm install --prefix local/engine-tools --no-save --ignore-scripts esbuild@0.28.1
-      - name: 核对并应用引擎追加数据
+      - name: 核对并应用配套引擎更新
         if: inputs.reuse_run_id == ''
         id: engine-update
         run: |

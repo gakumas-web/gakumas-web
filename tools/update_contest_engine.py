@@ -1,4 +1,4 @@
-"""仅自动接收固定引擎的追加数据；在隔离候选中生成、回归和审计，通过后才应用。"""
+"""将固定来源的上游引擎更新放入隔离候选；生成、回归和审计全部通过后才应用。"""
 import argparse
 import hashlib
 import json
@@ -14,7 +14,7 @@ from urllib.request import Request, urlopen
 ROOT=Path(__file__).resolve().parents[1]
 REPOSITORY='https://github.com/gakumas-tools/gakumas-tools.git'
 LOCK=ROOT/'tools/contest-engine-source.json'
-ADDITIVE={f'packages/gakumas-data/json/{name}.json' for name in ['skill_cards','p_items','p_idols','stages']}
+RECORD_TABLES={f'packages/gakumas-data/json/{name}.json' for name in ['skill_cards','p_items','p_idols','stages']}
 OUTPUTS=['tools/contest-engine-source.json','tools/contest-engine-reviewed-mappings.json','tools/contest-status-effects.json','domain/upstream-contest-engine.mjs','domain/contest-engine-map.mjs','THIRD_PARTY.md']
 
 
@@ -50,35 +50,26 @@ def snapshot(root,commit):
     return files
 
 
-def added_rows(before,after):
-    if not isinstance(before,list) or not isinstance(after,list):raise ValueError('追加数据必须是记录数组')
-    def indexed(rows):
-        result={}
-        for row in rows:
-            if not isinstance(row,dict) or type(row.get('id')) is not int or row['id'] in result:raise ValueError('追加数据 ID 无效或重复')
-            result[row['id']]=row
-        return result
-    old,new=indexed(before),indexed(after)
-    if any(json.dumps(new.get(key),sort_keys=True)!=json.dumps(row,sort_keys=True) for key,row in old.items()):raise ValueError('已有引擎记录被修改或删除')
-    if [key for key in new if key in old]!=list(old):raise ValueError('已有引擎记录顺序变化')
-    return sorted(set(new)-set(old))
-
-
 def assess(lock,before,after,commit):
     if set(before)!=set(lock['files']) or any(sha(raw)!=lock['files'][name] for name,raw in before.items()):raise ValueError('已固定引擎与来源锁不一致')
-    reasons=[];additions={}
-    if set(after)!=set(before):reasons.append('运行文件集合发生变化')
-    for name in sorted(set(before)&set(after)):
-        if before[name]==after[name]:continue
-        if name not in ADDITIVE:reasons.append('代码或非追加白名单发生变化：'+name);continue
-        try:
-            ids=added_rows(json.loads(before[name]),json.loads(after[name]))
-            if ids:additions[name]=ids
-        except (ValueError,TypeError) as error:reasons.append(name+'：'+str(error))
-    status='review-required' if reasons else 'approved' if additions else 'unchanged'
-    selected=commit if status=='approved' else lock['commit']
-    return {'format':1,'base_commit':lock['commit'],'candidate_commit':commit,'selected_commit':selected,'status':status,'additions':additions,'reasons':reasons,
-            'lock':{'repository':lock['repository'],'commit':selected,'files':{name:sha(raw) for name,raw in sorted((after if status=='approved' else before).items())}}}
+    # 署名与打包声明固定采用当前许可证，许可证变化必须另行维护。
+    if before.get('LICENSE')!=after.get('LICENSE'):raise ValueError('引擎许可证发生变化')
+    # 消费端按 ID 建索引，重复或非整数 ID 会使名称匹配与实际执行对象不一致。
+    for name in sorted(RECORD_TABLES&set(after)):
+        rows=json.loads(after[name])
+        if not isinstance(rows,list):raise ValueError('引擎记录表必须是数组：'+name)
+        seen=set()
+        for row in rows:
+            if not isinstance(row,dict) or type(row.get('id')) is not int or row['id'] in seen:raise ValueError('引擎记录 ID 无效或重复：'+name)
+            seen.add(row['id'])
+    changes={'added':sorted(set(after)-set(before)),
+             'modified':sorted(name for name in set(before)&set(after) if before[name]!=after[name]),
+             'removed':sorted(set(before)-set(after))}
+    # 候选只表示来源已固定；记录、代码和文件集合变更均须经过后续完整验证。
+    status='candidate' if any(changes.values()) else 'unchanged'
+    selected=commit if status=='candidate' else lock['commit']
+    return {'format':1,'base_commit':lock['commit'],'candidate_commit':commit,'selected_commit':selected,'status':status,'changes':changes,'reasons':[],
+            'lock':{'repository':lock['repository'],'commit':selected,'files':{name:sha(raw) for name,raw in sorted((after if status=='candidate' else before).items())}}}
 
 
 def inspect(commit=None,previous=None):
@@ -86,13 +77,14 @@ def inspect(commit=None,previous=None):
     if not re.fullmatch('[a-f0-9]{40}',commit):raise ValueError('引擎提交身份无效')
     (ROOT/'local').mkdir(exist_ok=True)
     cache=ROOT/'local/engine-source-cache';before=snapshot(cache,lock['commit']);repository_base=lock['commit'];accepted_previous=None
-    if previous and previous.get('commit')!=lock['commit']:
+    assess(lock,before,before,lock['commit'])
+    if previous is not None:
         prior=previous.get('commit','')
         if previous.get('repository')!=lock['repository'] or not re.fullmatch('[a-f0-9]{40}',prior):raise ValueError('线上引擎来源格式无效')
-        prior_files=snapshot(cache,prior)
+        prior_files=before if prior==lock['commit'] else snapshot(cache,prior)
         if {name:sha(raw) for name,raw in prior_files.items()}!=previous.get('files'):raise ValueError('线上引擎来源哈希不一致')
-        # 线上自动版本也必须能从仓库固定版证明为纯追加，才作为下一次更新基线。
-        if assess(lock,before,prior_files,prior)['status']=='approved':lock=previous;before=prior_files;accepted_previous=previous
+        # 已部署版本经真实来源与哈希验证后即可作为基线，不再限制其相对源码版为纯追加。
+        if prior!=lock['commit']:lock=previous;before=prior_files;accepted_previous=previous
     after=before if commit==lock['commit'] else snapshot(cache,commit)
     return {**assess(lock,before,after,commit),'repository_base_commit':repository_base,'previous_lock':accepted_previous}
 
