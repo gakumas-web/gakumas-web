@@ -5,6 +5,16 @@ import {filterMemories,memoryExamChoices} from '../domain/memories.mjs';
 const card=(id,upgradeCount=0)=>({id,upgradeCount,customizes:[]});
 const rows=[{key:'a',characterId:'hski',examBattleProduceCards:[card('one'),card('two')],examBattleProduceItemIds:['x','y']},{key:'b',characterId:'ttmr',examBattleProduceCards:[card('one',1)],examBattleProduceItemIds:['x']},{key:'c',characterId:'kllj'}];
 const filter=options=>filterMemories({memories:rows},createView(options),new Map()).map(row=>row.key);
+test('继承筛选分别匹配开局阶段与实际附魔，组合取交集且排除未知',()=>{
+  const memory=(key,phase,count,id='one')=>({key,ordinal:0,produceCardPhaseType:phase,produceCard:{id,upgradeCount:0,customizes:count===undefined?[]:[{id:'custom',customizeCount:count}]}});
+  const memories=[memory('both',1,2),memory('start',1,0),memory('custom',2,1),memory('neither',2,0),memory('unknown',undefined,1),{key:'missing',ordinal:0,produceCardPhaseType:1}];
+  const run=options=>filterMemories({memories},createView(options),new Map()).map(row=>row.key);
+  assert.deepEqual(run({}),memories.map(row=>row.key));
+  assert.deepEqual(run({inheritanceStartOnly:true}),['both','start']);
+  assert.deepEqual(run({inheritanceCustomizedOnly:true}),['both','custom','unknown']);
+  assert.deepEqual(run({inheritanceStartOnly:true,inheritanceCustomizedOnly:true}),['both']);
+  assert.deepEqual(run({inheritanceStartOnly:true,inheritanceCustomizedOnly:true,skill:['other']}),[]);
+});
 test('普通角色多选取并集，旧单选可恢复，清空恢复全部',()=>{
   assert.deepEqual(createView({character:'hski'}).character,['hski']);
   assert.deepEqual(filter({character:['hski','ttmr']}),['a','b']);

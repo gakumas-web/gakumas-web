@@ -8,6 +8,8 @@ import {recordedSkill} from './memories.mjs';
 import {closeRewardPopover} from './card-rewards.mjs';
 import {simulationHistory,deleteSimulationRun,SIMULATION_HISTORY_LIMIT} from '../application/contest-simulation-history.mjs';
 import {createSavedLoadout,savedSimulationLoadouts,saveSimulationLoadout,deleteSimulationLoadout} from '../application/contest-saved-loadouts.mjs';
+import {saveSimulationLoadouts} from '../application/storage.mjs';
+import {createLoadoutPackage,readLoadoutPackage,inspectLoadoutPackage,materializeLoadoutImport,LOADOUT_PACKAGE_FILE_LIMIT} from '../application/contest-loadout-package.mjs';
 
 export function loadoutPreview(loadout,conversionRules){
   const entries=conversionRules?contestMemoryCards(loadout.memories,contestCardNoDeckDuplication,conversionRules):null;
@@ -29,7 +31,7 @@ export function loadoutPreview(loadout,conversionRules){
   return preview;
 }
 
-export function createContestLoadoutLibrary({profile,lifecycleId,getCurrent,onRestore,onChange}){
+export function createContestLoadoutLibrary({profile,lifecycleId,getCurrent,onRestore,onChange,getPackageContext=()=>({})}){
   const element=el('div','','season-loadout-actions'),open=el('button',t('读取回忆编组'),'season-loadout-library-open'),save=el('button',t('保存编组'),'season-loadout-save');element.append(open,save);
   element.append(el('span',t('仅保存到当前浏览器，不包含在账号数据包中。'),'small muted loadout-local-notice'));
   let dialog=null,disposed=false,available=false,view='history',revision=0;
@@ -43,13 +45,48 @@ export function createContestLoadoutLibrary({profile,lifecycleId,getCurrent,onRe
     const note=el('p','','small muted'),status=el('p','','loadout-library-status small muted'),list=el('div','','loadout-library-list');status.setAttribute('role','status');status.setAttribute('aria-live','polite');
     const form=el('form','','loadout-library-name-form'),nameLabel=el('label',t('编组名称')),name=el('input'),submit=el('button',t('保存'),'primary'),cancel=el('button',t('取消'));name.maxLength=60;name.required=true;name.id='loadout-library-name';nameLabel.htmlFor=name.id;submit.type='submit';form.hidden=true;form.append(nameLabel,name,submit,cancel);
     headingText.append(note);currentDialog.append(heading,toolbar,form,status,list);document.body.append(currentDialog);
-    let history=[],saved=[],selectedStage='all',selectedIdol='all',pending=null,busy=false;
+    let history=[],saved=[],selectedStage='all',selectedIdol='all',pending=null,busy=false,importPreview=null;
+    const selectedExports=new Set(),packageToolbar=el('div','','loadout-library-package-actions'),selectAll=el('button',t('全选已保存编组')),exportButton=el('button',t('导出所选编组')),importButton=el('button',t('导入编组文件')),file=el('input'),preview=el('section','','loadout-library-import-preview'),confirmImport=el('button',t('确认导入'),'primary'),cancelImport=el('button',t('取消'));
+    file.type='file';file.accept='.json,application/json';file.hidden=true;file.id='loadout-library-import-file';preview.hidden=true;preview.setAttribute('aria-label',t('编组导入预览'));
+    packageToolbar.append(selectAll,exportButton,importButton,file);currentDialog.insertBefore(packageToolbar,form);currentDialog.insertBefore(preview,list);
+    const reasonLabels={stage:'舞台或计划需要检查',catalog:'当前资料存在未收录或不匹配项',ownership:'当前账号持有或解锁条件需要检查',rules:'评级、卡组或倍率规则需要检查'};
+    function clearPreview(){importPreview=null;preview.hidden=true;preview.replaceChildren();}
+    function updatePackageActions(){packageToolbar.hidden=view!=='saved';selectAll.disabled=busy||!saved.length;exportButton.disabled=busy||!selectedExports.size;importButton.disabled=busy;}
+    function showPreview(rows){
+      importPreview=rows;preview.hidden=false;preview.replaceChildren(el('h3',t('编组导入预览')),el('p',t('导入目标：{0}',[document.querySelector('#profile')?.selectedOptions?.[0]?.textContent??t('当前账号')])),el('p',t('确认后新增 {0} 个编组，不覆盖现有编组。',[rows.length])),el('p',t('编组使用当前资料与账号条件恢复，模拟结果需要重新计算。'),'small muted'));
+      const summary=el('ul');for(const row of rows){const item=el('li');item.append(el('strong',row.entry.name),el('span',' · '+t(row.status==='loadable'?'可载入':'需检查')));if(row.reasons.length)item.append(el('p',row.reasons.map(reason=>t(reasonLabels[reason])).join('；'),'small muted'));summary.append(item);}preview.append(summary,confirmImport,cancelImport);confirmImport.disabled=false;
+    }
+    selectAll.onclick=()=>{if(busy)return;const all=saved.every(entry=>selectedExports.has(entry.id));for(const entry of saved)all?selectedExports.delete(entry.id):selectedExports.add(entry.id);draw();};
+    exportButton.onclick=()=>{
+      if(busy)return;
+      try{
+        const content=JSON.stringify(createLoadoutPackage(saved.filter(entry=>selectedExports.has(entry.id)),{contentVersion:getPackageContext().contentVersion??null}),null,2),blob=new Blob([content],{type:'application/json'});
+        if(blob.size>LOADOUT_PACKAGE_FILE_LIMIT)throw new Error();
+        const url=URL.createObjectURL(blob),anchor=el('a');anchor.href=url;anchor.download='gakumas-contest-loadouts.json';anchor.click();setTimeout(()=>URL.revokeObjectURL(url),0);status.textContent=t('所选编组已导出。');
+      }catch{status.textContent=t('编组导出失败，请减少所选编组或检查编组内容。');}
+    };
+    importButton.onclick=()=>{if(!busy)file.click();};
+    file.onchange=async()=>{
+      if(busy||!file.files?.[0])return;const selected=file.files[0];file.value='';clearPreview();busy=true;updatePackageActions();list.inert=true;
+      try{const input=await readLoadoutPackage(selected);if(active()){showPreview(inspectLoadoutPackage(input,getPackageContext()));status.textContent='';}}
+      catch(error){if(active())status.textContent=t(error.code==='loadout_package_too_large'?'编组文件超过 2 MiB 或为空，未导入任何编组。':'编组文件格式无效或版本不受支持，未导入任何编组。');}
+      finally{busy=false;list.inert=false;updatePackageActions();}
+    };
+    cancelImport.onclick=()=>{if(!busy)clearPreview();};
+    confirmImport.onclick=async()=>{
+      if(busy||!importPreview||!active())return;busy=true;confirmImport.disabled=true;cancelImport.disabled=true;list.inert=true;updatePackageActions();
+      try{
+        const entries=materializeLoadoutImport(importPreview);await saveSimulationLoadouts(profile,entries,lifecycleId);
+        if(active()){clearPreview();onChange?.();await refresh();status.textContent=t('已新增 {0} 个编组，现有编组未覆盖。',[entries.length]);}
+      }catch{if(active())status.textContent=t('编组导入失败，未保存任何编组。请关闭后重试。');}
+      finally{busy=false;confirmImport.disabled=false;cancelImport.disabled=false;list.inert=false;updatePackageActions();}
+    };
     const active=()=>!disposed&&dialog===currentDialog;
     const defaultName=entry=>`${characterInfo(entry.loadout.memories[0].characterId).name} · ${contestStageName(entry.stage)}`.slice(0,60);
     function edit(entry,previous=null){pending={entry,previous};form.hidden=false;name.value=previous?.name??defaultName(entry);status.textContent='';name.focus();name.select();}
     function draw(){
       closeRewardPopover();
-      historyTab.setAttribute('aria-pressed',String(view==='history'));savedTab.setAttribute('aria-pressed',String(view==='saved'));
+      updatePackageActions();historyTab.setAttribute('aria-pressed',String(view==='history'));savedTab.setAttribute('aria-pressed',String(view==='saved'));
       const stages=new Map([...history,...saved].map(entry=>[entry.stageKey,contestStageName(entry.stage)]));
       if(selectedStage!=='all'&&!stages.has(selectedStage))selectedStage='all';
       filter.replaceChildren(new Option(t('全部舞台'),'all'),...[...stages].map(([key,label])=>new Option(label,key)));filter.value=selectedStage;
@@ -62,7 +99,9 @@ export function createContestLoadoutLibrary({profile,lifecycleId,getCurrent,onRe
       for(const entry of entries){
         const row=el('article','','loadout-library-entry');row.dataset.loadoutId=entry.id;
         const head=el('div','','loadout-library-entry-heading'),date=el('time',new Intl.DateTimeFormat(locale(),{dateStyle:'short',timeStyle:'short'}).format(new Date(entry.updatedAt??entry.createdAt)));
-        const identity=el('div','','loadout-library-entry-identity');identity.append(el('strong',entry.name??characterInfo(entry.loadout.memories[0].characterId).name));head.append(identity,date);
+        const identity=el('div','','loadout-library-entry-identity');
+        if(view==='saved'){const selection=el('input'),label=el('label','','loadout-library-export-selection');selection.type='checkbox';selection.checked=selectedExports.has(entry.id);selection.setAttribute('aria-label',t('选择导出：{0}',[entry.name]));selection.onchange=()=>{selection.checked?selectedExports.add(entry.id):selectedExports.delete(entry.id);updatePackageActions();};label.append(selection,el('span',t('选择导出')));identity.append(label);}
+        identity.append(el('strong',entry.name??characterInfo(entry.loadout.memories[0].characterId).name));head.append(identity,date);
         const stage=el('p',contestStageName(entry.stage),'small muted'),actions=el('div','','loadout-library-entry-actions'),load=el('button',t('载入编组'),'loadout-library-load'),keep=el('button',t(view==='history'?'保存编组':'重命名'),'loadout-library-keep'),remove=el('button',t('删除'),'loadout-library-delete');
         load.onclick=()=>{if(busy)return;if(onRestore(entry)===false){status.textContent=t('当前资料已不包含此舞台，无法载入编组。');return;}currentDialog.close();};
         keep.onclick=()=>{if(!busy)edit(entry,view==='saved'?entry:null);};
@@ -82,7 +121,7 @@ export function createContestLoadoutLibrary({profile,lifecycleId,getCurrent,onRe
       try{
         const entries=await Promise.all([simulationHistory(profile),savedSimulationLoadouts(profile)]);
         if(!active()||ticket!==revision)return;
-        history=entries[0].filter(entry=>entry.loadout?.memories?.length===2&&entry.loadout.memories.every(Boolean));saved=entries[1];draw();
+        history=entries[0].filter(entry=>entry.loadout?.memories?.length===2&&entry.loadout.memories.every(Boolean));saved=entries[1];for(const id of selectedExports)if(!saved.some(entry=>entry.id===id))selectedExports.delete(id);draw();
       }catch{if(active())status.textContent=t('编组读取失败，请关闭后重试。');}
     }
     form.onsubmit=async event=>{
@@ -96,7 +135,7 @@ export function createContestLoadoutLibrary({profile,lifecycleId,getCurrent,onRe
       finally{busy=false;submit.disabled=false;cancel.disabled=false;list.inert=false;}
     };
     name.oninput=()=>name.setCustomValidity('');cancel.onclick=()=>{pending=null;form.hidden=true;};
-    historyTab.onclick=()=>{if(!busy){view='history';pending=null;form.hidden=true;draw();}};savedTab.onclick=()=>{if(!busy){view='saved';pending=null;form.hidden=true;draw();}};filter.onchange=()=>{selectedStage=filter.value;draw();};idolFilter.onchange=()=>{selectedIdol=idolFilter.value;draw();};
+    historyTab.onclick=()=>{if(!busy){view='history';pending=null;form.hidden=true;clearPreview();draw();}};savedTab.onclick=()=>{if(!busy){view='saved';pending=null;form.hidden=true;draw();}};filter.onchange=()=>{selectedStage=filter.value;draw();};idolFilter.onchange=()=>{selectedIdol=idolFilter.value;draw();};
     close.onclick=()=>currentDialog.close();currentDialog.addEventListener('close',()=>{closeRewardPopover();if(dialog===currentDialog)dialog=null;revision++;currentDialog.remove();});
     draw();openDialog(currentDialog,{returnFocus:()=>document.querySelector('.season-loadout-library-open')});void refresh();if(source)edit(source);
   }

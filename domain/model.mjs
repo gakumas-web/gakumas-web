@@ -63,7 +63,7 @@ export function parseSnapshot(input) {
   if (result.count !== result.memories.length) throw new InputError();
   const seen = new Set();
   result.memories = result.memories.map(inputMemory => {
-    const m = fields(inputMemory, {...memorySchema,inheritCount:integer}, Object.keys(memorySchema));
+    const m = fields(inputMemory, {...memorySchema,inheritCount:integer,isInUse:boolean}, Object.keys(memorySchema));
     if (seen.has(m.userMemoryId)) throw new InputError();
     seen.add(m.userMemoryId);
     if (m.produceCard !== undefined) m.produceCard = cleanCard(m.produceCard);

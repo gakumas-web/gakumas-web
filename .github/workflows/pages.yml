@@ -160,6 +160,41 @@ jobs:
         run: python -B tools/verify_portable_artifacts.py --site dist --expected-commit "$GITHUB_SHA" --expected-preview "$ENABLE_PREVIEW_ACCOUNT"
       - name: 审计模拟引擎完整公开候选池
         run: node tools/audit_contest_engine.mjs --site dist --baseline tools/contest-engine-compatibility-baseline.json --report local/contest-engine-audit.json
+      - name: 验收模拟交互、迁移、草稿与任务隔离
+        timeout-minutes: 15
+        run: |
+          python -B - <<'PY'
+          from functools import partial
+          from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
+          from threading import Thread
+          import subprocess
+          import sys
+          class Handler(SimpleHTTPRequestHandler):
+              def log_message(self, *args):
+                  pass
+          server = ThreadingHTTPServer(('127.0.0.1', 0), partial(Handler, directory='dist'))
+          thread = Thread(target=server.serve_forever, daemon=True)
+          thread.start()
+          try:
+              url = f'http://127.0.0.1:{server.server_port}/'
+              for script in ('browser_optimization_autofill', 'browser_optimization_custom_budget', 'browser_contest_task_lifecycle', 'browser_contest_loadout_package', 'browser_contest_drafts', 'browser_contest_draft_locale'):
+                  subprocess.run([sys.executable, '-B', f'tests/{script}.py', '--url', url], check=True)
+              subprocess.run([sys.executable, '-B', 'tests/browser_contest_compute_contention.py', '--url', url, '--gated'], check=True)
+          finally:
+              server.shutdown()
+              server.server_close()
+              thread.join()
+          PY
+      - name: 保存模拟交互验收证据
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: contest-browser-acceptance
+          path: |
+            local/checks/review067-followup/
+            local/checks/nextsteps-20261016/
+            local/checks/optimization-autofill/
+          if-no-files-found: ignore
       - name: 保存模拟引擎审计报告
         if: always()
         uses: actions/upload-artifact@v4

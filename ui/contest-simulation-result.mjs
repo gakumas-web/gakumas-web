@@ -58,8 +58,8 @@ export function createContestSimulationPanel({profile,lifecycleId,stage,supportB
   history.element.id='simulation-history-view';history.element.hidden=true;
   resultView.append(stale,failure,output,saveStatus);element.append(heading,controls,status,progress,resultView,history.element);
   function sync(){
-    resultView.hidden=!output.childElementCount;status.hidden=!status.textContent;runs.disabled=runNumber.disabled=simulation.running;for(const button of presets.children)button.disabled=simulation.running;syncRunInput();quickPicker?.setDisabled(simulation.running||!available);history.setBusy(simulation.running);rerun.textContent=t('开始模拟');stop.hidden=!simulation.running;progress.hidden=!simulation.running;
-    stale.hidden=!simulation.entry||!simulation.running&&(simulation.signature==='history'||simulation.signature===inputSignature);stale.textContent=t(simulation.running?'正在重新模拟，以下保留上次完成结果。':'编组已调整，以下保留上次模拟结果；重新模拟后更新。');
+    resultView.hidden=!output.childElementCount;status.hidden=!status.textContent;runs.disabled=runNumber.disabled=simulation.running;for(const button of presets.children)button.disabled=simulation.running;syncRunInput();quickPicker?.setDisabled(simulation.running||!available);history.setBusy(simulation.running);rerun.textContent=t(simulation.queued?'等待执行':'开始模拟');stop.textContent=t(simulation.queued?'取消等待':'停止');stop.hidden=!simulation.running;progress.hidden=!simulation.running;
+    stale.hidden=!simulation.entry||!simulation.running&&(simulation.signature==='history'||simulation.signature===inputSignature);stale.textContent=t(simulation.queued?'等待执行，以下保留上次完成结果。':simulation.running?'正在重新模拟，以下保留上次完成结果。':'编组已调整，以下保留上次模拟结果；重新模拟后更新。');
   }
   const format=value=>new Intl.NumberFormat(locale(),{maximumFractionDigits:0}).format(value);
   function showResult(result,entry){
@@ -101,6 +101,8 @@ export function createContestSimulationPanel({profile,lifecycleId,stage,supportB
   }
   const simulation=createContestSimulationController({profile,lifecycleId,onEvent:event=>{
     switch(event.type){
+      case 'queued':
+        failure.replaceChildren();saveStatus.textContent='';selectMode('selected');onTaskChange({state:'queued',stop:simulation.stop});progress.removeAttribute('value');status.textContent=t('等待其他计算完成，使用开始时的配置。');sync();break;
       case 'started':
         failure.replaceChildren();if(!simulation.entry)output.replaceChildren();saveStatus.textContent='';selectMode('selected');onTaskChange({state:'running',stop:simulation.stop});progress.max=event.runs;progress.value=0;status.textContent=t('正在模拟 {0}/{1}',[0,event.runs]);sync();break;
       case 'progress':progress.value=event.count;status.textContent=t('正在模拟 {0}/{1}',[event.count,event.runs]);break;

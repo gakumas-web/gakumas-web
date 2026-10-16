@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {setImmediate} from 'node:timers/promises';
 import {installMaster} from '../domain/catalog.mjs';
+import {createContestComputeGate} from '../application/contest-compute-gate.mjs';
 import {createContestRecommendationController} from '../application/contest-recommendation-controller.mjs';
 import {createContestOptimizationController} from '../application/contest-optimization-controller.mjs';
 
@@ -19,8 +20,8 @@ function workerBoundary(){
   return {jobs,start(input,options){let resolve,reject;const promise=new Promise((yes,no)=>{resolve=yes;reject=no;});const job={input,options,promise,resolve,reject,cancelled:false,cancel(){this.cancelled=true;}};jobs.push(job);return job;}};
 }
 const abort=()=>new DOMException('Stopped','AbortError');
-function recommendation(){const worker=workerBoundary(),events=[],controller=createContestRecommendationController({start:worker.start,onEvent:event=>events.push(event)});controller.setContext(context);return {...worker,events,controller};}
-function optimization(t,initialState){t.mock.timers.enable({apis:['setTimeout']});const worker=workerBoundary(),events=[],controller=createContestOptimizationController({initialState,start:worker.start,onEvent:event=>events.push(event)});controller.setContext(context);return {...worker,events,controller,async prepare(){t.mock.timers.tick(0);await setImmediate();}};}
+function recommendation(){const worker=workerBoundary(),events=[],controller=createContestRecommendationController({gate:createContestComputeGate(),start:worker.start,onEvent:event=>events.push(event)});controller.setContext(context);return {...worker,events,controller};}
+function optimization(t,initialState){t.mock.timers.enable({apis:['setTimeout']});const worker=workerBoundary(),events=[],controller=createContestOptimizationController({gate:createContestComputeGate(),initialState,start:worker.start,onEvent:event=>events.push(event)});controller.setContext(context);return {...worker,events,controller,async prepare(){t.mock.timers.tick(0);await setImmediate();}};}
 
 test('回忆搜索使用正式筛选与编组副本，结果可捕获恢复且同上下文不取消',async()=>{
   const p=recommendation(),run=p.controller.run('hski',{multiCore:true});
@@ -29,8 +30,8 @@ test('回忆搜索使用正式筛选与编组副本，结果可捕获恢复且�
   assert.notEqual(p.jobs[0].input.memories[0].examBattleProduceCards,memories[0].examBattleProduceCards);
   p.jobs[0].options.onProgress({phase:'final',completed:1});assert.equal(p.events.at(-1).type,'progress');
   p.jobs[0].resolve({rows:[],seed:123});await run;
-  const result=p.controller.resultFor('hski');assert.equal(result.originals[0],memories[0]);assert.equal(result.stage,context.stage);assert.equal(result.report.seed,123);
-  const restored=createContestRecommendationController({initialState:{results:p.controller.captureResults()}});restored.setContext(context);assert.equal(restored.resultFor('hski'),result);
+  const result=p.controller.resultFor('hski');assert.deepEqual(result.originals[0],memories[0]);assert.notEqual(result.originals[0],memories[0]);assert.deepEqual(result.stage,context.stage);assert.equal(result.report.seed,123);
+  const restored=createContestRecommendationController({gate:createContestComputeGate(),initialState:{results:p.controller.captureResults()}});restored.setContext(context);assert.equal(restored.resultFor('hski'),result);
   restored.setContext({...context,manual:{vocal:2}});assert.equal(restored.resultFor('hski'),null);
   assert.deepEqual(p.events.map(event=>event.type),['started','progress','completed','idle']);
 });
@@ -51,17 +52,17 @@ test('回忆上下文替换后旧任务不能写入缓存或干扰新任务，�
 });
 
 test('回忆搜索启动异常释放忙碌状态',async()=>{
-  const events=[],p=createContestRecommendationController({start:()=>{throw new Error('worker_failed');},onEvent:event=>events.push(event)});p.setContext(context);await p.run('hski');
+  const events=[],p=createContestRecommendationController({gate:createContestComputeGate(),start:()=>{throw new Error('worker_failed');},onEvent:event=>events.push(event)});p.setContext(context);await p.run('hski');
   assert.equal(p.running,false);assert.deepEqual(events.map(event=>event.type),['started','failed','idle']);
 });
 
 test('推荐搜索通过正式约束投影，保留种子、预算、结果签名和原舞台上下文',async t=>{
   const p=optimization(t),run=p.controller.run(form,options);await p.prepare();assert.equal(p.jobs.length,1);
-  const job=p.jobs[0];assert.equal(job.options.seed,123);assert.equal(job.options.budget,options.budget);assert.equal(job.options.multiCore,true);
+  const job=p.jobs[0];assert.equal(job.options.seed,123);assert.deepEqual(job.options.budget,options.budget);assert.notEqual(job.options.budget,options.budget);assert.equal(job.options.multiCore,true);
   assert.equal(job.input.input.roles[0].template.vocal,params.vocal);assert.equal(job.input.input.roles[1].template.vocal,0);assert.ok(job.input.input.probes.length>0);
   job.options.onProgress({phase:'search',completed:1});job.resolve({rows:[],seed:123});await run;
-  assert.equal(p.controller.report.seed,123);assert.equal(p.controller.reportSignature,'form-a');assert.equal(p.controller.reportContext.stage,context.stage);assert.notEqual(p.controller.reportContext.manual,context.manual);
-  const restored=createContestOptimizationController({initialState:p.controller.captureState()});restored.setContext(context);assert.equal(restored.report,p.controller.report);
+  assert.equal(p.controller.report.seed,123);assert.equal(p.controller.reportSignature,'form-a');assert.deepEqual(p.controller.reportContext.stage,context.stage);assert.notEqual(p.controller.reportContext.stage,context.stage);assert.notEqual(p.controller.reportContext.manual,context.manual);
+  const restored=createContestOptimizationController({gate:createContestComputeGate(),initialState:p.controller.captureState()});restored.setContext(context);assert.equal(restored.report,p.controller.report);
   restored.setContext({...context,producerLevel:61});assert.equal(restored.report,null);
   assert.deepEqual(p.events.map(event=>event.type),['preparing','started','progress','completed','idle']);
 });
@@ -89,4 +90,44 @@ test('推荐上下文变更和销毁丢弃旧响应，准备期间变更不启�
   const next=p.controller.run(form,options);await p.prepare();const count=p.events.length;p.jobs[0].options.onProgress({phase:'search'});p.jobs[0].resolve({old:true});await old;
   assert.equal(p.events.length,count);assert.equal(p.controller.running,true);assert.equal(p.controller.report,null);
   p.controller.dispose();p.jobs[1].resolve({old:true});await next;await p.controller.run(form,options);assert.equal(p.events.length,count);assert.equal(p.jobs.length,2);
+});
+
+test('等待中的回忆搜索冻结上下文，取消旧任务不会释放其它控制器的许可',async()=>{
+  const gate=createContestComputeGate(),owner=gate.acquire(),worker=workerBoundary(),events=[];
+  const controller=createContestRecommendationController({gate,start:worker.start,onEvent:event=>events.push(event.type)});
+  const source=structuredClone(context);controller.setContext(source);
+  const old=controller.run('hski');assert.equal(controller.running,true);assert.equal(controller.queued,true);
+  source.memories[0].vocal=9999;source.manual.vocal=8;
+  owner.release();await setImmediate();assert.equal(worker.jobs[0].input.memories[0].vocal,params.vocal);
+  assert.deepEqual(worker.jobs[0].input.manual,{});
+  controller.setContext({...context,stage:{...context.stage,id:'new-stage'}});assert.equal(worker.jobs[0].cancelled,true);
+  const other=gate.acquire(),next=controller.run('hski');assert.equal(controller.queued,true);
+  worker.jobs[0].resolve({old:true});await old;assert.equal(other.granted,true);assert.equal(controller.queued,true);
+  controller.stop();await next;assert.equal(other.granted,true);assert.equal(gate.pending,0);other.release();
+  assert.deepEqual(events,['queued','started','invalidated','queued','stopped','idle']);
+});
+
+test('等待中的自定义搜索冻结表单、预算与上下文，获许可后才生成候选',async t=>{
+  t.mock.timers.enable({apis:['setTimeout']});
+  const gate=createContestComputeGate(),owner=gate.acquire(),worker=workerBoundary(),events=[];
+  const controller=createContestOptimizationController({gate,start:worker.start,onEvent:event=>events.push(event.type)});
+  const source=structuredClone(context),state=structuredClone(form),budget={population:8};controller.setContext(source);
+  const run=controller.run(state,{...options,budget});assert.equal(controller.queued,true);assert.equal(controller.running,true);
+  state.params.vocal='9999';state.roles[0].grade='1';state.seed='999';budget.population=99;source.stage.id='edited';
+  t.mock.timers.tick(0);await setImmediate();assert.equal(worker.jobs.length,0);
+  owner.release();await setImmediate();t.mock.timers.tick(0);await setImmediate();
+  const job=worker.jobs[0];assert.equal(job.input.input.roles[0].template.vocal,params.vocal);
+  assert.equal(job.input.stage.id,'stage-a');assert.equal(job.options.seed,123);assert.equal(job.options.budget.population,8);
+  job.resolve({rows:[]});await run;assert.equal(gate.busy,false);
+  assert.deepEqual(events,['preparing','queued','started','completed','idle']);
+});
+
+test('等待中的搜索上下文失效或销毁只取消自身，不启动旧候选与 Worker',async t=>{
+  t.mock.timers.enable({apis:['setTimeout']});
+  const gate=createContestComputeGate(),owner=gate.acquire(),worker=workerBoundary();
+  const controller=createContestOptimizationController({gate,start:worker.start});controller.setContext(context);
+  const old=controller.run(form,options);controller.setContext({...context,producerLevel:61});await old;
+  assert.equal(gate.pending,0);assert.equal(owner.granted,true);
+  const next=controller.run(form,options);controller.dispose();await next;t.mock.timers.tick(0);await setImmediate();
+  assert.equal(worker.jobs.length,0);assert.equal(gate.pending,0);assert.equal(owner.granted,true);owner.release();
 });

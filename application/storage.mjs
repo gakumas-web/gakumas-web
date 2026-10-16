@@ -8,12 +8,13 @@ import {PROFILE_PREFERENCE_KEY} from './view-state.mjs';
 // 当前独立格式使用专用存储，不读取或迁移早期工作副本。
 function database() {
   return new Promise((resolve,reject)=>{
-    const request=indexedDB.open('gakumas-web',3);
+    const request=indexedDB.open('gakumas-web',4);
     request.onupgradeneeded=event=>{
       const db=request.result;
       if(event.oldVersion<1){db.createObjectStore('profiles');db.createObjectStore('snapshots',{keyPath:['profile','id']}).createIndex('profile','profile');}
       if(event.oldVersion<2){const runs=db.createObjectStore('simulationRuns',{keyPath:['profile','id']});runs.createIndex('profile','profile');runs.createIndex('profileStage',['profile','stageKey']);}
       if(event.oldVersion<3)db.createObjectStore('simulationLoadouts',{keyPath:['profile','id']}).createIndex('profile','profile');
+      if(event.oldVersion<4)db.createObjectStore('simulationDrafts',{keyPath:['profile','id']}).createIndex('profile','profile');
     };
     request.onsuccess=()=>{request.result.onversionchange=()=>request.result.close();resolve(request.result);};request.onerror=()=>reject(request.error);
   });
@@ -108,14 +109,15 @@ function accountLocalKeys(profile){
 
 export async function accountDataSummary(profile){
   const settings=accountLocalKeys(profile).length;
-  return transaction(['profiles','snapshots','simulationRuns','simulationLoadouts'],'readonly',tx=>{
+  return transaction(['profiles','snapshots','simulationRuns','simulationLoadouts','simulationDrafts'],'readonly',tx=>{
     const ordinary=tx.objectStore('profiles').get(profile),selection=tx.objectStore('profiles').get('selection:'+profile);
     const history=tx.objectStore('snapshots').index('profile').count(IDBKeyRange.only(profile));
     const simulations=tx.objectStore('simulationRuns').index('profile').count(IDBKeyRange.only(profile));
     const loadouts=tx.objectStore('simulationLoadouts').index('profile').count(IDBKeyRange.only(profile));
+    const drafts=tx.objectStore('simulationDrafts').index('profile').count(IDBKeyRange.only(profile));
     const length=value=>Array.isArray(value)?value.length:0;
     return ()=>({memories:length(ordinary.result?.snapshot?.memories),selection:length(selection.result?.snapshot?.selectionMemories),
-      details:length(selection.result?.snapshot?.details),history:history.result,simulations:simulations.result,loadouts:loadouts.result,settings});
+      details:length(selection.result?.snapshot?.details),history:history.result,simulations:simulations.result,loadouts:loadouts.result,drafts:drafts.result,settings});
   });
 }
 
@@ -124,13 +126,15 @@ export async function clearAccountData(profile){
   const keys=accountLocalKeys(profile);
   if(localStorage.getItem(PROFILE_PREFERENCE_KEY)===profile)keys.push(PROFILE_PREFERENCE_KEY);
   const previous=new Map(keys.map(key=>[key,localStorage.getItem(key)])),removed=[];
-  try{await transaction(['profiles','snapshots','simulationRuns','simulationLoadouts'],'readwrite',tx=>{
+  try{await transaction(['profiles','snapshots','simulationRuns','simulationLoadouts','simulationDrafts'],'readwrite',tx=>{
     const profiles=tx.objectStore('profiles'),snapshots=tx.objectStore('snapshots');
     profiles.delete(profile);profiles.delete('selection:'+profile);
     const simulations=tx.objectStore('simulationRuns'),runs=simulations.index('profile').openKeyCursor(IDBKeyRange.only(profile));
     runs.onsuccess=()=>{const row=runs.result;if(row){simulations.delete(row.primaryKey);row.continue();}};
     const loadouts=tx.objectStore('simulationLoadouts'),saved=loadouts.index('profile').openKeyCursor(IDBKeyRange.only(profile));
     saved.onsuccess=()=>{const row=saved.result;if(row){loadouts.delete(row.primaryKey);row.continue();}};
+    const drafts=tx.objectStore('simulationDrafts'),unfinished=drafts.index('profile').openKeyCursor(IDBKeyRange.only(profile));
+    unfinished.onsuccess=()=>{const row=unfinished.result;if(row){drafts.delete(row.primaryKey);row.continue();}};
     const cursor=snapshots.index('profile').openKeyCursor(IDBKeyRange.only(profile));
     cursor.onsuccess=()=>{const row=cursor.result;if(row){snapshots.delete(row.primaryKey);row.continue();}};
     for(const key of keys){localStorage.removeItem(key);removed.push(key);}
@@ -151,11 +155,12 @@ export function simulationHistory(profile,stageKey){
   }).then(rows=>rows.filter(hasSimulationEvents).sort((a,b)=>b.createdAt.localeCompare(a.createdAt)||b.id.localeCompare(a.id)));
 }
 // 与账号删除共用 profiles 事务锁；已排队或其它页签的迟到写入不能重建孤立记录。
-function writeAccountRecord(profile,lifecycleId,storeName,write){
+function writeAccountRecord(profile,lifecycleId,storeName,write,isCurrent=()=>true){
   return transaction(['profiles',storeName],'readwrite',(tx,abort)=>{
     const profiles=tx.objectStore('profiles'),ordinary=profiles.get(profile),selection=profiles.get('selection:'+profile);let pending=2;
     const ready=()=>{
       if(--pending)return;
+      if(!isCurrent()){abort(Object.assign(new Error('account_session_expired'),{code:'account_session_expired'}));return;}
       if(!ordinary.result?.snapshot&&!selection.result?.snapshot){abort(Object.assign(new Error('account_unavailable'),{code:'account_unavailable'}));return;}
       if(lifecycleId===undefined||lifecycleId!==(ordinary.result?.lifecycleId??selection.result?.lifecycleId??null)){abort(Object.assign(new Error('account_session_expired'),{code:'account_session_expired'}));return;}
       try{write(tx.objectStore(storeName));}catch(error){abort(error);}
@@ -181,11 +186,39 @@ export function savedSimulationLoadouts(profile){
   return transaction(['simulationLoadouts'],'readonly',tx=>tx.objectStore('simulationLoadouts').index('profile').getAll(profile))
     .then(rows=>rows.sort((a,b)=>b.updatedAt.localeCompare(a.updatedAt)||b.id.localeCompare(a.id)));
 }
+function validSimulationLoadout(entry){
+  return entry?.format===1&&typeof entry.id==='string'&&typeof entry.name==='string'&&Boolean(entry.name.trim())&&entry.name.length<=60&&Array.isArray(entry.loadout?.memories)&&entry.loadout.memories.length===2&&entry.loadout.memories.every(Boolean);
+}
 export function saveSimulationLoadout(profile,entry,lifecycleId){
-  if(!validProfile(profile)||entry.format!==1||typeof entry.id!=='string'||!entry.name?.trim()||entry.name.length>60||!entry.loadout?.memories?.every(Boolean)||entry.loadout.memories.length!==2)return Promise.reject(new Error('无效回忆编组'));
+  if(!validProfile(profile)||!validSimulationLoadout(entry))return Promise.reject(new Error('无效回忆编组'));
   return writeAccountRecord(profile,lifecycleId,'simulationLoadouts',store=>store.put({...entry,profile}));
 }
 export function deleteSimulationLoadout(profile,id){
   if(!validProfile(profile)||typeof id!=='string')return Promise.reject(new Error('无效回忆编组'));
   return transaction(['simulationLoadouts'],'readwrite',tx=>tx.objectStore('simulationLoadouts').delete([profile,id]));
+}
+
+// 导入前先验证整批；add 冲突会中止事务，避免覆盖或留下部分编组。
+export function saveSimulationLoadouts(profile,entries,lifecycleId){
+  if(!validProfile(profile)||!Array.isArray(entries)||!entries.length||!entries.every(validSimulationLoadout))return Promise.reject(new Error('无效回忆编组'));
+  return writeAccountRecord(profile,lifecycleId,'simulationLoadouts',store=>{for(const entry of entries)store.add({...entry,profile});});
+}
+
+export const SIMULATION_DRAFT_LIMIT=5;
+export const SIMULATION_DRAFT_TTL=30*24*60*60*1000;
+export function simulationDrafts(profile,now=Date.now()){
+  if(!validProfile(profile))return Promise.resolve([]);
+  return transaction(['simulationDrafts'],'readonly',tx=>tx.objectStore('simulationDrafts').index('profile').getAll(profile))
+    .then(rows=>rows.filter(row=>Date.parse(row.updatedAt)>now-SIMULATION_DRAFT_TTL).sort((a,b)=>b.updatedAt.localeCompare(a.updatedAt)||b.id.localeCompare(a.id)).slice(0,SIMULATION_DRAFT_LIMIT));
+}
+export function saveSimulationDraft(profile,entry,lifecycleId,isCurrent=()=>true){
+  if(!validProfile(profile)||entry?.format!==1||typeof entry.id!=='string'||!entry.stage?.id||!['selected','recommended','optimization'].includes(entry.mode)||!Number.isFinite(Date.parse(entry.updatedAt))||!entry.configuration)return Promise.reject(new Error('无效模拟草稿'));
+  return writeAccountRecord(profile,lifecycleId,'simulationDrafts',store=>{
+    store.put({...entry,profile});const request=store.index('profile').getAll(profile);
+    request.onsuccess=()=>{const rows=request.result.sort((a,b)=>b.updatedAt.localeCompare(a.updatedAt)||b.id.localeCompare(a.id));for(const [index,row] of rows.entries())if(index>=SIMULATION_DRAFT_LIMIT||Date.parse(row.updatedAt)<=Date.now()-SIMULATION_DRAFT_TTL)store.delete([profile,row.id]);};
+  },isCurrent);
+}
+export function deleteSimulationDraft(profile,id,lifecycleId,isCurrent=()=>true){
+  if(!validProfile(profile)||typeof id!=='string')return Promise.reject(new Error('无效模拟草稿'));
+  return writeAccountRecord(profile,lifecycleId,'simulationDrafts',store=>store.delete([profile,id]),isCurrent);
 }

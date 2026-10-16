@@ -1,5 +1,6 @@
 import {assetURL,uiIconURL} from '../resources.mjs';
 import {el} from './dom.mjs';
+import {filterField} from './filter-field.mjs';
 import {collectionState} from './shared.mjs';
 import {supportHint} from './card-rewards.mjs';
 import {t} from '../i18n.mjs';
@@ -115,7 +116,7 @@ export function renderAchievementBrowser(root,{snapshot,view,ready,change}){
   const priority=el('button','','ownership-toggle achievement-incomplete-first'),check=el('span','','owned-only-check');priority.type='button';priority.id='achievement-incomplete-first';priority.setAttribute('role','switch');priority.setAttribute('aria-checked',String(view.achievementIncompleteFirst!==false));check.setAttribute('aria-hidden','true');priority.append(check,el('span',t('未达成优先')));filters.append(priority);
   priority.onclick=()=>{view.achievementIncompleteFirst=priority.getAttribute('aria-checked')!=='true';view.page=0;change();root.querySelector('#achievement-incomplete-first')?.focus({preventScroll:true});};
   headingRow.append(filters);
-  for(const [key,label,choices] of [['achievementReward','奖励',[['','全部'],['experience','制作人经验'],['support','支援卡强化点'],['jewel','宝石'],['other','其他']]],['achievementState','状态',[['','全部'],['achieved','已达成'],['unachieved','未达成']]],['achievementSort','排序',[['original','原始顺序'],['near','接近下一门槛']]]]){const wrapper=el('label',t(label)),select=el('select');wrapper.dataset.achievementControl=key;select.dataset.achievementFilter=key;for(const [value,name] of choices)select.append(new Option(t(name),value));select.value=view[key];select.onchange=()=>{view[key]=select.value;view.page=0;change();root.querySelector(`[data-achievement-filter="${key}"]`)?.focus({preventScroll:true});};wrapper.append(select);filters.append(wrapper);}
+  for(const [key,label,choices] of [['achievementReward','奖励',[['','全部'],['experience','制作人经验'],['support','支援卡强化点'],['jewel','宝石'],['other','其他']]],['achievementState','状态',[['','全部'],['achieved','已达成'],['unachieved','未达成']]],['achievementSort','排序',[['original','原始顺序'],['near','接近下一门槛']]]]){const select=el('select'),wrapper=filterField(t(label),select);wrapper.dataset.achievementControl=key;select.dataset.achievementFilter=key;for(const [value,name] of choices)select.append(new Option(t(name),value));select.value=view[key];select.onchange=()=>{view[key]=select.value;view.page=0;change();root.querySelector(`[data-achievement-filter="${key}"]`)?.focus({preventScroll:true});};filters.append(wrapper);}
   const entries=achievementDetailScope(filtered,view),count=countEntries(cardMode?cardEntries:commonCategory?common.filter(row=>row.category===commonCategory):common),result=el('p',t('成就 {0} / {1} 项',[countEntries(entries),count]),'character-achievement-result');result.setAttribute('role','status');section.append(result);
   const groups=new Map();
   if(cardMode)for(const entry of entries){if(!groups.has(entry.idolCardId))groups.set(entry.idolCardId,[]);groups.get(entry.idolCardId).push(entry);}

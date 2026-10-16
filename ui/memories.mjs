@@ -2,7 +2,7 @@ import {flushDeferredContent} from './deferred-content.mjs';
 import {appendMemorySkillBadges} from './memory-skill-badges.mjs';
 import {tagControls,favoriteButton} from './personal-library.mjs';
 import {$,el} from './dom.mjs';
-import {stats,protectionBadge,memoryTagBadge,shareLinkButton} from './shared.mjs';
+import {stats,protectionBadge,inUseBadge,memoryTagBadge,shareLinkButton} from './shared.mjs';
 import {foldTitle,sortedMemoryBattleCards,canCompareMemory} from '../domain/memories.mjs';
 import {t} from '../i18n.mjs';
 import {selectionGrades} from '../domain/selection-memories.mjs';
@@ -12,6 +12,11 @@ import {characterAccent,characterArt,skillArt,deckArt,skillThumbnailFor,filterSy
 import {rewardHint} from './card-rewards.mjs';
 import {abilityChips} from './ability-view.mjs';
 import {semanticSection} from './semantic-view.mjs';
+function synthesisBadge(inherited){
+  const badge=el('span',t(inherited?'已合成':'可合成'),`badge ${inherited?'memory-inherited':'memory-can-inherit'}`);
+  badge.title=t(inherited?'已置换技能卡，不能再置换其他技能卡':'消耗素材回忆，置换同阶技能卡，次数有限');
+  badge.setAttribute('aria-description',badge.title);return badge;
+}
 export function recordedSkill(card,characterId,phase){
   const reward=cardRewardInfo(card,characterId,{previewVersions:true});
   const hint=reward.versions.length?rewardHint(reward,{label:''},false,'',{recorded:true}):skillThumbnailFor(card,characterId);
@@ -73,7 +78,9 @@ export function memoryEntry(m, context) {
   const date=el('time',shotDate(m),'entry-date');date.title=t('回忆拍摄日期');
   const tools=el('div','','memory-card-tools'),social=el('div','','card-social-actions');social.append(shareLinkButton(m.key,'memory'),favoriteButton(context.favorite??false,context.onFavorite??(()=>{}),context.favoriteDisabled??false));const detail=el('button',t('详情'),'memory-detail-open');detail.onclick=()=>context.open(m);tools.append(detail,date,social);top.append(identity,tools);
   const status=el('div','','memory-card-status');if(m.isProtected)status.append(protectionBadge());
-  if(hasDeck&&m.inheritCount===0)status.append(el('span',t('可合成'),'badge memory-can-inherit'));
+  if(m.isInUse===true)status.append(inUseBadge());
+  if(hasDeck&&m.inheritCount===0)status.append(synthesisBadge(false));
+  if(hasDeck&&m.inheritCount>0)status.append(synthesisBadge(true));
   const gameTag=memoryTagBadge(m);if(gameTag)status.append(gameTag);
   status.append(tagControls(context.tags,context.editTags,context.tagsDisabled,true,context.removeTag));
   const hero=memoryInheritance(m,status);
@@ -124,7 +131,9 @@ export function showDetail(m, context) {
   if(use!=='unknown')overview.append(el('span',t(use==='training'?'培养专用':'含比赛配置'),'memory-use '+use));
   overview.append(el('span',hasDeck?t('{0} · 综合 {1} · 等级 {2}',[shotDate(m),shown(m.power),shown(m.grade)]):`${shotDate(m)} · ${t('等级')} ${shown(m.grade)}`,'small muted'));
   if(m.isProtected)overview.append(protectionBadge());
-  if(hasDeck&&m.inheritCount===0)overview.append(el('span',t('可合成'),'badge memory-can-inherit'));
+  if(m.isInUse===true)overview.append(inUseBadge());
+  if(hasDeck&&m.inheritCount===0)overview.append(synthesisBadge(false));
+  if(hasDeck&&m.inheritCount>0)overview.append(synthesisBadge(true));
   const gameTag=memoryTagBadge(m);if(gameTag)overview.append(gameTag);
   content.append(hero,...(hasDeck?[stats(m)]:[]),overview,
     semanticSection(t('继承卡'),semanticGroup(m,'produceCard'),true),

@@ -21,7 +21,7 @@ test('主题分组、实装日期缺失置后与已持有优先可叠加',()=>{
   assert.deepEqual(ids(sortCollectionEntries(rows,'releaseAsc','idolCardSkins')),['old','new','missing']);
   assert.deepEqual(ids(sortCollectionEntries(rows,'release','idolCardSkins')),['new','old','missing']);
   assert.deepEqual(ids(sortCollectionEntries(rows,'releaseAsc','idolCardSkins',{ownedFirst:true})),['new','missing','old']);
-  assert.deepEqual(ids(sortCollectionEntries(rows,'theme','idolCardSkins')),['old','new','missing']);
+  assert.deepEqual(ids(sortCollectionEntries(rows,'theme','idolCardSkins')),['missing','old','new']);
 });
 test('支援卡等级差取当前突破上限而非最高突破上限',()=>{
   installMaster({tables:{ProduceCard:[],ProduceItem:[],MemoryAbility:[],ProduceSkill:[],ProduceEffect:[],ProduceExamEffect:[]},progression:{tables:{SupportCard:[{id:'a',supportCardLevelLimitId:'limits'},{id:'b',supportCardLevelLimitId:'limits'}],SupportCardLevelLimit:[{id:'limits',rank:'Rank__0',levelLimit:40},{id:'limits',rank:'Rank__1',levelLimit:50}]}}});

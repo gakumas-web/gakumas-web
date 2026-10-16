@@ -1,6 +1,16 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {createView,createViews,activeFilterKeys,resetFilters,normalizeView,nextChoice,FILTER_BINDINGS,CHOICE_GROUPS} from '../application/view-state.mjs';
+test('继承开关默认关闭，恢复后计入已选条件并支持单独移除与清空',()=>{
+  const keys=['inheritanceStartOnly','inheritanceCustomizedOnly'];
+  for(const key of keys)assert.equal(createView()[key],false);
+  const v=createView(JSON.parse(JSON.stringify({inheritanceStartOnly:true,inheritanceCustomizedOnly:true,page:3})));
+  assert.deepEqual(activeFilterKeys('memories',v),keys);
+  resetFilters(v,'memories',{keys:['inheritanceStartOnly']});
+  assert.deepEqual(activeFilterKeys('memories',v),['inheritanceCustomizedOnly']);
+  resetFilters(v,'memories');assert.deepEqual(activeFilterKeys('memories',v),[]);assert.equal(v.page,0);
+  for(const key of keys)assert.equal(createView({[key]:'true'})[key],false);
+});
 test('五页当前偏好独立，只读取当前字段',()=>{
   const views=createViews({memories:{purpose:'inheritance',query:'检索',layout:'list'},idolCards:{idolCharacter:['hski']}});
   normalizeView(views.memories);normalizeView(views.idolCards);

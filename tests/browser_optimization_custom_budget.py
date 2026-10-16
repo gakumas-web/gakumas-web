@@ -2,6 +2,7 @@
 from browser_artifacts import artifact_path
 
 import json
+import re
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from playwright.sync_api import sync_playwright,expect
@@ -14,8 +15,14 @@ def check(url):
     with TemporaryDirectory(prefix='optimization-account-',dir=ROOT/'local') as tmp,sync_playwright() as p:
         browser=p.chromium.launch();page=browser.new_page(viewport={'width':1280,'height':1000});errors=[];uploads=[]
         page.on('pageerror',lambda error:errors.append(str(error)));page.on('request',lambda request:uploads.append(request.url) if request.post_data else None)
-        # 旁观正式 Worker 消息，不改写搜索、评分或返回结果。
-        page.add_init_script('''Object.defineProperty(navigator,'hardwareConcurrency',{value:8});window.optimizationMessages=[];window.optimizationPrivate=false;window.activeOptimizationWorkers=0;const NativeWorker=Worker;window.Worker=class extends NativeWorker{constructor(...args){super(...args);this.optimizationWorker=String(args[0]).endsWith('contest-simulation-worker.mjs');if(this.optimizationWorker)window.activeOptimizationWorkers++;}postMessage(value,...args){window.optimizationMessages.push({mode:value.mode,runs:value.runs,stage:value.request?.stage?.id,baseline:value.request?.baseline,defaultCards:value.request?.defaultCards?.map(card=>card.reference.id),cards:value.request?.cards?.map(card=>card.reference.id)});if(/publicUserId|userMemoryId|synthetic-static-private-account/.test(JSON.stringify(value)))window.optimizationPrivate=true;super.postMessage(value,...args);}terminate(){if(!this.ended){this.ended=true;if(this.optimizationWorker)window.activeOptimizationWorkers--;}super.terminate();}};''')
+        # 旁观正式 Worker 请求及回执，不改写搜索、评分或返回结果。
+        page.add_init_script('''Object.defineProperty(navigator,'hardwareConcurrency',{value:8});window.optimizationMessages=[];window.optimizationPrivate=false;window.activeOptimizationWorkers=0;const NativeWorker=Worker;
+          window.Worker=class extends NativeWorker{
+            constructor(...args){super(...args);this.optimizationWorker=String(args[0]).endsWith('contest-simulation-worker.mjs');if(this.optimizationWorker)window.activeOptimizationWorkers++;
+              this.addEventListener('message',({data})=>{if(data.type==='result'&&this.optimizationMessage)Object.assign(this.optimizationMessage,{completed:true,scoreCount:data.result?.scores?.length,detailRuns:data.result?.detailRuns});});}
+            postMessage(value,...args){this.optimizationMessage={mode:value.mode,runs:value.runs,offset:value.offset,sessionId:value.sessionId,stage:value.request?.stage?.id,baseline:value.request?.baseline,defaultCards:value.request?.defaultCards?.map(card=>card.reference.id),cards:value.request?.cards?.map(card=>card.reference.id)};window.optimizationMessages.push(this.optimizationMessage);if(/publicUserId|userMemoryId|synthetic-static-private-account/.test(JSON.stringify(value)))window.optimizationPrivate=true;super.postMessage(value,...args);}
+            terminate(){if(!this.ended){this.ended=true;if(this.optimizationWorker)window.activeOptimizationWorkers--;}super.terminate();}
+          };''')
         page.goto(url,wait_until='networkidle')
         setup=page.evaluate('''async request=>{
           const {loadMaster}=await import('./application/master-loader.mjs');await loadMaster('contests');const c=await import('./domain/catalog.mjs');
@@ -89,12 +96,28 @@ def check(url):
         assert len(finals)==2 and all(row['runs']==5 for row in finals),finals
         page.wait_for_function('activeOptimizationWorkers===0',timeout=15000)
         # 小额度走正式控制器，须保留复评、标明提前结束并回收 Worker。
-        limit.fill('34');expect(panel.locator('.optimization-budget-limit-note').first).to_be_visible();start.click()
+        limit.fill('34');expect(panel.locator('.optimization-budget-limit-note').first).to_be_visible()
+        panel.locator('.optimization-settings input[max="4294967295"]').fill('67')
+        page.evaluate('optimizationMessages=[]');start.click()
         expect(panel.locator('.optimization-output .optimization-budget-limit-note')).to_contain_text('提前结束探索',timeout=60000)
-        summary=panel.locator('.optimization-summary').inner_text()
-        import re
-        assert int(re.search(r'共 (\d+) 次模拟',summary).group(1))<=34,summary
+        expect(panel.locator('.optimization-error')).to_be_empty()
+        expect(panel.locator('.optimization-entry')).to_have_count(2)
+        expect(panel.locator('.optimization-entry .recommendation-run-count')).to_have_text(['5 次模拟','5 次模拟'])
         page.wait_for_function('activeOptimizationWorkers===0',timeout=15000)
+        low_messages=page.evaluate('optimizationMessages')
+        low_batches=[row for row in low_messages if row['mode']=='batch-scores']
+        low_screens=[row for row in low_batches if row['runs']==budget['screenRuns'] and row['offset']==0]
+        low_finals=[row for row in low_messages if row['mode']=='session-start']
+        low_finishes=[row for row in low_messages if row['mode']=='session-finish']
+        assert len(low_screens)>=budget['finalCandidates'],low_messages
+        assert low_batches and all(row.get('completed') and row['scoreCount']==row['runs'] for row in low_batches),low_messages
+        assert len(low_finals)==budget['finalCandidates'] and all(row.get('completed') and row['runs']==budget['finalRuns'] and row['scoreCount']==budget['finalRuns'] for row in low_finals),low_messages
+        assert len(low_finishes)==len(low_finals) and all(row.get('completed') and row['scoreCount']==budget['finalRuns'] and 1<=row['detailRuns']<=3 for row in low_finishes),low_messages
+        assert {row['sessionId'] for row in low_finals}=={row['sessionId'] for row in low_finishes},low_messages
+        measured_runs=sum(row['scoreCount'] for row in low_batches+low_finals)+sum(row['detailRuns'] for row in low_finishes)
+        summary=panel.locator('.optimization-summary').inner_text()
+        assert int(re.search(r'共 (\d+) 次模拟',summary).group(1))==measured_runs<=34,(summary,low_messages)
+        print('低预算真实 Worker 证据：'+json.dumps({'limit':34,'totalRuns':measured_runs,'screenBatches':len(low_screens),'batchRuns':[row['runs'] for row in low_batches],'finalRuns':[row['scoreCount'] for row in low_finals],'detailRuns':[row['detailRuns'] for row in low_finishes]},ensure_ascii=False))
         previous=panel.locator('.optimization-output').inner_text()
         limit.fill('250000');panel.locator('[data-optimization-budget="generations"]').fill('128')
         start.click();panel.locator('.optimization-stop').click()
@@ -102,6 +125,28 @@ def check(url):
         assert panel.locator('.optimization-output').inner_text()==previous
         page.wait_for_function('activeOptimizationWorkers===0',timeout=15000)
         panel.locator('[data-optimization-budget="generations"]').fill(str(budget['generations']))
+        # 仅在 Worker 边界注入一次传输失败；控制器保留已有结果，重跑仍使用正式搜索与评分。
+        page.evaluate('''()=>{const Native=Worker;window.optimizationFault=true;window.optimizationFaults=0;
+          window.Worker=class extends Native{postMessage(value,...rest){if(value.mode==='batch-scores'&&window.optimizationFault){window.optimizationFault=false;window.optimizationFaults++;setTimeout(()=>this.dispatchEvent(new ErrorEvent('error',{message:'synthetic optimization transport failure',cancelable:true})),0);return;}super.postMessage(value,...rest);}};
+          optimizationMessages=[];
+        }''')
+        start.click()
+        failure=panel.locator('.optimization-error')
+        expect(failure).to_be_visible();expect(failure).to_contain_text('搜索失败，请检查约束后重试。',timeout=60000)
+        expect(start).to_be_enabled();expect(panel.locator('.optimization-stop')).to_be_hidden()
+        assert panel.locator('.optimization-output').inner_text()==previous
+        assert page.evaluate('optimizationFaults')==1
+        assert page.evaluate('optimizationMessages.some(row=>row.mode==="optimization-validate"&&row.completed)')
+        page.wait_for_function('activeOptimizationWorkers===0',timeout=15000)
+        page.evaluate('optimizationMessages=[]');start.click()
+        expect(failure).to_be_empty();expect(start).to_be_enabled(timeout=120000)
+        expect(panel.locator('.optimization-entry')).to_have_count(2)
+        retry_messages=page.evaluate('optimizationMessages')
+        retry_finishes=[row for row in retry_messages if row['mode']=='session-finish']
+        assert len(retry_finishes)==budget['finalCandidates'] and all(row.get('completed') and row['scoreCount']==budget['finalRuns'] for row in retry_finishes),retry_messages
+        assert page.evaluate('optimizationFaults')==1
+        page.wait_for_function('activeOptimizationWorkers===0',timeout=15000)
+        print('搜索传输失败后保留完成结果、显示错误、回收 Worker，并以真实 Worker 重新完成 '+str(len(retry_finishes))+' 组最终复评。')
         # 舞台重绘会重建配置表单，自定义数值应随当前配置一起保留。
         other=page.locator(f'.season-stage-tab:not([data-stage-id="{setup["stageId"]}"])').first
         other.click();page.locator(f'.season-stage-tab[data-stage-id="{setup["stageId"]}"]').click()
@@ -110,7 +155,7 @@ def check(url):
         assert not errors and not uploads,(errors,uploads)
         assert not page.evaluate('optimizationPrivate')
         browser.close()
-    print('标准／极致／自定义、参数校验与保留、窄屏，以及正式 Worker 的搜索、复筛和最终复评次数均通过。')
+    print('标准／极致／自定义、参数校验与保留、窄屏、低预算真实复筛与最终复评，以及搜索传输失败后的结果保留和重新运行均通过。')
 
 
 if __name__=='__main__':

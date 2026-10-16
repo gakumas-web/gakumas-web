@@ -120,6 +120,8 @@ export function filterMemories(snapshot,v,groups,tagFor=()=>[]){
     if(v.purpose==='inheritance'&&hasDeck||v.purpose==='with-deck'&&!hasDeck)return false;
     if(v.memoryGrade&&String(m.grade)!==v.memoryGrade)return false;
     if(v.plan&&String(m.planType)!==v.plan)return false;
+    if(v.inheritanceStartOnly&&(!m.produceCard||m.produceCardPhaseType!==1))return false;
+    if(v.inheritanceCustomizedOnly&&(!m.produceCard||inheritanceCustomizeCount(m.produceCard)<=0))return false;
     if(!matchesExamChoices(v.skill,m.produceCard?[m.produceCard.id,inheritanceSkillKey(m)]:[],false))return false;
     const heldAbilities=new Set((m.abilities??[]).map(ability=>abilityChoiceKey(ability.id)));
     if(!abilityGroups.every(group=>group.some(id=>heldAbilities.has(id))))return false;

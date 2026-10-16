@@ -26,9 +26,15 @@ export function rankFlowers(rank){
   return row;
 }
 export function protectionBadge() {
-  const badge=el('span',t('已保护'),'badge protection');badge.setAttribute('aria-label',t('游戏内已保护'));
+  const badge=el('span',t('已保护'),'badge protection');badge.title=t('已加锁保护，无法移除');badge.setAttribute('aria-label',t('游戏内已保护'));badge.setAttribute('aria-description',badge.title);
   const icon=document.createElementNS('http://www.w3.org/2000/svg','svg');icon.setAttribute('viewBox','0 0 24 24');icon.setAttribute('aria-hidden','true');
   const path=document.createElementNS('http://www.w3.org/2000/svg','path');path.setAttribute('d','M7 10V7a5 5 0 0 1 10 0v3M5 10h14v11H5Z');icon.append(path);badge.append(icon);return badge;
+}
+export function inUseBadge() {
+  const badge=el('span',t('使用中'),'badge in-use');badge.title=t('已编入比赛、偶像之路等卡组');badge.setAttribute('aria-label',t('使用中'));badge.setAttribute('aria-description',badge.title);
+  const icon=document.createElementNS('http://www.w3.org/2000/svg','svg');icon.setAttribute('viewBox','0 0 24 24');icon.setAttribute('aria-hidden','true');
+  const circle=document.createElementNS(icon.namespaceURI,'circle');circle.setAttribute('cx','12');circle.setAttribute('cy','12');circle.setAttribute('r','9');
+  const path=document.createElementNS(icon.namespaceURI,'path');path.setAttribute('d','m7.5 12 3 3 6-6');icon.append(circle,path);badge.append(icon);return badge;
 }
 export function stats(m) {
   const group = el('div', '', 'stats');

@@ -57,6 +57,8 @@ python3 -B tools/install_content.py --lock local/content-lock.json --asset-lock 
 
 Web 0.6.5 起，角色印象色和装扮发行时间补充来自 `catalog.catalogMetadata`，HIF スター性与卡组容量费用来自 `progression.communityRules`。HIF 与容量费用属于玩家推导、经维护者确认与游戏实际行为一致的规则；Web 只解释规则、计算和展示，不维护另一份运行时数值。
 
+装扮排序依次采用卡面自身的 `viewStartTime`、原生偶像卡的 `viewStartTime`、已核实的 `skinReleaseTimes` 补充、按 `musicId` 精确关联的 `musicViewStartTime`。曲目时间由数据项目投影，仅作为排序参考；缺少可用时间时，再以同主题偶像卡最早的已知排序日期保底。主题分组与主题筛选共用日期规则，原始日期不会被补写或覆盖。
+
 资料更新后通过既有完整版本校验与应用流程切换。结构无效的规则拒绝安装；资料未提供规则时，费用显示未知、HIF 只显示当前值，装扮仅按已知原始日期排序。测试目录中的固定规则样本只用于回归验证，不是运行时回退来源。
 
 两个项目通过发布 JSON、最低 Web 版本及 SHA-256 交接；Web 不导入数据项目源码。引擎内部映射与工具自身评分策略仍随 Web 版本维护。

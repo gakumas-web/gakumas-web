@@ -29,10 +29,15 @@
 | 历史保留、删除竞态、生命周期标识与并发导入 | `tests/browser_contest_history_store.py` |
 | 跨页签删除通知、同名账号重建与旧任务隔离 | `tests/browser_account_lifecycle.py` |
 | 模拟与搜索的取消、过期响应和结果保留 | `tests/contest-task-controllers.test.mjs`、`tests/contest-search-controllers.test.mjs` |
+| 真实任务运行中切换账号、更新快照及迟到结果隔离 | `tests/browser_contest_task_lifecycle.py` |
+| 编组文件白名单、预览确认、跨账号导入与原子写入 | `tests/contest-loadout-package.test.mjs`、`tests/browser_contest_loadout_package.py` |
+| 草稿配置白名单、刷新恢复、过期清理与账号隔离 | `tests/contest-drafts.test.mjs`、`tests/browser_contest_drafts.py`、`tests/browser_contest_draft_locale.py` |
+| 多任务资源竞争、页面级排队与倍率预览响应 | `tests/browser_contest_compute_contention.py` |
 | 共用 Worker 协议、超时、错误与释放 | `tests/contest-worker-client.test.mjs` |
 | 真实自选模拟、编组保存、清理前终止任务及失败后草稿恢复 | `tests/browser_contest_quick_stage.py` |
 | 两类搜索、保存载入与单核／多核一致性 | `tests/browser_contest_recommendations.py`、`tests/browser_contest_optimization.py`、`tests/browser_contest_optimizer_workers.py` |
-| 倍率按属性刷新、参考填入、撤销及重试 | `tests/browser_optimization_autofill.py` |
+| 倍率按属性刷新、参考填入、撤销、重试及窄屏触控尺寸 | `tests/browser_optimization_autofill.py` |
+| 搜索预算预留、低额度后续阶段及失败后保留结果与重跑 | `tests/browser_optimization_custom_budget.py` |
 | 内容更新、失败保留、本地导入、子目录与账号保留 | `tests/browser_content_updates.py` |
 | 内容 Worker、完整校验、解析及分块回传 | `tests/browser_content_processing.py`、`tests/content-transfer.test.mjs` |
 | 图片基础包、增量、重试、DOM 适配器释放和真实 IndexedDB | `tests/browser_image_delivery.py`、`tests/browser_hybrid_images.py` |
@@ -42,6 +47,8 @@
 | 最终 Pages 身份、缓存、图片解码与移动布局 | `tools/verify_site.py`，命令见 [Pages 发布](github-pages.md#本地复现与线上核对) |
 
 浏览器使用隔离上下文和合成账号，结果写入 `local/checks/`。报告保留实际入口、版本／提交、内容身份、浏览器及视口、缓存前提、网络限制和失败信息；测试中的数据替身不代表未执行的生产路径已经通过。
+
+Pages 工作流在最终站点构建和引擎审计后执行属性、预算、任务隔离、编组迁移、草稿恢复与排队六项浏览器验收，再上传发布制品；复用站点制品时同样检查。普通源码 CI 的三份浏览器检查不代替这些验收。手动检查已有预览时，使用 `python -B tests/<对应脚本>.py --url http://127.0.0.1:18765/`；资源脚本默认验证当前队列（也可显式传 `--gated`），`--ungated` 只用于在未门控版本上重现原资源竞争对照。不需要重新下载图片或创建另一份完整站点。
 
 账号清理与跨页签用例运行正式控制器和真实 IndexedDB；为了稳定复现迟到结果，部分场景仅控制外部 Worker 的完成时机。真实引擎运行与取消由对应模拟、搜索脚本另行验证。图片适配器释放检查只计入该适配器持有的观察器，模拟任务计数只统计模拟 Worker，避免将内容处理、图片解包或测试工具自身的后台任务误判为泄漏。
 

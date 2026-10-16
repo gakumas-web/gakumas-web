@@ -148,5 +148,5 @@ function showSupportArt(info){
   $('idol-title').textContent=info.name;
   const body=el('div','','support-art-viewer');
   body.append(illustration(info.image,info.name,'support-full',{characterId:info.characterIds?.length===1?info.characterIds[0]:undefined}));
-  $('idol-content').replaceChildren(body);openCatalogDialog();
+  $('idol-content').replaceChildren(body);openCatalogDialog({artwork:'landscape',characterId:info.characterIds?.length===1?info.characterIds[0]:undefined});
 }

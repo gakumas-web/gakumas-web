@@ -255,7 +255,7 @@ compactFilters.addEventListener('change',placeSecondaryControls);
 placeSecondaryControls();
 function renderFilterDisclosure(){
   const expanded=expandedFilters.has(state.tab),v=view();
-  const count=activeFilterKeys(state.tab,v).reduce((total,key)=>total+selectedValues(v[key]).length,0);
+  const count=activeFilterKeys(state.tab,v).reduce((total,key)=>total+(v[key]===true?1:selectedValues(v[key]).length),0);
   $('advanced-filters').hidden=!expanded;
   $('filter-toggle').setAttribute('aria-expanded',String(expanded));
   $('filter-toggle').textContent=t('筛选{0}',[count?` · ${count}`:''])+(expanded?' ▴':' ▾');

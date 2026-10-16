@@ -20,6 +20,7 @@ export function createContestRecommendations({getContext,onRestore,onSave,onOpen
   let view=null,disposed=false,cache=null,selectedCharacterId=initialState?.selectedCharacterId??null,handleSearchEvent=()=>{};
   const search=createContestRecommendationController({initialState,onEvent:event=>{
     if(event.type==='started')onTaskChange({state:'running',stop:search.stop});
+    else if(event.type==='queued')onTaskChange({state:'queued',stop:search.stop});
     else if(event.type==='completed')onTaskChange({state:'completed'});
     else if(['stopped','failed','invalidated'].includes(event.type))onTaskChange({state:'stopped'});
     handleSearchEvent(event);
@@ -65,7 +66,7 @@ export function createContestRecommendations({getContext,onRestore,onSave,onOpen
       const missing=context.supportCards===undefined?'支援卡持有信息未采集，无法计算当前支援奖励。':context.stage.manualMultipliers&&!['vocal','dance','visual'].every(key=>Number.isFinite(context.manual[key])&&context.manual[key]>=0)?'请先填写此舞台的 Vo、Da、Vi 比赛倍率。':available<2?'至少需要同一偶像的两条符合当前舞台计划的回忆。':null;
       if(!search.running&&missing)status.textContent=t(missing);
       start.disabled=search.running||Boolean(missing);for(const choice of choices){const selected=choice.dataset.characterId===idol.value;choice.disabled=search.running;choice.setAttribute('aria-checked',String(selected));choice.tabIndex=selected?0:-1;}stop.hidden=!search.running;progress.hidden=!search.running;
-      start.textContent=t(search.running?'搜索中…':'开始搜索');
+      start.textContent=t(search.queued?'等待执行':search.running?'搜索中…':'开始搜索');stop.textContent=t(search.queued?'取消等待':'停止');
       list.inert=search.running;summary.title=search.running&&cache?t('重新模拟期间显示上次完成结果。'):'';
     }
     function sourceFor(row,index){
@@ -108,6 +109,7 @@ export function createContestRecommendations({getContext,onRestore,onSave,onOpen
     }
     handleSearchEvent=event=>{
       switch(event.type){
+        case 'queued':status.textContent=t('等待其他计算完成，使用开始时的配置。');progress.removeAttribute('value');sync();break;
         case 'started':render();status.textContent=t('正在枚举主副回忆组合…');progress.removeAttribute('value');sync();break;
         case 'progress':{
           const update=event.update;

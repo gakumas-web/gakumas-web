@@ -46,5 +46,5 @@ export function showSkin(held,options={}){
   const hash='#'+params.toString();if(location.hash!==hash)history.pushState(null,'',hash);
   $('idol-title').textContent=`${info.character} · ${info.theme||info.name}`;
   const content=characterAccent(el('div','','skin-detail'),info.characterId),{image,control}=skinArtwork(held,info,options,'skin-full');content.append(image);if(control)content.append(control);
-  $('idol-content').replaceChildren(content);openCatalogDialog();
+  $('idol-content').replaceChildren(content);openCatalogDialog({artwork:'portrait',characterId:info.characterId});
 }

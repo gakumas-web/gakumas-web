@@ -1,3 +1,6 @@
+import {contentManager} from '../application/content-manager.mjs';
+import {createContestDraft,revalidateContestDraft} from '../application/contest-drafts.mjs';
+import {simulationDrafts,saveSimulationDraft,deleteSimulationDraft} from '../application/storage.mjs';
 import {createChoiceNavigation} from './choice-navigation.mjs';
 import {updateMemoryPower} from '../domain/memory-power.mjs';
 import {memoryPower} from '../domain/catalog.mjs';
@@ -11,7 +14,7 @@ import {createContestSeasonPicker} from './contest-season-picker.mjs';
 import {contestStageSummary,contestStageName,contestPlanName} from './contest-stage-summary.mjs';
 import {el} from './dom.mjs';
 import {createInfoDisclosure} from './info-disclosure.mjs';
-import {t} from '../i18n.mjs';
+import {t,locale} from '../i18n.mjs';
 import {contestCatalog,contestCardConversions,contestCardNoDeckDuplication,cardRewardInfo,itemRewardInfo,memoryExclusiveSkill,contestCustomizationCatalog,contestFixedItemIds} from '../domain/catalog.mjs';
 import {contestMemoryEntries,contestMemoryTotals,contestMemoryCards,contestSupportBonus,contestSeasonGroups} from '../domain/contest-simulation.mjs';
 import {contestMemorySlot,contestMemoryBoard,contestTeamSummary,openContestMemoryPicker} from './contest-memory-picker.mjs';
@@ -40,10 +43,48 @@ export function createSeasonSimulation({profile,lifecycleId,memories,idolCards=[
   if(!groups.length){element.append(el('p',t('当前资料尚未包含比赛配置，请更新资料后重试。')));return {element,dispose(){}};}
   const tabs=el('div','','season-stage-tabs'),content=el('section','','season-stage-content');tabs.setAttribute('role','tablist');tabs.setAttribute('aria-label',t('选择舞台'));content.id='season-stage-content';content.setAttribute('role','tabpanel');
   const picker=createContestSeasonPicker(groups,group=>activate(group.stages[0]));const taskList=el('div','','season-simulation-tasks');taskList.setAttribute('aria-label',t('模拟任务'));taskList.hidden=true;element.append(tabs,taskList,content);
-  const workspaces=new Map(),saved=new Map(initialState?.stageStates??[]);let currentStage=initialState?.stage??groups[0].stages[0],currentGroup;
+  const workspaces=new Map(),saved=new Map(initialState?.stageStates??[]);
+  const recovery=el('section','','contest-draft-recovery small'),recoveryMessage=el('p'),recoveryHint=el('p',t('草稿仅保留本账号最近 5 条，30 天后过期。'),'muted'),recoveryList=el('div');recovery.setAttribute('aria-label',t('未完成配置草稿'));recoveryMessage.setAttribute('role','status');recovery.append(el('h2',t('未完成配置草稿')),recoveryHint,recoveryMessage,recoveryList);recovery.hidden=true;element.insertBefore(recovery,tabs);
+  let disposed=false,pendingDrafts=[];const dirtyStages=new Set(initialState?.draftDirtyStages??[]),fingerprints=new Map(),revisions=new Map(),draftIds=new Map(),taskConfigurations=new Map(),timers=new Map();let currentStage=initialState?.stage??groups[0].stages[0],currentGroup;
   const producerLevel=accountProducerLevel(producerExp);
   let conversionPreferences=loadCardConversions(profile),conversionRules=cardConversionRules(contestCardConversions(),producerLevel,conversionPreferences);
   const getConversionRules=()=>conversionRules;
+  function drawRecovery(){
+    recoveryList.replaceChildren();recoveryHint.hidden=!pendingDrafts.length;recovery.hidden=!pendingDrafts.length&&!recoveryMessage.textContent;
+    for(const entry of pendingDrafts){
+      const row=el('div'),stage=catalog.choices.find(stage=>stage.id===entry.stage.id),restore=el('button',t('恢复草稿')),discard=el('button',t('放弃草稿'));
+      row.dataset.draftId=entry.id;row.append(el('span',`${stage?contestStageName(stage):entry.stage.id} · ${t(({selected:'自选模拟',recommended:'回忆编组搜索',optimization:'推荐编组搜索'})[entry.mode])} · ${new Intl.DateTimeFormat(locale(),{dateStyle:'short',timeStyle:'short'}).format(new Date(entry.updatedAt))} `),restore,discard);
+      restore.disabled=!stage||dirtyStages.has(stage.id);
+      if(stage&&dirtyStages.has(stage.id))row.append(el('span',t('此舞台已有新配置，草稿不会覆盖当前填写。'),'muted'));
+      else if(!stage)row.append(el('span',t('当前资料已不包含此舞台，无法恢复草稿。'),'muted'));
+      restore.onclick=()=>{
+        if(disposed||dirtyStages.has(stage.id))return;
+        const existing=workspaces.get(stage.id)?.captureDraft();if(existing&&fingerprints.get(stage.id)!==JSON.stringify([existing.mode,existing.configuration])){dirtyStages.add(stage.id);drawRecovery();return;}
+        const ownership={idolCardIds:new Set(idolCards.map(card=>card.idolCardId)),supportCardIds:new Set((supportCards??[]).map(card=>card.supportCardId)),producerLevel};
+        const restored=revalidateContestDraft(entry,{stage,memories,catalog:contestCustomizationCatalog(),ownership,optimizationContext:{stage,idolCards,supportCards,producerLevel,manual:entry.configuration.loadout.manual,conversionRules:getConversionRules()},contentVersion:contentManager.status().version});
+        workspaces.get(stage.id)?.dispose();workspaces.delete(stage.id);saved.set(stage.id,restored.state);activate(stage);
+        void deleteSimulationDraft(profile,entry.id,lifecycleId).catch(()=>{if(!disposed){recoveryMessage.textContent=t('草稿未能删除，请重试。');recovery.hidden=false;}});pendingDrafts=pendingDrafts.filter(value=>value.id!==entry.id);
+        recoveryMessage.textContent=t('已恢复配置，请检查后手动开始。');drawRecovery();
+        if(restored.issues.length){const list=el('ul');for(const issue of restored.issues)list.append(el('li',t(issue)));recoveryList.prepend(list);}
+      };
+      discard.onclick=async()=>{discard.disabled=true;try{await deleteSimulationDraft(profile,entry.id,lifecycleId);if(disposed)return;pendingDrafts=pendingDrafts.filter(value=>value.id!==entry.id);drawRecovery();}catch{if(!disposed){discard.disabled=false;recoveryMessage.textContent=t('草稿未能删除，请重试。');}}};
+      recoveryList.append(row);
+    }
+  }
+  function queueDraft(stageId){
+    if(disposed)return;clearTimeout(timers.get(stageId));
+    timers.set(stageId,setTimeout(()=>{
+      timers.delete(stageId);if(disposed)return;const workspace=workspaces.get(stageId);if(!workspace)return;
+      const entry=workspace.captureDraft(),fingerprint=JSON.stringify([entry.mode,entry.configuration]);
+      if(fingerprints.get(stageId)===fingerprint)return;
+      fingerprints.set(stageId,fingerprint);dirtyStages.add(stageId);drawRecovery();
+      const key=`${stageId}:${entry.mode}`;if(!draftIds.has(key))draftIds.set(key,`${entry.id}:${crypto.randomUUID()}`);entry.id=draftIds.get(key);
+      const revision=(revisions.get(key)??0)+1;revisions.set(key,revision);
+      void saveSimulationDraft(profile,entry,lifecycleId,()=>!disposed&&revisions.get(key)===revision).catch(error=>{if(!disposed&&revisions.get(key)===revision&&!['account_session_expired','account_unavailable'].includes(error.code)){recoveryMessage.textContent=t('配置草稿未能保存，请保留当前页面后重试。');recovery.hidden=false;}});
+    },0));
+  }
+  const configurationEvent=()=>queueDraft(currentStage.id);for(const type of ['input','change','click'])element.addEventListener(type,configurationEvent);
+  void simulationDrafts(profile).then(entries=>{if(disposed)return;pendingDrafts=entries.filter(entry=>![...draftIds.values()].includes(entry.id));drawRecovery();}).catch(()=>{if(!disposed){recoveryMessage.textContent=t('未能读取配置草稿，请保留当前页面后重试。');recovery.hidden=false;}});
   function openConversions(){
     openContestCardConversionSettings({choices:contestCustomizationCatalog().cards,level:producerLevel,preferences:conversionPreferences,onChange:next=>{
       saveCardConversions(profile,next);conversionPreferences=next;conversionRules=cardConversionRules(contestCardConversions(),producerLevel,next);
@@ -59,21 +100,34 @@ export function createSeasonSimulation({profile,lifecycleId,memories,idolCards=[
     for(const button of tabs.children){
       button.querySelector('.season-stage-task-status')?.remove();
       const states=[...tasks.values()].filter(task=>task.stage.id===button.dataset.stageId);
-      if(states.length)button.append(el('small',t(states.some(task=>task.state==='running')?'模拟中':'已完成'),'season-stage-task-status'));
+      if(states.length)button.append(el('small',t(states.some(task=>task.state==='running')?'模拟中':states.some(task=>task.state==='queued')?'等待执行':'已完成'),'season-stage-task-status'));
     }
     taskList.replaceChildren();
     for(const task of tasks.values()){
-      if(task.state!=='running'&&(task.seen||task.stage.id===currentStage.id))continue;
-      const row=el('div','','season-simulation-task'),label=el('span',`${contestStageName(task.stage)} · ${t(({recommended:'推荐编组模拟',optimization:'自定义推荐编组模拟',selected:'自选编组模拟'})[task.mode])} · ${t(task.state==='running'?'模拟中':'已完成')}`),view=el('button',t('查看任务'));
+      if(!['running','queued'].includes(task.state)&&(task.seen||task.stage.id===currentStage.id))continue;
+      const row=el('div','','season-simulation-task'),label=el('span',`${contestStageName(task.stage)} · ${t(({recommended:'推荐编组模拟',optimization:'自定义推荐编组模拟',selected:'自选编组模拟'})[task.mode])} · ${t(task.state==='running'?'模拟中':task.state==='queued'?'等待执行':'已完成')}`),view=el('button',t('查看任务'));row.dataset.taskState=task.state;
       view.onclick=()=>{activate(task.stage);workspaces.get(task.stage.id).showTask(task.mode);content.querySelector('.contest-simulation-result')?.scrollIntoView({block:'start'});};row.append(label,view);
-      if(task.state==='running'){const stop=el('button',t('停止'));stop.onclick=()=>task.stop();row.append(stop);}taskList.append(row);
+      if(['running','queued'].includes(task.state)){const stop=el('button',t(task.state==='queued'?'取消等待':'停止'));stop.onclick=()=>task.stop();row.append(stop);}taskList.append(row);
     }
     taskList.hidden=!taskList.childElementCount;
   }
   function taskChanged(stage,mode,task){
+    settleTaskDraft(stage,mode,task);
+    if(['queued','running'].includes(task.state)){dirtyStages.add(stage.id);drawRecovery();}
     const key=`${stage.id}:${mode}`;
     if(task.state==='stopped')tasks.delete(key);else tasks.set(key,{...task,stage,mode,seen:stage.id===currentStage.id});
     drawTasks();
+  }
+  function settleTaskDraft(stage,mode,task){
+    const key=`${stage.id}:${mode}`,workspace=workspaces.get(stage.id),entry=workspace?.captureDraft();
+    if(!entry||entry.mode!==mode)return;
+    const fingerprint=JSON.stringify(entry.configuration);
+    if(['queued','running'].includes(task.state)&&!taskConfigurations.has(key))taskConfigurations.set(key,fingerprint);
+    if(task.state==='stopped')taskConfigurations.delete(key);
+    if(task.state!=='completed')return;
+    const started=taskConfigurations.get(key);taskConfigurations.delete(key);if(started!==fingerprint)return;
+    const id=draftIds.get(key),revision=revisions.get(key);if(!id)return;
+    void deleteSimulationDraft(profile,id,lifecycleId,()=>!disposed&&revisions.get(key)===revision).then(()=>{if(!disposed&&revisions.get(key)===revision){draftIds.delete(key);pendingDrafts=pendingDrafts.filter(value=>value.id!==id);drawRecovery();}}).catch(()=>{});
   }
   const narrow=matchMedia('(max-width:699px)'),syncOrientation=()=>tabs.setAttribute('aria-orientation',narrow.matches?'vertical':'horizontal');narrow.addEventListener('change',syncOrientation);syncOrientation();
   function activate(stage){
@@ -89,26 +143,26 @@ export function createSeasonSimulation({profile,lifecycleId,memories,idolCards=[
     }
     for(const button of tabs.children){const selected=button.dataset.stageId===stage.id;button.setAttribute('aria-selected',String(selected));button.tabIndex=selected?0:-1;if(selected)content.setAttribute('aria-labelledby',button.id);}
     if(!workspaces.has(stage.id)){
-      const workspace=createStageWorkspace({profile,lifecycleId,memories,idolCards,supportCards,producerExp,stage,getConversionRules,onOpenConversions:openConversions,initialState:saved.get(stage.id),onOpenMemory,onTaskChange:(mode,task)=>taskChanged(stage,mode,task),onQuickStage:(targetId,loadout)=>{
+      const workspace=createStageWorkspace({profile,lifecycleId,memories,idolCards,supportCards,producerExp,stage,getConversionRules,onOpenConversions:openConversions,initialState:saved.get(stage.id),onOpenMemory,onConfigurationChange:()=>queueDraft(stage.id),onTaskChange:(mode,task)=>taskChanged(stage,mode,task),onQuickStage:(targetId,loadout)=>{
         const target=catalog.choices.find(value=>value.id===targetId);if(!target)return;
         activate(target);workspaces.get(target.id).useLoadout(loadout);content.scrollIntoView({block:'start'});
       },onRestore:entry=>{
         const target=catalog.choices.find(value=>value.id===entry.stage.id||value.kind===entry.stage.kind&&entry.stage.preset?.id!==undefined&&value.preset?.id===entry.stage.preset.id);if(!target||!entry.loadout)return false;
         activate(target);const restored=workspaces.get(target.id).restore(entry);if(restored)content.scrollIntoView({block:'start'});return restored;
-      }});saved.delete(stage.id);workspaces.set(stage.id,workspace);
+      }});saved.delete(stage.id);workspaces.set(stage.id,workspace);const draft=workspace.captureDraft();fingerprints.set(stage.id,JSON.stringify([draft.mode,draft.configuration]));
     }
     if(content.firstElementChild!==workspaces.get(stage.id).element)content.replaceChildren(workspaces.get(stage.id).element);
     drawTasks();
   }
   activate(currentStage);
-  return {element,controls:picker.element,hidePicker:picker.hide,dispose(){picker.dispose();for(const workspace of workspaces.values())workspace.dispose();narrow.removeEventListener('change',syncOrientation);closeRewardPopover();},captureState(){return {stage:currentStage,stageStates:[...saved,...[...workspaces].map(([id,workspace])=>[id,workspace.captureState()])]};},useMemory(memory){
+  return {element,controls:picker.element,hidePicker:picker.hide,dispose(){disposed=true;for(const timer of timers.values())clearTimeout(timer);for(const type of ['input','change','click'])element.removeEventListener(type,configurationEvent);picker.dispose();for(const workspace of workspaces.values())workspace.dispose();narrow.removeEventListener('change',syncOrientation);closeRewardPopover();},captureState(){return {stage:currentStage,draftDirtyStages:[...dirtyStages],stageStates:[...saved,...[...workspaces].map(([id,workspace])=>[id,workspace.captureState()])]};},useMemory(memory){
     const planType=({2:'ProducePlanType_Plan1',3:'ProducePlanType_Plan2',4:'ProducePlanType_Plan3'})[memory?.planType],group=groups.find(group=>group.id===currentGroup);
     const stage=currentStage.planType===planType?currentStage:group.stages.find(value=>value.planType===planType)??catalog.choices.find(value=>value.kind==='contest'&&value.planType===planType);if(!stage)return false;
     activate(stage);return workspaces.get(stage.id).useMemory(memory);
   }};
 }
 
-function createStageWorkspace({profile,lifecycleId,memories,idolCards,supportCards,producerExp,stage,getConversionRules,onOpenConversions,initialState,onOpenMemory,onRestore,onQuickStage,onTaskChange}){
+function createStageWorkspace({profile,lifecycleId,memories,idolCards,supportCards,producerExp,stage,getConversionRules,onOpenConversions,initialState,onOpenMemory,onRestore,onQuickStage,onTaskChange,onConfigurationChange}){
   const dialog=el('div','','season-stage-workspace'),body=el('div','','season-simulation-body');dialog.append(body);
   const catalog=contestCatalog(),editCatalog=contestCustomizationCatalog(),ownedIdols=new Map(idolCards.map(card=>[card.idolCardId,card]));
   const rules=el('div','','season-stage-rules'),ruleSection=el('section','','season-rules-section'),ruleTitle=el('h2',t('舞台规则')),results=el('section','','season-memory-results');ruleTitle.id='season-rules-title';ruleSection.setAttribute('aria-labelledby',ruleTitle.id);const ruleHeading=el('div','','season-rules-heading season-section-heading'),rulePlan=el('span','','contest-stage-plan season-rules-plan');ruleHeading.append(ruleTitle,rulePlan);ruleSection.append(ruleHeading,rules);body.append(ruleSection,results);
@@ -118,11 +172,11 @@ function createStageWorkspace({profile,lifecycleId,memories,idolCards,supportCar
   const count=el('p','','small muted'),slots=el('div','','season-memory-slots'),pickers=el('div','','season-memory-choices'),team=el('div','','season-team-preview');
   const bonus=contestSupportBonus(supportCards);
   const methodHint=el('p','','small muted'),loadoutBody=el('div','','season-loadout-body');loadoutBody.append(pickers,team,slots);results.append(el('p',t('选择主回忆和副回忆后即可开始模拟，属性、P 道具与卡组会自动带入。副回忆仅加算 20% 属性（含体力，向下取整），不提供 P 道具。'),'small muted'),contestRulesHelp(contestRatingRules()),count,loadoutBody,methodHint);
-  let simulationPanel;
-  const loadoutLibrary=createContestLoadoutLibrary({profile,lifecycleId,getCurrent:()=>({stage:currentStage,loadout:captureSimulationLoadout(drafts,manual,selected)}),onRestore,onChange:()=>simulationPanel?.refreshHistory()});loadoutBody.prepend(loadoutLibrary.element);
+  let simulationPanel,ready=false;
+  const loadoutLibrary=createContestLoadoutLibrary({profile,lifecycleId,getCurrent:()=>({stage:currentStage,loadout:captureSimulationLoadout(drafts,manual,selected)}),getPackageContext:()=>({idolCards,supportCards,producerLevel:ownership.producerLevel,contentVersion:contentManager.status().version}),onRestore,onChange:()=>simulationPanel?.refreshHistory()});loadoutBody.prepend(loadoutLibrary.element);
   const recommendations=createContestRecommendations({getContext:()=>({memories,stage:currentStage,supportCards,manual:{...manual},conversionRules:getConversionRules()}),onRestore,onOpenMemory,onSave:entry=>loadoutLibrary.saveEntry(entry),initialState:initialState?.recommendations,onTaskChange:task=>onTaskChange('recommended',task)});
   const ownership={idolCardIds:new Set(idolCards.map(card=>card.idolCardId)),supportCardIds:new Set((supportCards??[]).map(card=>card.supportCardId)),supportsKnown:supportCards!==undefined,producerLevel:accountProducerLevel(producerExp)};
-  const optimization=createContestOptimization({profile,getContext:()=>({stage:currentStage,idolCards,supportCards,producerLevel:ownership.producerLevel,manual:{...manual},conversionRules:getConversionRules()}),onRestore,onSave:entry=>loadoutLibrary.saveEntry(entry),initialState:initialState?.optimization,onTaskChange:task=>onTaskChange('optimization',task)});
+  const optimization=createContestOptimization({profile,getContext:()=>({stage:currentStage,idolCards,supportCards,producerLevel:ownership.producerLevel,manual:{...manual},conversionRules:getConversionRules()}),onRestore,onSave:entry=>loadoutLibrary.saveEntry(entry),initialState:initialState?.optimization,onDraftChange:()=>{if(ready)onConfigurationChange();},onTaskChange:task=>onTaskChange('optimization',task)});
   const makeDraft=memory=>createContestMemoryDraft(memory,memoryExclusiveSkill(memory)?.reference.id);
   function editSlot(memoryIndex,slotIndex,kind='card'){
     const memory=drafts[memoryIndex],items=memory.examBattleProduceItemIds??[],fixedIds=contestFixedItemIds(selected[memoryIndex]);
@@ -159,7 +213,7 @@ function createStageWorkspace({profile,lifecycleId,memories,idolCards,supportCar
     }));
     loadoutLibrary.update(Boolean(drafts[0]&&drafts[1]));
     simulationPanel?.update({stage:currentStage,available:Boolean(drafts[0]&&drafts[1]),signature:JSON.stringify([currentStage,captureSimulationLoadout(drafts,manual,selected),getConversionRules()])});
-    closeRewardPopover();
+    closeRewardPopover();if(ready)onConfigurationChange();
   }
   function drawRows(){
     rows=contestMemoryEntries(memories,currentStage,'ordinal',manual);count.textContent='';count.hidden=rows.length>0;
@@ -201,10 +255,11 @@ function createStageWorkspace({profile,lifecycleId,memories,idolCards,supportCar
     return onRestore(entry);
   }});
   if(initialState)currentStage=initialState.stage;drawStage();
-  if(initialState){selected=initialState.selected;drafts=initialState.drafts;editing=initialState.editing;manual=initialState.manual;for(const [key,input] of Object.entries(manualInputs))input.value=manual[key]??'';drawSelection();}
+  if(initialState){selected=initialState.selected;drafts=initialState.drafts;editing=initialState.editing;manual=initialState.manual;for(const [key,input] of Object.entries(manualInputs))input.value=initialState.manualInputValues?.[key]??manual[key]??'';drawSelection();}
   simulationPanel.setModes(results,recommendations,optimization);dialog.append(simulationPanel.element);
-  if(initialState)simulationPanel.restoreState(initialState.result);
-  return {element:dialog,refreshConversions(){drawSelection();recommendations.refresh();optimization.refresh();},showTask:mode=>simulationPanel.showMode(mode),restore:restoreSimulation,useLoadout(loadout){selected=structuredClone(loadout.selected);drafts=structuredClone(loadout.drafts);editing=[false,false];drawSelection();simulationPanel.showSelected();},captureState(){return {stage:currentStage,selected,drafts,editing,manual,result:simulationPanel.captureState(),recommendations:recommendations.captureState(),optimization:optimization.captureState()};},dispose(){recommendations.dispose();optimization.dispose();loadoutLibrary.dispose();simulationPanel.dispose();closeRewardPopover();},useMemory(memory){
+  if(initialState?.result)simulationPanel.restoreState(initialState.result);
+  ready=true;
+  return {element:dialog,captureDraft(){const {mode,runs}=simulationPanel.captureState();return createContestDraft({stage:currentStage,mode,runs,selected,drafts,editing,manual,manualInputValues:Object.fromEntries(Object.entries(manualInputs).map(([key,input])=>[key,input.value])),recommendedCharacterId:recommendations.captureState().selectedCharacterId,optimization:optimization.captureDraft(),contentVersion:contentManager.status().version});},refreshConversions(){drawSelection();recommendations.refresh();optimization.refresh();},showTask:mode=>simulationPanel.showMode(mode),restore:restoreSimulation,useLoadout(loadout){selected=structuredClone(loadout.selected);drafts=structuredClone(loadout.drafts);editing=[false,false];drawSelection();simulationPanel.showSelected();},captureState(){return {stage:currentStage,selected,drafts,editing,manual,manualInputValues:Object.fromEntries(Object.entries(manualInputs).map(([key,input])=>[key,input.value])),result:simulationPanel.captureState(),recommendations:recommendations.captureState(),optimization:optimization.captureState()};},dispose(){recommendations.dispose();optimization.dispose();loadoutLibrary.dispose();simulationPanel.dispose();closeRewardPopover();},useMemory(memory){
     if(!memory?.examBattleProduceCards?.length)return false;
     const planType=({2:'ProducePlanType_Plan1',3:'ProducePlanType_Plan2',4:'ProducePlanType_Plan3'})[memory.planType];
     if(currentStage.planType!==planType)return false;

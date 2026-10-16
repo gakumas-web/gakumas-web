@@ -46,7 +46,7 @@ export function idolArtVariants(held) {
   if(selected.variant==='alternate')variants.push({id:'alternate',image:selected.image,label:t('所选替换卡面')});
   return variants;
 }
-// 数值缺失和未持有条目始终置后；同值保持当前目录／快照顺序。
+// 数值缺失和未持有条目始终置后；比较结果相同时保持当前目录／快照顺序。
 export function sortCollectionEntries(entries,mode,kind,{ownedFirst=false}={}){
   const rarity={R:1,SR:2,SSR:3},plans={Plan1:0,Plan2:1,Plan3:2,Common:3};
   const number=(a,b,ascending=false)=>{
@@ -62,6 +62,8 @@ export function sortCollectionEntries(entries,mode,kind,{ownedFirst=false}={}){
     return aa.length-bb.length;
   };
   const gap=new Map();
+  // 主题排序与筛选选项共用日期规则，先按主题分组，再比较组内角色。
+  const themes=mode==='theme'?new Map(skinThemeNames(entries.map(entry=>entry.info)).map((theme,index)=>[theme,index])):null;
   if(mode==='levelGap')for(const entry of entries){
     if(isReference(entry.held))continue;
     const model=progressionInfo('support',entry.held),limit=model?.levelLimits.find(row=>row.rank===entry.held.levelLimitRank)?.level;
@@ -84,8 +86,14 @@ export function sortCollectionEntries(entries,mode,kind,{ownedFirst=false}={}){
         const types={Vocal:0,Dance:1,Visual:2,[t('辅助')]:3};
         order=number(types[a.info.type],types[b.info.type],true)||number(rarity[a.info.rarity],rarity[b.info.rarity])||number(actual(a,'level'),actual(b,'level'));break;
       }
-      case 'theme':order=number(a.info.themeStartTime,b.info.themeStartTime,true)||(a.info.theme||'').localeCompare(b.info.theme||'','ja')||compareCharacters(a,b);break;
-      case 'release':case 'releaseAsc':order=number(a.info.sortReleaseTime??a.info.viewStartTime,b.info.sortReleaseTime??b.info.viewStartTime,mode==='releaseAsc');break;
+      case 'theme':order=number(themes.get(a.info.theme),themes.get(b.info.theme),true)||compareCharacters(a,b);break;
+      case 'release':case 'releaseAsc':{
+        const aTime=a.info.sortReleaseTime??a.info.viewStartTime,bTime=b.info.sortReleaseTime??b.info.viewStartTime;
+        // 游戏发行日按日本时间划分；同日装扮先展示偶像卡面，未知日期不参与此优先级。
+        const sameDay=kind==='idolCardSkins'&&Number.isFinite(aTime)&&aTime>0&&Number.isFinite(bTime)&&bTime>0&&
+          Math.floor((aTime+9*60*60*1000)/(24*60*60*1000))===Math.floor((bTime+9*60*60*1000)/(24*60*60*1000));
+        order=(sameDay?Number(Boolean(b.info.hasIdolArt))-Number(Boolean(a.info.hasIdolArt)):0)||number(aTime,bTime,mode==='releaseAsc');break;
+      }
     }
     return order||(a.ordinal??0)-(b.ordinal??0);
   });
@@ -109,8 +117,8 @@ export function skinInfo(held){
     characterId:card?.characterId,character:characterInfo(card?.characterId).name,
     cardName:plainText(card?.name)||t('未解析偶像卡'),idolCardId:skin?.idolCardId,
     image:skin?`img_general_${skin.assetId}_0-full.webp`:undefined,
-    sortReleaseTime:catalogState.skinReleaseTimes.get(skin?.id)?.time,releaseTimeSource:catalogState.skinReleaseTimes.get(skin?.id),
-    themeCardStartTime:skin&&card&&skin.assetId===card.assetId?catalogState.skinReleaseTimes.get(card.originalIdolCardSkinId)?.time:undefined,
+    sortReleaseTime:catalogState.skinReleaseTimes.get(skin?.id)?.time??catalogState.themeCardReleaseTimes.get(skin?.theme),releaseTimeSource:catalogState.skinReleaseTimes.get(skin?.id),
+    themeCardStartTime:catalogState.themeCardReleaseTimes.get(skin?.theme),
     hasIdolArt:Boolean(skin&&card&&skin.assetId===card.assetId),
     resolved:Boolean(skin)};
 }

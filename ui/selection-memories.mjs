@@ -397,7 +397,7 @@ function openAbilityPicker(view,values,onChange,createAvailability){
   openDialog(dialog);list.scrollTop=0;
 }
 export function renderInheritanceChoices(view,choices,onChange,createAvailability){
-  const both=view.skill.length>0&&view.ability.length>0;$('inheritance-and').hidden=!both;$('inheritance-expression').classList.toggle('has-both-groups',both);
+  const both=(view.skill.length>0||view.inheritanceStartOnly||view.inheritanceCustomizedOnly)&&view.ability.length>0;$('inheritance-and').hidden=!both;$('inheritance-expression').classList.toggle('has-both-groups',both);
   for(const [key,values] of [['skill',choices.inheritanceCards],['ability',choices.abilities]]){
     const opener=$('inheritance-'+key+'-open'),list=$('inheritance-'+key+'-list');
     opener.onclick=()=>key==='skill'?openSelectionPicker(view,key,values,true,onChange,createAvailability):openAbilityPicker(view,values,onChange,createAvailability);

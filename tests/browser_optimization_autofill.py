@@ -195,17 +195,30 @@ def check(url):
         latest=panel.locator('[data-optimization-multiplier="vocal"]').inner_text()
         page.wait_for_function('()=>previewFaultDelivered');expect(preview_status).to_be_hidden()
         expect(panel.locator('[data-optimization-multiplier="vocal"]')).to_have_text(latest)
-        for width in [1280,375,320]:
+        # 大属性产生较长的真实倍率，窄屏不能挤压输入文字或触控区域。
+        for key in ['vocal','dance','visual']:panel.locator(f'[data-optimization-attribute="{key}"]').fill('9999')
+        expect(panel.locator('[data-optimization-multiplier]:visible')).to_have_count(3)
+        geometry=[]
+        for width in [1280,390,375,360,320]:
             page.set_viewport_size({'width':width,'height':1000})
             assert panel.evaluate('e=>e.scrollWidth<=e.clientWidth')
             assert button.evaluate('button=>button.getBoundingClientRect().width>0')
             assert panel.locator('.optimization-attributes').evaluate('''element=>{
-                const fields=[...element.children].filter(child=>child.matches('.optimization-field')),heading=element.querySelector(':scope > .optimization-attributes-heading'),headingCells=heading?[...heading.children]:[],controls=fields.map(field=>field.querySelector('.optimization-attribute-control').getBoundingClientRect()),inputs=fields.map(field=>field.querySelector('input[data-optimization-attribute]').getBoundingClientRect());
+                const mobile=innerWidth<=599,fields=[...element.children].filter(child=>child.matches('.optimization-field')),heading=element.querySelector(':scope > .optimization-attributes-heading'),headingCells=heading?[...heading.children]:[],controls=fields.map(field=>field.querySelector('.optimization-attribute-control').getBoundingClientRect()),inputs=fields.map(field=>field.querySelector('input[data-optimization-attribute]').getBoundingClientRect());
                 return headingCells.length===3&&controls.slice(0,3).every(rect=>Math.abs(rect.left-controls[0].left)<1&&Math.abs(rect.right-controls[0].right)<1)&&inputs.every((rect,index)=>!index||rect.top>=inputs[index-1].bottom)&&fields.slice(0,3).every(field=>{
-                    const input=field.querySelector('input[data-optimization-attribute]').getBoundingClientRect(),control=field.querySelector('.optimization-attribute-control').getBoundingClientRect(),output=field.querySelector('output').getBoundingClientRect(),value=field.querySelector('[data-optimization-multiplier]'),fontSize=parseFloat(getComputedStyle(value).fontSize);
-                    return output.left>=control.right-1&&output.top>=control.top-1&&output.bottom<=control.bottom+1&&Math.abs(output.left-headingCells[2].getBoundingClientRect().left)<1&&fontSize>=16&&input.left>=control.left-1&&input.right<=control.right+1;
+                    const input=field.querySelector('input[data-optimization-attribute]').getBoundingClientRect(),control=field.querySelector('.optimization-attribute-control').getBoundingClientRect(),output=field.querySelector('output').getBoundingClientRect(),label=field.querySelector('label').getBoundingClientRect(),value=field.querySelector('[data-optimization-multiplier]'),fontSize=parseFloat(getComputedStyle(value).fontSize);
+                    const layout=mobile?output.bottom<=control.top&&label.bottom<=control.top&&output.left>=label.right&&getComputedStyle(heading).display==='none':output.left>=control.right-1&&output.top>=control.top-1&&output.bottom<=control.bottom+1&&Math.abs(output.left-headingCells[2].getBoundingClientRect().left)<1;
+                    return layout&&fontSize>=16&&input.left>=control.left-1&&input.right<=control.right+1;
                 });
             }''')
+            dimensions=panel.locator('.optimization-attributes .optimization-field').evaluate_all('''fields=>fields.map(field=>{
+                const input=field.querySelector('input'),style=getComputedStyle(input),context=document.createElement('canvas').getContext('2d');context.font=style.font;
+                const value=field.querySelector('[data-optimization-multiplier]'),range=document.createRange();if(value)range.selectNodeContents(value);
+                return {attribute:field.dataset.attribute,buttons:[...field.querySelectorAll('button')].map(button=>{const rect=button.getBoundingClientRect();return {width:rect.width,height:rect.height};}),inputFits:context.measureText(input.value||input.placeholder).width<=input.clientWidth-parseFloat(style.paddingLeft)-parseFloat(style.paddingRight),multiplierFits:!value||range.getBoundingClientRect().width<=value.parentElement.clientWidth+1,overflow:field.scrollWidth>field.clientWidth};
+            })''')
+            assert all(row['inputFits'] and row['multiplierFits'] and not row['overflow'] for row in dimensions),(width,dimensions)
+            if width<=599:assert all(button['width']>=44 and button['height']>=44 for row in dimensions for button in row['buttons']),(width,dimensions)
+            geometry.append({'viewport':width,'fields':dimensions})
             notice=footer.locator('.optimization-autofill-notice')
             expect(notice).to_be_visible();expect(help_toggle).to_be_visible();expect(help_toggle).to_have_attribute('aria-expanded','false')
             closed=footer.evaluate('''element=>{const footer=element.getBoundingClientRect(),notice=element.querySelector('.optimization-autofill-notice').getBoundingClientRect(),toggle=element.querySelector('button.optimization-input-help-toggle').getBoundingClientRect(),relative=rect=>[rect.left-footer.left,rect.top-footer.top,rect.right-footer.left,rect.bottom-footer.top];return {footer:[footer.left,footer.top,footer.right,footer.bottom],notice:relative(notice),toggle:relative(toggle),overflow:element.scrollWidth<=element.clientWidth};}''')
@@ -217,9 +230,10 @@ def check(url):
             help_toggle.click();expect(help_toggle).to_have_attribute('aria-expanded','false');expect(help_panel).to_be_hidden()
             panel.locator('.optimization-total').screenshot(path=artifact_path(str(ROOT/'local/optimization-autofill'/f'attributes-{width}.png')))
             if width==1280:panel.locator('.optimization-composition').screenshot(path=artifact_path(str(ROOT/'local/optimization-autofill/attributes-context-1280.png')))
+        artifact_path(ROOT/'local/checks/review067-followup/optimization-attributes-geometry.json').write_text(json.dumps(geometry,ensure_ascii=False,indent=2)+'\n')
         assert not errors and not uploads,(errors,uploads)
         browser.close()
-    print('真实 Worker 倍率计算、加减输入、参考填入与撤销、体力保留及 1280／375／320px 布局检查通过，无数据上传。')
+    print('真实 Worker 倍率计算、加减输入、参考填入与撤销、体力保留及 1280／390／375／360／320px 布局、触控尺寸与数值显示检查通过，无数据上传。')
 
 
 if __name__=='__main__':

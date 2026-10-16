@@ -115,6 +115,14 @@ ID 选择器仍用于 `#navigation`、`#advanced-filters`、`#selection-picker-l
 - `ui/number-stepper.mjs` 的 `createNumberStepper` 接收已有数字框、前后两组按钮定义和动作回调，共用按钮构建、输入框排列、无障碍标签与禁用状态同步。编组属性保留空值和即时输入事件，培养预览保留自身范围、清空恢复和失焦确认规则；倍率计算、缓存、参考填入与撤销仍在业务层。
 - `ui/info-disclosure.mjs` 的 `createInfoDisclosure` 共用舞台规则和综合评分说明的原生 `<details>`、标题及信息图标，调用方追加正文。总属性填写说明继续采用独立按钮与正文，保持入口位置稳定；静态账号说明沿用 HTML 结构和公共样式。
 
+### 筛选标题与字段
+
+页签筛选标题统一使用 `.filter-title`，不按 `label`、`legend` 分别维护字号、字重和标题高度。静态分组将该 class 放在 `fieldset` 的直接子节点 `legend` 上；单项字段使用 `label.filter-field` 包含 `span.filter-title` 和输入控件。标题到选项的间距由分组或字段容器承担。
+
+动态界面复用 [filter-field.mjs](../ui/filter-field.mjs)：`filterField(标题, 控件)` 创建保留隐式关联的单项标签；`filterTitle(标题)` 创建普通标题，整组图例使用 `filterTitle(标题, 'legend')` 并将其放在 `fieldset` 的首个子节点。标题参数传入已本地化的文字。工具栏标题若通过 `aria-labelledby` 为按钮命名，继续保留该关联。
+
+`label` 负责单个控件的可访问名称与点击行为，`legend` 负责整组控件的名称；复用组件时保留这两种语义。新增页签筛选字段应使用上述结构，不再直接把裸标题文字塞入 `label`，避免漏掉共享标题样式。
+
 ### 操作组和筛选页脚
 
 `.actions` 只提供横向排列、间距和换行。按钮等级由原生 `button`、`.primary` 或 `.danger-button` 表示；不要把按钮颜色写进父级业务选择器。筛选页脚已经统一最小高度、文字尺寸和分隔线，使用既有 `.filter-footer` 或 `.memory-filter-footer`：

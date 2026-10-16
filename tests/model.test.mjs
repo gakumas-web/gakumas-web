@@ -44,3 +44,8 @@ test('保留可选合成次数，缺失不补零且拒绝无效值', () => {
   assert.equal('inheritCount' in parseSnapshot(snapshot()).memories[0],false);
   for(const inheritCount of [-1,0.5,'0',null])assert.throws(()=>parseSnapshot(snapshot({...memory(),inheritCount})));
 });
+test('使用状态只保留明确布尔值，未知不补为未使用',()=>{
+  for(const isInUse of [true,false])assert.equal(parseSnapshot(snapshot({...memory(),isInUse})).memories[0].isInUse,isInUse);
+  assert.equal(Object.hasOwn(parseSnapshot(snapshot()).memories[0],'isInUse'),false);
+  for(const isInUse of [null,0,1,'false',[]])assert.throws(()=>parseSnapshot(snapshot({...memory(),isInUse})));
+});

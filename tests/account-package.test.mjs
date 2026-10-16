@@ -7,10 +7,10 @@ import {snapshotId} from '../application/history.mjs';
 import {parseAccountBackup,encodeAccountPackage,decodeAccountPackage,inspectAccountPackage} from '../application/account-package.mjs';
 
 const publicUserId='synthetic-package-account';
-const snapshot=await prepareSnapshot(inventory({publicUserId,memories:[{userMemoryId:'synthetic-package-memory'}]}));
+const snapshot=await prepareSnapshot(inventory({publicUserId,memories:[{userMemoryId:'synthetic-package-memory',isInUse:true}]}));
 const library=emptyLibrary(`account-${publicUserId}`);library.tags=['多语言タグ 🌸'];library.memories[snapshot.memories[0].key]=library.tags;
 const sample={format:'gakumas-web-account-backup',version:1,publicUserId,exportedAt:'2026-10-04T01:00:00Z',snapshots:[snapshot],currentSnapshotId:await snapshotId(snapshot),selectionSnapshot:null,library,
-  preferences:{tab:'memories',views:{memories:{query:'收藏'}},idolArt:{'card-example':'upgraded'}},savedViews:[{name:'收藏',view:{query:'收藏'}}]};
+  preferences:{tab:'memories',views:{memories:{query:'收藏',inheritanceStartOnly:true}},idolArt:{'card-example':'upgraded'}},savedViews:[{name:'收藏',view:{query:'收藏',inheritanceStartOnly:true,inheritanceCustomizedOnly:true}}]};
 
 test('明文包保留标签和偏好，剔除附加字段与原始回忆 ID',async()=>{
   const wrapped=await encodeAccountPackage({...sample,unexpected:'drop',notes:{entries:[]}});
@@ -18,7 +18,10 @@ test('明文包保留标签和偏好，剔除附加字段与原始回忆 ID',asy
   const clean=await decodeAccountPackage(JSON.parse(JSON.stringify(wrapped)));
   assert.deepEqual(clean.library,sample.library);
   assert.equal(clean.preferences.idolArt['card-example'],'upgraded');assert.equal(clean.savedViews[0].name,'收藏');
+  assert.equal(clean.preferences.views.memories.inheritanceStartOnly,true);
+  assert.equal(clean.savedViews[0].view.inheritanceStartOnly,true);assert.equal(clean.savedViews[0].view.inheritanceCustomizedOnly,true);
   assert.equal(clean.currentSnapshotId,await snapshotId(clean.snapshots[0]));
+  assert.equal(clean.snapshots[0].memories[0].isInUse,true);
   assert.ok(!JSON.stringify(wrapped).includes('synthetic-package-memory'));assert.equal(clean.unexpected,undefined);assert.equal(clean.notes,undefined);
 });
 test('AES-GCM 密码往返使用独立随机盐与 IV，错误密码与篡改均拒绝',async()=>{

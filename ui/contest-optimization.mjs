@@ -1,3 +1,4 @@
+import {captureOptimizationDraft} from '../application/contest-drafts.mjs';
 import {createContestOptimizationController} from '../application/contest-optimization-controller.mjs';
 import {createChoiceNavigation} from './choice-navigation.mjs';
 import {updateSkillCustomizationBadge} from './memory-skill-badges.mjs';
@@ -36,12 +37,13 @@ function budgetError(error){
   if(error.code==='optimization_budget_reserve')return t('总模拟上限至少需要 {0} 次，才能保留一次探索、复筛和最终复评。',[format(error.minimum)]);
   return t('请检查自定义参数的范围，以及复筛和最终复评的数量关系。');
 }
-export function createContestOptimization({profile,getContext,onRestore,onSave,initialState,onTaskChange=()=>{}}){
+export function createContestOptimization({profile,getContext,onRestore,onSave,initialState,onTaskChange=()=>{},onDraftChange=()=>{}}){
   const element=el('div','','contest-optimization');element.id='contest-optimization';
   let context,formState=initialState?.form??null;
   let fillHandle=null,disposed=false,readForm=()=>formState??{},updateStale=()=>{},viewId=0,picker=null,disposePreview=()=>{},handleSearchEvent=()=>{};
   const search=createContestOptimizationController({initialState,onEvent:event=>{
     if(event.type==='started')onTaskChange({state:'running',stop:search.stop});
+    else if(event.type==='queued')onTaskChange({state:'queued',stop:search.stop});
     else if(event.type==='completed')onTaskChange({state:'completed'});
     else if(['stopped','failed','invalidated'].includes(event.type))onTaskChange({state:'stopped'});
     handleSearchEvent(event);
@@ -250,7 +252,7 @@ export function createContestOptimization({profile,getContext,onRestore,onSave,i
     element.replaceChildren(description,candidateHint,help,prerequisites,form,status,progress,failure,stale,output);
     readForm=()=>({characterId,params:Object.fromEntries(Object.entries(params).map(([key,input])=>[key,input.value])),roles:roleControls.map(control=>({exclusiveId:control.exclusiveId,exclusiveReference:control.exclusiveReference?structuredClone(control.exclusiveReference):undefined,grade:control.grade.value})),items:[fixedItemId,...extraItemIds],strength:strength.value,seed:seedInput.value,customBudget:customEdited?Object.fromEntries(Object.entries(customInputs).map(([key,input])=>[key,input.value])):undefined});
     const currentSignature=()=>JSON.stringify([search.contextSignature,readForm()]);
-    updateStale=()=>{stale.hidden=!search.report||search.reportSignature===currentSignature();sync();};
+    updateStale=()=>{stale.hidden=!search.report||search.reportSignature===currentSignature();sync();onDraftChange();};
     const multiplierPreview=createContestMultiplierController({stage:context.stage,supportCards:context.supportCards,manual:context.manual,onEvent:event=>{
       switch(event.type){
         case 'reset':
@@ -296,7 +298,7 @@ export function createContestOptimization({profile,getContext,onRestore,onSave,i
       const nextPrerequisiteSignature=JSON.stringify(prerequisitesMissing);
       if(nextPrerequisiteSignature!==prerequisiteSignature){prerequisiteList.replaceChildren(...prerequisitesMissing.map(message=>el('li',t(message))));prerequisiteSignature=nextPrerequisiteSignature;}
       prerequisites.hidden=!prerequisitesMissing.length;updateAccount.hidden=!unknownLevel&&!unknownSupports;updateResources.hidden=!unknownRules;prerequisiteActions.hidden=updateAccount.hidden&&updateResources.hidden;updateAccount.disabled=updateResources.disabled=search.running;
-      availability.hidden=!missing;availability.textContent=missing?t(missing):'';start.disabled=search.running||filling||Boolean(missing)||!customError.hidden;start.textContent=t(search.running?'搜索中…':'开始搜索');
+      availability.hidden=!missing;availability.textContent=missing?t(missing):'';start.disabled=search.running||filling||Boolean(missing)||!customError.hidden;start.textContent=t(search.queued?'等待执行':search.running?'搜索中…':'开始搜索');stop.textContent=t(search.queued?'取消等待':'停止');
       const unfinished=Object.entries(params).filter(([,input])=>!input.validity.valid).map(([key])=>t(({vocal:'Vo',dance:'Da',visual:'Vi',stamina:'体力'})[key]));
       if(!customError.hidden)unfinished.push(t('自定义搜索参数'));
       configuration.textContent=[t(roleControls.every(control=>control.exclusiveId)?'主副回忆已配置':'主副回忆尚未配置'),itemCount.textContent,missing?t(missing):unfinished.length?t('待填写或修正：{0}',[unfinished.join('、')]):t('配置完成，可以推荐并模拟')].filter(Boolean).join(' · ');
@@ -347,6 +349,8 @@ export function createContestOptimization({profile,getContext,onRestore,onSave,i
     handleSearchEvent=event=>{
       switch(event.type){
         case 'preparing':failure.replaceChildren();status.textContent=t('正在生成合法技能候选…');sync();break;
+        case 'queued':status.textContent=t('等待其他计算完成，使用开始时的配置。');progress.removeAttribute('value');sync();break;
+        case 'started':status.textContent=t('正在生成合法技能候选…');sync();break;
         case 'progress':showProgress(event.value);break;
         case 'completed':status.textContent=t('搜索完成。');render();break;
         case 'stopped':status.textContent=t('搜索已停止，保留上次完成结果。');break;
@@ -375,5 +379,5 @@ export function createContestOptimization({profile,getContext,onRestore,onSave,i
     }
     preparePool();
   }
-  return {element,refresh,captureState:()=>({form:readForm(),...search.captureState()}),dispose(){disposed=true;poolTask?.cancel();fillHandle?.cancel();disposePreview();picker?.close();search.dispose();viewId++;}};
+  return {element,refresh,captureDraft:()=>captureOptimizationDraft(readForm()),captureState:()=>({form:readForm(),...search.captureState()}),dispose(){disposed=true;poolTask?.cancel();fillHandle?.cancel();disposePreview();picker?.close();search.dispose();viewId++;}};
 }

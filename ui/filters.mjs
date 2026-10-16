@@ -174,11 +174,11 @@ export function renderActiveFilters(keys,filters,onRemove,{logic=true}={}){
     idolPlan:'计划',supportPlan:'可编入计划',plan:'计划',idolRarity:'稀有度',supportRarity:'稀有度',
     idolEffect:'效果涉及',supportType:'支援卡属性',supportEffect:'效果增益类型',supportEffectAttribute:'效果作用属性',
     supportSkills:'满级支援效果',supportReward:'事件奖励',skinTheme:'装扮主题',memoryGrade:'评级',
-    customTag:'自定义标签',skill:'继承技能卡',ability:'培养能力',query:'搜索'};
+    customTag:'自定义标签',skill:'继承技能卡',inheritanceStartOnly:'仅显示开始时获得',inheritanceCustomizedOnly:'仅显示已附魔',ability:'培养能力',query:'搜索'};
   let count=0;
   for(const key of [...(filters.query?['query']:[]),...keys]){
     const id=FILTER_BINDINGS.find(([,field])=>field===key)?.[0],input=id?$(id):null;
-    const values=selectedValues(filters[key]);if(!values.length)continue;
+    const checked=filters[key]===true,values=checked?['true']:selectedValues(filters[key]);if(!values.length)continue;
     const includeCommon=key==='supportPlan'&&filters.supportPlanCommon!==false;
     const grouped=!['ability','supportSkills'].includes(key)&&(values.length>1||includeCommon);
     const group=logic?el('span','','filter-logic-group'):container;
@@ -195,7 +195,7 @@ export function renderActiveFilters(keys,filters,onRemove,{logic=true}={}){
       for(const [index,value] of clause.entries()){
         if(logic&&index)group.append(el('span',operator,'filter-logic-operator'));
         let text=[...(input?.options??[])].find(option=>option.value===value)?.text??value;
-        const full=`${t(labels[key]??key)}：${text}`;
+        const full=checked?t(labels[key]):`${t(labels[key]??key)}：${text}`;
         const button=el('button','','filter-chip');button.title=full;button.dataset.filterKey=key;button.dataset.filterValue=value;
         button.setAttribute('aria-label',t('移除筛选：{0}',[full]));
         if(['character','idolCharacter','supportCharacter','skinCharacter','selectionCharacter'].includes(key)){
