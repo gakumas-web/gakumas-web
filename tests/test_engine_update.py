@@ -38,6 +38,31 @@ class EngineUpdateTest(unittest.TestCase):
             self.assertEqual(result['status'],'candidate');self.assertEqual(result['selected_commit'],'2'*40)
             self.assertTrue(any(result['changes'].values()))
 
+    def test_csv_records_are_hashed_candidates_and_reject_duplicate_or_noninteger_ids(self):
+        for name in engine.RECORD_TABLES:
+            csv_name=name.replace('/json/','/csv/').removesuffix('.json')+'.csv'
+            raw=b'id,name,upgraded\r\n1,one,FALSE\r\n2,two,TRUE\r\n'
+            result=assess(self.lock,self.before,{**self.before,csv_name:raw},'2'*40)
+            self.assertEqual(result['status'],'candidate')
+            self.assertEqual(result['lock']['files'][csv_name],sha(raw))
+            for rows in ['1,one\n1,two\n','TRUE,one\n','1.5,one\n',',one\n']:
+                with self.subTest(table=csv_name,rows=rows),self.assertRaisesRegex(ValueError,'引擎记录 ID 无效或重复'):
+                    assess(self.lock,self.before,{**self.before,csv_name:('id,name\n'+rows).encode()},'2'*40)
+
+    def test_snapshot_keeps_historical_json_lock_and_includes_csv_after_migration(self):
+        csv_name=self.name.replace('/json/','/csv/').removesuffix('.json')+'.csv'
+        for legacy in [True,False]:
+            files={self.code:b'code',csv_name:b'id,name\n1,one\n'}
+            if legacy:files[self.name]=self.before[self.name]
+            def git(root,*args):
+                if args[0]=='ls-tree':return '\n'.join('100644 blob '+'0'*40+'\t'+name for name in files).encode()
+                if args[0]=='show':return files[args[1].split(':',1)[1]]
+                return b''
+            with TemporaryDirectory() as temporary,patch.object(engine,'git',side_effect=git),patch.object(engine.subprocess,'run',return_value=subprocess.CompletedProcess([],0)):
+                result=engine.snapshot(temporary,'1'*40)
+            expected={name:raw for name,raw in files.items() if not legacy or name!=csv_name}
+            self.assertEqual(result,expected)
+
     def test_license_change_addition_and_removal_require_explicit_maintenance(self):
         licensed={**self.before,'LICENSE':b'BSD-3-Clause'}
         lock={**self.lock,'files':{name:sha(raw) for name,raw in licensed.items()}}
@@ -98,7 +123,7 @@ class EngineUpdateTest(unittest.TestCase):
         for directory in ['domain','application','locales','tests','tools','resources']:(root/directory).mkdir()
         for name in engine.OUTPUTS:
             (root/name).write_text('{}' if name.endswith('.json') else 'original')
-        for name in ['resources.mjs','image-config.mjs','i18n.mjs','tools/build_contest_engine.py','tools/contest_status_effects.py']:(root/name).write_text('')
+        for name in ['resources.mjs','image-config.mjs','i18n.mjs','tools/build_contest_engine.py','tools/contest_engine_tables.py','tools/contest_status_effects.py']:(root/name).write_text('')
         effects=root/'effects.json';effects.write_text('{"revision":"new-content"}')
         source={'commit':self.lock['commit'],'effectsSha256':'old-content' if content_changed else sha(effects.read_bytes())}
         (root/'domain/contest-engine-map.mjs').write_text('export const contestEngineMap='+json.dumps({'source':source})+';')

@@ -4,10 +4,12 @@ import hashlib
 import json
 from pathlib import Path
 import re
+import shutil
 import subprocess
 import tempfile
 import unicodedata
 from contest_status_effects import effect_change,EVIDENCE_PATH,EVIDENCE
+from contest_engine_tables import parse_csv,read_table
 
 ROOT=Path(__file__).resolve().parents[1]
 COMMIT=json.loads((ROOT/'tools/contest-engine-source.json').read_text())['commit']
@@ -278,7 +280,7 @@ def build(source,effects_file,esbuild=None,*,mapping_only=False):
     for name,expected in lock['files'].items():
         if hashlib.sha256((source/name).read_bytes()).hexdigest()!=expected:raise ValueError('模拟引擎源码校验失败：'+name)
     data=source/'packages/gakumas-data'
-    read=lambda name:json.loads((data/'json'/f'{name}.json').read_text())
+    read=lambda name:read_table(data,name)
     master=json.loads(effects_file.read_text());tables=master['tables'];semantics=master['semantics']['tables']
     if master['revision']!=EVIDENCE['contentRevision']:raise ValueError('持续效果补充证据与内容版本不一致，请核对同版本公开原始表后更新证据')
     reviewed=json.loads(REVIEWED_PATH.read_text())
@@ -355,8 +357,14 @@ def build(source,effects_file,esbuild=None,*,mapping_only=False):
         with tempfile.TemporaryDirectory(prefix='engine-build-',dir=ROOT/'local') as temporary:
             # 入口使用显式源路径；打包器不向产物写入开发机路径。
             temp=Path(temporary);entry_file=temp/'entry.mjs'
-            entry_file.write_text(entry.replace('./packages/',str(source.resolve())+'/packages/'))
-            subprocess.run([str(esbuild),str(entry_file),'--bundle','--format=esm','--platform=browser','--target=es2022','--minify','--legal-comments=none','--alias:gakumas-data='+str((data/'index.js').resolve()),'--banner:js=// GakumasTools 模拟引擎；固定来源 '+COMMIT+'；BSD-3-Clause 许可见 THIRD_PARTY.md。','--outfile='+str(ROOT/'domain/upstream-contest-engine.mjs')],check=True)
+            bundle_source=source
+            if (data/'csv').exists():
+                # 只转换临时打包副本，已校验的原始 CSV 及其来源哈希保持不变。
+                bundle_source=temp/'source';shutil.copytree(source,bundle_source)
+                for file in (bundle_source/'packages/gakumas-data/csv').glob('*.csv'):
+                    file.write_text(json.dumps(parse_csv(file.read_bytes()),ensure_ascii=False))
+            entry_file.write_text(entry.replace('./packages/',str(bundle_source.resolve())+'/packages/'))
+            subprocess.run([str(esbuild),str(entry_file),'--bundle','--format=esm','--platform=browser','--target=es2022','--minify','--legal-comments=none','--loader:.csv=json','--alias:gakumas-data='+str((bundle_source/'packages/gakumas-data/index.js').resolve()),'--banner:js=// GakumasTools 模拟引擎；固定来源 '+COMMIT+'；BSD-3-Clause 许可见 THIRD_PARTY.md。','--outfile='+str(ROOT/'domain/upstream-contest-engine.mjs')],check=True)
     def stage_record(row):
         triplet=lambda value:dict(zip(('vocal','dance','visual'),[float(x) for x in value.split(',')]))
         # 固定参考投影沿用整数与小数类型，保持与浏览器 JSON 的数值序列化一致。

@@ -10,6 +10,7 @@ import subprocess
 import sys
 from urllib.error import HTTPError
 from urllib.request import Request, urlopen
+from contest_engine_tables import parse_csv
 
 ROOT=Path(__file__).resolve().parents[1]
 REPOSITORY='https://github.com/gakumas-tools/gakumas-tools.git'
@@ -41,10 +42,12 @@ def snapshot(root,commit):
     present=subprocess.run(['git','cat-file','-e',commit+'^{commit}'],cwd=root,capture_output=True,timeout=30).returncode==0
     if not present:git(root,'fetch','--quiet','--depth=1',REPOSITORY,commit)
     tree=git(root,'ls-tree','-r',commit,'LICENSE','packages/gakumas-data','packages/gakumas-engine').decode().splitlines()
-    files={}
+    files={};names={line.split('\t')[1] for line in tree}
     for line in tree:
         metadata,name=line.split('\t');mode,kind,_=metadata.split()
-        if name!='LICENSE' and Path(name).suffix not in ('.js','.mjs','.cjs','.json'):continue
+        if name!='LICENSE' and Path(name).suffix not in ('.js','.mjs','.cjs','.json','.csv'):continue
+        # 历史来源由 JSON 驱动，保留其既有锁；切换后的 CSV 才属于运行输入。
+        if Path(name).suffix=='.csv' and name.replace('/csv/','/json/').removesuffix('.csv')+'.json' in names:continue
         if mode!='100644' or kind!='blob':raise ValueError('引擎运行文件类型变化：'+name)
         files[name]=git(root,'show',commit+':'+name)
     return files
@@ -55,8 +58,9 @@ def assess(lock,before,after,commit):
     # 署名与打包声明固定采用当前许可证，许可证变化必须另行维护。
     if before.get('LICENSE')!=after.get('LICENSE'):raise ValueError('引擎许可证发生变化')
     # 消费端按 ID 建索引，重复或非整数 ID 会使名称匹配与实际执行对象不一致。
-    for name in sorted(RECORD_TABLES&set(after)):
-        rows=json.loads(after[name])
+    record_tables=RECORD_TABLES|{name.replace('/json/','/csv/').removesuffix('.json')+'.csv' for name in RECORD_TABLES}
+    for name in sorted(record_tables&set(after)):
+        rows=parse_csv(after[name]) if name.endswith('.csv') else json.loads(after[name])
         if not isinstance(rows,list):raise ValueError('引擎记录表必须是数组：'+name)
         seen=set()
         for row in rows:
@@ -155,7 +159,7 @@ def update(site,output,esbuild,plan=None,apply=False):
     candidate.mkdir();(candidate/'local').mkdir();(candidate/'tools').mkdir()
     for directory in ['domain','application','locales','tests']:shutil.copytree(ROOT/directory,candidate/directory,ignore=shutil.ignore_patterns('__pycache__','*.pyc'))
     for name in ['resources.mjs','image-config.mjs','i18n.mjs','THIRD_PARTY.md']:shutil.copyfile(ROOT/name,candidate/name)
-    for name in ['build_contest_engine.py','contest_status_effects.py','contest-engine-source.json','contest-engine-reviewed-mappings.json','contest-status-effects.json']:shutil.copyfile(ROOT/'tools'/name,candidate/'tools'/name)
+    for name in ['build_contest_engine.py','contest_engine_tables.py','contest_status_effects.py','contest-engine-source.json','contest-engine-reviewed-mappings.json','contest-status-effects.json']:shutil.copyfile(ROOT/'tools'/name,candidate/'tools'/name)
     source=output/'source';source.mkdir();files=snapshot(ROOT/'local/engine-source-cache',plan['selected_commit'])
     if {name:sha(raw) for name,raw in files.items()}!=plan['lock']['files']:raise ValueError('候选引擎文件身份变化')
     for name,raw in files.items():path=source/name;path.parent.mkdir(parents=True,exist_ok=True);path.write_bytes(raw)
