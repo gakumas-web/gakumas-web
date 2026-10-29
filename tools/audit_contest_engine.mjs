@@ -4,7 +4,7 @@ import path from 'node:path';
 import {pathToFileURL} from 'node:url';
 import {createHash} from 'node:crypto';
 import {parseArgs} from 'node:util';
-const {values:args}=parseArgs({options:{site:{type:'string'},program:{type:'string'},report:{type:'string'},baseline:{type:'string'},'write-baseline':{type:'string'},strict:{type:'boolean',default:false}}});
+const {values:args}=parseArgs({options:{site:{type:'string'},program:{type:'string'},report:{type:'string'},baseline:{type:'string'},'stage-ids':{type:'string'},'write-baseline':{type:'string'},strict:{type:'boolean',default:false}}});
 if(!args.site||!args.report)throw new Error('需要 --site 公开站点目录和 --report 报告路径');
 const site=path.resolve(args.site),program=path.resolve(args.program??site),hash=data=>createHash('sha256').update(data).digest('hex');
 const read=async file=>JSON.parse(await fs.readFile(file,'utf8'));
@@ -26,7 +26,13 @@ const known=new Map((baseline?.unsupported??[]).map(row=>[row.key,row.fingerprin
 const added=unsupported.filter(row=>known.get(row.key)!==row.fingerprint),resolved=(baseline?.unsupported??[]).filter(row=>!current.has(row.key));
 // 卡牌支持不能证明最新赛季可用；使用实际内容和正式倍率入口核对默认赛季。
 const stages=catalog.contestCatalog().choices.filter(stage=>stage.kind==='contest'),latest=Math.max(...stages.map(stage=>stage.seasonNumber)),stageChecks=[];
-for(const stage of stages.filter(stage=>stage.seasonNumber===latest)){
+let selectedStages=stages.filter(stage=>stage.seasonNumber===latest);
+if(args['stage-ids']){
+  const ids=await read(args['stage-ids']),byId=new Map(stages.map(stage=>[stage.id,stage]));
+  if(!Array.isArray(ids)||!ids.length||new Set(ids).size!==ids.length||ids.some(id=>typeof id!=='string'||!/^contest:pvp_rate_config-[1-9][0-9]*:[0-9]+$/.test(id)||!byId.has(id))||byId.size!==stages.length)throw new Error('显式舞台范围无效或舞台不存在');
+  selectedStages=ids.map(id=>byId.get(id));
+}
+for(const stage of selectedStages){
   try{
     const request={...createContestSimulationRequest([],stage,[]),params:{vocal:1500,dance:1500,visual:1500},supportBonus:0};
     if(!stage.preset||Object.values(stage.preset.turnCounts).reduce((sum,value)=>sum+value,0)!==stage.turn)throw new Error('stage_reference_mismatch');

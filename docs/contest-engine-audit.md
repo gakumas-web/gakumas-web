@@ -66,3 +66,11 @@ python3 -B tools/update_contest_engine.py --site local/ui-visual-refinement/dist
 模拟行为以 `tools/contest-engine-source.json` 锁定的上游版本为准，不在本项目修正上游数值、动作或附魔补丁。名称存在汉字／假名差异、上游错字或复杂附魔尚无自动翻译时，可在 `tools/contest-engine-reviewed-mappings.json` 登记经人工核对的对应身份。每项包含公开定义指纹、上游定义指纹和核对说明；这证明身份已确认，不承诺两边效果完全等价。已知数值或实现差异也在该文件说明，并原样沿用上游。
 
 生成器检查固定版本、双向指纹、卡片结构、道具强化状态及计划，以及附魔适用卡片和等级。任一已登记定义发生变化时构建失败，必须重新核对；不得只为通过检查刷新指纹。生成映射的来源元数据记录身份清单哈希，审计仍检查实际站点的映射和引擎文件。`--mapping-only` 仅生成映射，不重建或修改引擎包。
+
+## 数据候选的独立审计入口
+
+`tools/audit_contest_candidate.py` 接收数据项目导出的候选与基线五个业务分包及 `review-manifest.json`，校验内容哈希后，以指定的引擎提交生成程序并运行完整候选池审计。目标包含最新赛季所有舞台、新增或定义变化的舞台；舞台定义包含递归解析的隐藏物品和效果等依赖，因此依赖变化也会纳入受影响的历史舞台。删除舞台、缺失参考、未知或新增不支持机制均不能当作通过。
+
+数据侧通过固定的公开 Web 提交调用该入口，参数为 `--candidate-content`、`--baseline-content`、`--engine-commit`、`--auditor-commit`、`--esbuild` 和 `--output`，均为必填；输出目录须不存在且不能与输入重叠。报告 `contest-engine-audit-report.json` 记录输入清单哈希、审计器代码身份、引擎锁、支持范围基准和逐舞台结果；退出码 `0`、`2`、`1` 分别表示 `passed`、`waiting`、`blocked`。本地工作树审计身份为 `local_validation` 时，仅供验证，不能满足数据自动合并所需的 `verified_commit`。
+
+启用数据侧自动流程前，应先将此审计入口及其依赖提交到可匿名读取的 Web `main`，再提交并启用数据侧配置。这里描述源码能力，不表示远程流程或站点已经发布。
