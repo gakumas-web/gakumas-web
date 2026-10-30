@@ -39,6 +39,16 @@ python3 -B tools/install_content.py --lock local/content-lock.json --asset-lock 
 
 图片模式仅支持 none 和 managed；在线内容更新不会自动启用图片源。
 
+### 本地界面预览
+
+`npm run preview:local` 在启动前为既有本地构建配置线上公共资料频道 `https://gakumas-web.github.io/gakumas-web/content/channel.json`，并保留 `./content/channel.json` 作为首次启动的资料来源。启动入口同步更新 CSP、预压缩文件和程序发布哈希，保留其他构建身份、图片源及本地内容文件；重复启动不会重新写入相同配置。
+
+该设置仅作用于 `preview:local` 指定的构建目录。普通 `npm run preview` 直接提供既有产物，正式部署仍使用 `resources/content-source.json` 的构建配置。也可显式运行 `python3 -B tools/preview.py --directory <构建目录> --content-channel-url <HTTPS频道地址>`；入口只接受文件身份一致的当前格式 1 产物，不重新安装资料或图片。
+
+已有缓存时，启动会在后台检查新频道，准备完成后点击「应用资料更新」切换；首次本地启动先使用随站点提供并通过校验的资料。更新不会自动切换正在工作的账号界面。
+
+手动导入本地内容包仍会固定本地来源；启动预览不会清除这一浏览器偏好。需要恢复频道更新时，在「资料与图片」点击「检查资料更新」。账号缓存和账号备份不受频道配置影响。
+
 ## 独立分包更新
 
 当前内容格式 1 将发布版本与五个分包的业务 revision 分开。新清单必须为每个业务分包声明独立 revision，正文与之匹配；不同分包不必拥有相同 revision。缺少独立分包 revision 的旧内容会被拒绝。频道、锁与离线容器仍为版本 1。

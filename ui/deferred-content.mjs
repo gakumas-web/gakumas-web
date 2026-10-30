@@ -29,6 +29,10 @@ export function resetDeferredContent(){
   for(const [node,flush] of pending)node.removeEventListener('focusin',flush);
   pending.clear();
 }
+export function releaseDeferredContent(node){
+  const flush=pending.get(node);if(!flush)return;
+  observer.unobserve(node);ready.delete(node);pending.delete(node);node.removeEventListener('focusin',flush);
+}
 
 // 保留列表顺序和键盘入口，仅在接近视口时创建完整卡片。
 export function deferredEntry(build,{className,dataset,label}){

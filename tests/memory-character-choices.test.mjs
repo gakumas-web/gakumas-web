@@ -135,3 +135,14 @@ test('能力解析缓存区分等级、资料版本和语言，并保留缺失�
     assert.equal(abilitySummaries({}).length,1);assert.deepEqual(abilitySummaries({abilities:[]}),[]);
   }finally{setLocale(original);}
 });
+
+test('隐藏使用中默认关闭，只排除明确使用中的回忆并与锁定条件取交集',()=>{
+  const memories=[{key:'in-use',isInUse:true,isProtected:true},{key:'free',isInUse:false,isProtected:true},{key:'unknown'}];
+  const run=options=>filterMemories({memories},createView(options),new Map()).map(row=>row.key);
+  assert.equal(createView().hideInUse,false);
+  assert.equal(createView({hideInUse:'true'}).hideInUse,false);
+  assert.equal(createView(JSON.parse(JSON.stringify({hideInUse:true}))).hideInUse,true);
+  assert.deepEqual(run({}),['in-use','free','unknown']);
+  assert.deepEqual(run({hideInUse:true}),['free','unknown']);
+  assert.deepEqual(run({hideInUse:true,protection:'protected'}),['free']);
+});

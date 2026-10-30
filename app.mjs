@@ -12,24 +12,26 @@ import {beginImageView} from './resources.mjs';
 import {showSelectionDetails,closeSelectionDetails} from './ui/selection-details.mjs';
 import {renderAchievementBrowser} from './ui/achievement-browser.mjs';
 import {matchesTag,favoriteRecords} from './domain/personal-library.mjs';
-import {setupLibraryUI} from './ui/personal-library.mjs';
+import {setupLibraryUI,tagControls} from './ui/personal-library.mjs';
+import {setupInlineTags} from './ui/inline-tags.mjs';
+import {setupCustomTagExport} from './ui/custom-tag-export.mjs';
 import {setupAccountCleanup} from './ui/account-cleanup.mjs';
 import {setupAccountPackage} from './ui/account-package.mjs';
 import {captureAccountBackup} from './application/account-package-store.mjs';
 import {readAccountDirectory} from './application/account-directory.mjs';
 import {AccountDirectoryError} from './domain/account-import.mjs';
-import {resetDeferredContent,deferredEntry,sizeDeferredEntries} from './ui/deferred-content.mjs';
+import {resetDeferredContent,releaseDeferredContent,deferredEntry,sizeDeferredEntries} from './ui/deferred-content.mjs';
 import {accountProfile,profileAccountId,validPublicUserId,validProfile,snapshotFitsProfile,maskedAccountId} from './domain/account.mjs';
 import {accountIdentity} from './ui/shared.mjs';
 import {selectionEntries,selectionSkillKey,withoutSecondExclusiveSkills,withoutCommonSelectionItems} from './domain/selection-memories.mjs';
 import {setupSelectionOptions,renderSelectionChoices,renderLoadoutChoices,renderInheritanceChoices,selectionCapacity,selectionMemoryEntry} from './ui/selection-memories.mjs';
-import {loadMaster,masterReadyFor,masterLoadingFor} from './application/master-loader.mjs';
+import {loadMaster,masterReadyFor,masterLoadingFor,masterDependencies} from './application/master-loader.mjs';
 import {setupContentControls} from './ui/content-controls.mjs';
 import {defaults,createView,createViews,readSavedViews,activeFilterKeys,resetFilters,FILTER_BINDINGS,CHOICE_GROUPS,normalizeProfile} from './application/view-state.mjs';
 import {setupFilterOptions,prepareMemoryFilterOptions,syncMemoryFilterOptions,syncFilterControls,renderFilterChoices,renderTabCount,renderActiveFilters} from './ui/filters.mjs';
 import {t,locale,setLocale,onLocaleChange,staticTranslations} from './i18n.mjs';
 import {title, memoryUse, selectedValues} from './domain/model.mjs';
-import {cardInfo, characterInfo, collectionRecords,skinInfo,achievementViewCounts} from './domain/catalog.mjs';
+import {cardInfo, characterInfo, collectionRecords,skinInfo,achievementViewCounts,catalogGeneration} from './domain/catalog.mjs';
 import {$,el,openDialog} from './ui/dom.mjs';
 import {showDetail,memoryEntry,syncMemoryDetailFocus,restoreMemoryEntryFocus} from './ui/memories.mjs';
 import {idolEntry,focusIdol} from './ui/idols.mjs';
@@ -63,7 +65,9 @@ function refreshAccountLabels(){
   }
   // 账号等级独立加载成长分包，不要求先进入赛季模拟；失败时保持未知。
   if(!masterReadyFor('account')&&!accountLevelTask&&!accountLevelFailed&&[...profileExperience.values()].some(Number.isSafeInteger)){
-    accountLevelTask=loadMaster('account').then(()=>render()).catch(()=>{accountLevelFailed=true;}).finally(()=>{accountLevelTask=null;});
+    accountLevelTask=loadMaster('account').then(()=>{
+      observeCatalog({incremental:true});refreshAccountLabels();if($('data-dialog').open)renderAccountIdentity();
+    }).catch(()=>{accountLevelFailed=true;}).finally(()=>{accountLevelTask=null;});
   }
 }
 function ensureProfileOption(profile){
@@ -85,11 +89,28 @@ const accountSessions=createAccountSessionManager();
 const state={profile:readLastAccount(),lifecycleId:null,tab:'memories',views:createViews(),snapshot:null,selectionSnapshot:null,library:null,selected:new Set(),detail:null,supportTargets:new Map(),idolTargets:new Map(),idolArt:{}};
 const pageSize=40;
 let viewRun=0;
+let customTagExport;
 const viewTiming=createViewTiming({ready:masterReadyFor,version:()=>contentManager.status().version});
 const expandedFilters=new Set();
 let loading=false,searchTimer,controlsPending=false;
 const masterTasks=new Map(),masterFailures=new Set();
+const catalogVersions=new Map(),renderedControls=new Map(),renderedEntries=new WeakMap();
+let observedCatalogGeneration=catalogGeneration(),readyCatalogScopes=new Set(Object.keys(masterDependencies).filter(masterReadyFor));
+function observeCatalog({incremental=false}={}){
+  const generation=catalogGeneration();if(generation===observedCatalogGeneration)return;
+  // 按需追加分包只使新就绪的页面失效；其它目录安装仍让所有已有展示重新读取资料。
+  const ready=new Set(Object.keys(masterDependencies).filter(masterReadyFor));
+  for(const tab of Object.keys(state.views))if(!incremental||!readyCatalogScopes.has(tab))catalogVersions.set(tab,generation);
+  observedCatalogGeneration=generation;readyCatalogScopes=ready;
+}
+function catalogVersion(tab){observeCatalog();return catalogVersions.get(tab)??0;}
+function renderCachedControls(key,values,draw){
+  const previous=renderedControls.get(key),context={view:view(),snapshot:state.snapshot,selectionSnapshot:state.selectionSnapshot,version:catalogVersion(state.tab),language:locale(),values:JSON.stringify(values)};
+  if(previous&&Object.keys(context).every(key=>context[key]===previous[key]))return;
+  draw();renderedControls.set(key,context);
+}
 const groups=new Map();
+let inventoryPagination={tab:null,pages:1},renderedCatalogContext=null;
 const view=()=>state.views[state.tab];
 let messageTimer;
 function message(text,error=false,{transient=false}={}){
@@ -130,25 +151,61 @@ function tagOptions(){
   $('custom-tag-filter').value=view().customTag;
 }
 
-function editTags(kind,key,inDetail=false){
-  tagUI.open({kind,key},()=>{
+function tagContext(kind,key,inDetail=false){
+  const library=state.library;
+  const resolve=()=>{
+    if(inDetail?state.detail!==key:state.tab!==kind)return null;
     const container=inDetail?$('detail-content'):[...$('list').children].find(row=>row.dataset[kind==='memories'?'memoryKey':'selectionKey']===key);
-    (container?.querySelector('.edit-custom-tags')??$('resources-open')).focus();
-  });
+    return container?.querySelector('.custom-tags');
+  };
+  return {tags:tagsFor(kind,key),tagsDisabled:!library,
+    editTags:()=>{if(!loading&&state.library===library)inlineTags.open({kind,key},resolve);},
+    removeTag:name=>{if(!loading&&state.library===library)inlineTags.remove({kind,key},name,resolve);}};
 }
-function tagContext(kind,key,inDetail=false){return {tags:tagsFor(kind,key),editTags:()=>editTags(kind,key,inDetail),tagsDisabled:!state.library,removeTag:name=>{
+function refreshTagControls(container,kind,key,inDetail=false){
+  const previous=container?.querySelector('.custom-tags');if(!previous)return;
+  const context=tagContext(kind,key,inDetail);
+  previous.replaceWith(tagControls(context.tags,context.editTags,context.tagsDisabled,previous.classList.contains('inline-tags'),context.removeTag));
+}
+function refreshTags(before){
+  const changed={};
+  const previousFilters=Object.fromEntries(['memories','selectionMemories'].map(kind=>[kind,state.views[kind].customTag]));
+  for(const kind of ['memories','selectionMemories']){
+    changed[kind]=new Set([...Object.keys(before[kind]),...Object.keys(state.library.data[kind])].filter(key=>{
+      const previous=before[kind][key]??[],next=tagsFor(kind,key);
+      return previous.length!==next.length||previous.some((name,index)=>name!==next[index]);
+    }));
+  }
+  tagOptions();customTagExport?.sync();
+  for(const kind of ['memories','selectionMemories']){
+    if(!changed[kind].size&&previousFilters[kind]===state.views[kind].customTag)continue;
+    const values=kind==='memories'?memoryValues(state.views[kind]):selectionValues(state.views[kind]);
+    updateTabCount(kind,values.length);
+    if(state.tab===kind){
+      // 保留仍在当前页的卡片和图片；标签进入搜索条件时，仅调整结果成员。
+      renderInventoryList(values,{preserve:true});
+      for(const row of $('list').children){
+        const key=row.dataset[kind==='memories'?'memoryKey':'selectionKey'];
+        if(changed[kind].has(key))refreshTagControls(row,kind,key);
+      }
+      if(previousFilters[kind]!==view().customTag){renderFilterDisclosure();renderCurrentFilters();}
+      if(kind==='memories'&&state.detail){
+        const index=values.findIndex(memory=>memory.key===state.detail);
+        $('detail-prev').disabled=index<=0;$('detail-next').disabled=index<0||index===values.length-1;
+      }
+    }
+  }
+  if(state.detail&&changed.memories.has(state.detail))refreshTagControls($('detail-content'),'memories',state.detail,true);
+  inlineTags.sync();persist();
+}
+function favoriteContext(kind,id){
+  const library=state.library;
+  return {favorite:library?.data.favorites[kind].includes(id)??false,favoriteDisabled:!library,onFavorite:enabled=>{
+  if(loading||!library||state.library!==library)return false;
   try{
-    state.library.assign(kind,key,tagsFor(kind,key).filter(value=>value!==name));syncControls();render();persist();
-    if(state.detail){const memory=state.snapshot?.memories.find(row=>row.key===state.detail);if(memory)showDetail(memory,tagContext('memories',memory.key,true));}
-    const container=inDetail?$('detail-content'):[...$('list').children].find(row=>row.dataset[kind==='memories'?'memoryKey':'selectionKey']===key);
-    (container?.querySelector('.edit-custom-tags')??$('resources-open')).focus({preventScroll:true});
-  }catch{message(t('标签未能保存，请检查浏览器存储空间。'),true);}
-}};}
-function favoriteContext(kind,id){return {favorite:state.library?.data.favorites[kind].includes(id)??false,favoriteDisabled:!state.library,onFavorite:enabled=>{
-  try{
-    state.library.favorite(kind,id,enabled);
-    if(view().ownership!=='favorites')return true;
-    render();
+    library.favorite(kind,id,enabled);
+    if(state.tab!==kind||view().ownership!=='favorites')return true;
+    refreshCurrentView({controls:false});
     const row=[...$('list').children].find(row=>row.dataset[{idolCards:'idolId',supportCards:'supportId',idolCardSkins:'skinId',memories:'memoryKey',selectionMemories:'selectionKey'}[kind]]===id);
     (row?.querySelector('.favorite-button')??$('filter-toggle')).focus({preventScroll:true});return true;
   }catch{message(t('收藏未能保存，请检查浏览器存储空间。'),true);return false;}
@@ -239,7 +296,7 @@ function pickerAvailability(key){
   const mode=key==='ability'?'grouped':key==='skill'||filters[key+'All']===false?'any':'all';
   return createChoiceAvailability(memories.map(keys),{mode,clauses:abilityFilterClauses});
 }
-function onFilterChoice(key,value,extra={}){Object.assign(view(),extra,{[key]:value});view().page=0;syncControls();render();persist();}
+function onFilterChoice(key,value,extra={}){Object.assign(view(),extra,{[key]:value});view().page=0;refreshCurrentView();persist();}
 const compactFilters=matchMedia('(max-width: 640px)');
 const secondaryControls=['memory-modes','selection-lock-controls','ownership-controls'].map(id=>{
   const control=$(id),anchor=document.createComment('筛选控件原位置');
@@ -260,9 +317,13 @@ function renderFilterDisclosure(){
   $('filter-toggle').setAttribute('aria-expanded',String(expanded));
   $('filter-toggle').textContent=t('筛选{0}',[count?` · ${count}`:''])+(expanded?' ▴':' ▾');
 }
-function renderAccountOverview(){
+function renderAccountIdentity(){
   const id=profileAccountId(state.profile),hasData=Boolean(state.snapshot||state.selectionSnapshot);
   $('data-account-identity').replaceChildren(id?accountIdentity(id,producerLevelLabel(state.profile)):el('strong',hasData?$('profile').selectedOptions[0]?.textContent:t('未导入账号')));
+}
+function renderAccountOverview(){
+  const id=profileAccountId(state.profile),hasData=Boolean(state.snapshot||state.selectionSnapshot);
+  renderAccountIdentity();
   $('preview-account-section').hidden=!features.previewAccount;
   $('enable-preview-account').textContent=t(isPreviewAccount(id)?'已启用预览':'启用预览');$('enable-preview-account').disabled=loading||isPreviewAccount(id);
   $('data-account-counts').replaceChildren();
@@ -284,8 +345,8 @@ function clearFilters(action){
 }
 $('filter-undo').onclick=()=>{
   refreshFilterUndo();if(!filterUndo)return;
-  const before=filterUndo.before;clearFilterUndo();state.views[state.tab]=before;
-  syncControls();render();persist();$('filter-toggle').focus({preventScroll:true});
+  const before=filterUndo.before;clearFilterUndo();Object.assign(view(),before);
+  refreshCurrentView();persist();$('filter-toggle').focus({preventScroll:true});
 };
 function renderMasterReadiness(){
   const content=contentManager.status(),hasAccount=Boolean(state.snapshot||state.selectionSnapshot);
@@ -313,14 +374,31 @@ function renderSeasonPage(){
   host.replaceChildren(el('p',t('正在准备赛季模拟…'),'small muted'));
   void import('./ui/season-simulation.mjs').then(module=>{
     if(ticket!==seasonGeneration||state.profile!==profile||state.snapshot!==snapshot)return;
-    seasonComponent=module.createSeasonSimulation({profile,lifecycleId:state.lifecycleId,memories:snapshot.memories,idolCards:snapshot.idolCards,supportCards:snapshot.supportCards,producerExp:snapshot.producerExp,initialState:seasonRestoreState,onOpenMemory:openSeasonMemory});seasonRestoreState=null;seasonSnapshot=snapshot;seasonProfile=profile;host.replaceChildren(seasonComponent.element);$('season-picker-controls').replaceChildren(...(seasonComponent.controls?[seasonComponent.controls]:[]));
+    seasonComponent=module.createSeasonSimulation({profile,lifecycleId:state.lifecycleId,memories:snapshot.memories,idolCards:snapshot.idolCards,supportCards:snapshot.supportCards,producerExp:snapshot.producerExp,produceCardConversions:snapshot.produceCardConversions,initialState:seasonRestoreState,onOpenMemory:openSeasonMemory});seasonRestoreState=null;seasonSnapshot=snapshot;seasonProfile=profile;host.replaceChildren(seasonComponent.element);$('season-picker-controls').replaceChildren(...(seasonComponent.controls?[seasonComponent.controls]:[]));
     if(seasonMemoryRequest){seasonComponent.useMemory?.(seasonMemoryRequest);seasonMemoryRequest=null;}
   }).catch(()=>{
     // 模块导入失败会被当前页面缓存；重新加载程序才能真正重试，本地库存仍保留。
     if(ticket!==seasonGeneration)return;const retry=el('button',t('重试'));retry.onclick=()=>location.reload();host.replaceChildren(el('p',t('赛季资料加载失败，请重试。'),'message error'),retry);
   }).finally(()=>{if(ticket===seasonGeneration)seasonOpening=false;});
 }
+function syncLoadingControls(){
+  const hasData=Boolean(state.snapshot||state.selectionSnapshot);
+  $('profile').disabled=loading;
+  for(const button of document.querySelectorAll('[data-tab]'))button.disabled=loading||!hasData;
+  $('export-account-package').disabled=loading||!profileAccountId(state.profile)||!hasData||!state.library;
+  $('import-account-package').disabled=loading;$('enable-preview-account').disabled=loading||isPreviewAccount(profileAccountId(state.profile));
+  $('clear-account').disabled=loading||!hasData;$('manage-tags').disabled=loading||!state.library||!hasData;
+  for(const id of ['empty-import-account','import-account-directory'])$(id).disabled=loading;
+  const pages=inventoryPagination.tab===state.tab?inventoryPagination.pages:1;
+  $('previous').disabled=loading||view().page===0;$('next').disabled=loading||view().page+1>=pages;
+  customTagExport?.sync();
+}
+function setLoading(value){
+  loading=value;syncLoadingControls();
+  if(!loading&&state.tab==='seasonSimulation')renderSeasonPage();
+}
 function render(){
+  customTagExport?.sync();
   refreshAccountLabels();
   if(seasonComponent&&(seasonProfile!==state.profile||seasonSnapshot!==state.snapshot))resetSeasonPage();
   renderMasterReadiness();
@@ -328,11 +406,11 @@ function render(){
   const achievementContext=$('achievement-account-context');achievementContext.hidden=state.tab!=='achievements'||(!state.snapshot&&!state.selectionSnapshot);
   achievementContext.textContent=t(!state.snapshot&&!state.selectionSnapshot?'公共成就资料可直接浏览；个人达成状态：未导入账号。':state.snapshot?.achievements===undefined?'公共成就资料可直接浏览；当前账号尚未采集成就记录。':'公共成就资料与个人进度分开显示；达成状态以当前账号采集记录为准。');
   beginImageView(state.tab);
+  renderedCatalogContext=currentCatalogContext();
   refreshFilterUndo();
   clearTimeout(searchTimer);resetDeferredContent();
   if($('data-dialog').open)renderAccountOverview();
   const s=state.snapshot??{memories:[]},v=view(),memory=state.tab==='memories',selection=state.tab==='selectionMemories',achievement=state.tab==='achievements',hasData=Boolean(state.snapshot||state.selectionSnapshot);
-  for(const button of document.querySelectorAll('[data-tab]'))button.disabled=loading||!hasData;
   $('season-simulation-view').hidden=state.tab!=='seasonSimulation'||!hasData;
   $('season-picker-region').hidden=state.tab!=='seasonSimulation'||!hasData;if(state.tab!=='seasonSimulation')seasonComponent?.hidePicker?.();
   for(const nav of document.querySelectorAll('[data-tab]'))nav.setAttribute('aria-pressed',String(nav.dataset.tab===state.tab));
@@ -342,14 +420,10 @@ function render(){
   $('selection-capacity').hidden=!selection;
   $('achievement-browser').hidden=!achievement||!hasData;
   $('filter-toggle').closest('.filters').hidden=achievement;
-  $('export-account-package').disabled=loading||!profileAccountId(state.profile)||!(state.snapshot||state.selectionSnapshot)||!state.library;
-  $('import-account-package').disabled=loading;$('enable-preview-account').disabled=loading||isPreviewAccount(profileAccountId(state.profile));
-  $('clear-account').disabled=loading||(!state.snapshot&&!state.selectionSnapshot);
-  $('manage-tags').disabled=loading||!state.library||(!state.snapshot&&!state.selectionSnapshot);
-  for(const id of ['empty-import-account','import-account-directory'])$(id).disabled=loading;
+  syncLoadingControls();
   if(!hasData){selectionControls();syncMemoryDetailFocus();return;}
   if(state.tab==='seasonSimulation'){$('inventory').hidden=true;$('shared-search').hidden=true;selectionControls();renderSeasonPage();return;}
-  if(achievement){$('inventory').hidden=true;$('shared-search').hidden=true;updateTabCount('achievements');renderAchievementBrowser($('achievement-browser'),{snapshot:state.snapshot,view:v,ready:masterReadyFor('achievements'),change:()=>{render();persist();}});return;}
+  if(achievement){$('inventory').hidden=true;$('shared-search').hidden=true;refreshAchievementView();return;}
   if(!masterReadyFor(state.tab)&&!memory&&!selection){$('shared-search').hidden=true;$('filter-toggle').closest('.filters').hidden=true;$('list').replaceChildren();$('previous').disabled=true;$('next').disabled=true;selectionControls();return;}
   $('section-title').textContent={memories:t('回忆'),selectionMemories:t('选拔回忆'),idolCards:t('偶像卡'),supportCards:t('支援卡'),idolCardSkins:t('主题装扮'),achievements:t('成就')}[state.tab];
   $('search-scope').textContent=t('搜索范围：{0}',[$('section-title').textContent]);
@@ -357,13 +431,9 @@ function render(){
   $('skin-filters').hidden=state.tab!=='idolCardSkins';
   $('idol-filters').hidden=state.tab!=='idolCards';
   $('idol-effect-chips').hidden=state.tab!=='idolCards';
-  for(const [container,input,key,faces,tab] of CHOICE_GROUPS){
-    $(container).hidden=state.tab!==tab;
-    if(state.tab===tab)renderFilterChoices(container,input,key,faces,v,onFilterChoice);
-  }
+  for(const [container,,,,tab] of CHOICE_GROUPS)$(container).hidden=state.tab!==tab;
   if(selection){selectionCapacity(state.selectionSnapshot);$('snapshot-meta').textContent=state.selectionSnapshot?t('快照 {0}',[new Date(state.selectionSnapshot.captured_at).toLocaleString(locale(),{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hour12:false})]):t('尚未采集');}
   else $('snapshot-meta').textContent=state.snapshot?t('快照 {0}',[new Date(state.snapshot.captured_at).toLocaleString(locale(),{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hour12:false})]):t('尚未载入');
-  if(state.tab==='supportCards')renderSupportEffectChoices(v,syncSupportEffectChoices(state.snapshot,v),onFilterChoice,supportPickerAvailability);
   $('support-filters').hidden=state.tab!=='supportCards';
   $('ownership-controls').hidden=memory||selection||achievement;
   $('tag-controls').hidden=!memory&&!selection;tagOptions();
@@ -382,8 +452,7 @@ function render(){
   for(const control of document.querySelectorAll('[data-rarity-tab]'))control.hidden=control.dataset.rarityTab!==state.tab;
   $('memory-modes').hidden=!memory;
   for(const id of ['memory-skill-all','memory-item-all','selection-skill-all','selection-item-all','support-character-all'])$(id).closest('label').title=t('勾选时需满足全部已选项，未勾选时满足任一项即可。');
-  if(selection)renderSelectionChoices(v,onFilterChoice,pickerAvailability);
-  if(memoryChoices){renderInheritanceChoices(v,memoryChoices,onFilterChoice,pickerAvailability);renderLoadoutChoices(v,onFilterChoice,{prefix:'memory',skillKey:'memoryExamSkill',itemKey:'memoryExamItem',choices:memoryChoices,characters:[],createAvailability:pickerAvailability});}
+  renderViewChoices(memoryChoices);
   renderFilterDisclosure();if(achievement)$('advanced-filters').hidden=true;
   $('sort').closest('label').hidden=!memory;$('idol-sort').closest('label').hidden=memory||selection||achievement;
   $('selection-sort-control').hidden=!selection;
@@ -394,35 +463,137 @@ function render(){
   $('search').placeholder=selection?t('搜索角色、技能卡、P 道具或自定义标签'):state.tab==='idolCardSkins'?t('搜索主题、装扮名、角色或卡名'):memory?t('搜索角色、继承技能卡、培养能力或自定义标签'):state.tab==='idolCards'?t('搜索卡名、角色或技能效果'):t('搜索卡名、角色、事件奖励或支援效果');
   $('search-clear').hidden=!v.query;
   const values=selection?selectionValues(v):memory?filteredMemories():state.tab==='supportCards'?supportEntries(s,v.query.trim().toLowerCase(),v.catalogSort,catalogFilters('supportCards',v)):state.tab==='idolCardSkins'?skinEntries(s,v.query.trim().toLowerCase(),catalogFilters('idolCardSkins',v)):idolEntries(s,v.query.trim().toLowerCase(),v.catalogSort,catalogFilters('idolCards',v));
-  const currentPageSize=state.tab==='supportCards'&&!v.supportImmersive?10:pageSize;
-  const pages=Math.max(1,Math.ceil(values.length/currentPageSize));v.page=Math.min(v.page,pages-1);
-  const list=$('list');list.className=`inventory-list ${selection?'selection-memory-catalog':memory?'compact-grid':state.tab==='supportCards'?'support-catalog':state.tab==='idolCardSkins'?'skin-catalog':'idol-catalog'}`;list.classList.toggle('memory-catalog',memory);list.classList.toggle('support-immersive',state.tab==='supportCards'&&v.supportImmersive);list.classList.toggle('idol-immersive',state.tab==='idolCards'&&v.idolImmersive);const fragment=document.createDocumentFragment();
-  const eagerCount=state.tab==='idolCardSkins'||v.idolImmersive||v.supportImmersive?8:2;
-  let entryIndex=0;
-  for(const value of values.slice(v.page*currentPageSize,(v.page+1)*currentPageSize)){
-    const targetKey=['supportCards','idolCards'].includes(state.tab)?`${state.profile}:${value.held.supportCardId??value.held.idolCardId}`:'';
-    const build=()=>selection?selectionMemoryEntry(value,{...tagContext('selectionMemories',value.memory.key),...favoriteContext('selectionMemories',value.memory.key),collapsed:v.selectionLoadoutCollapsed,detail:state.selectionSnapshot?.details?.find(detail=>detail.key===value.memory.key)}):memory?memoryEntry(value,{...tagContext('memories',value.key),...favoriteContext('memories',value.key),selected:state.selected.has(value.key),active:state.detail===value.key,purpose:v.purpose,sort:v.sort,open:openDetail,select:selectMemory,simulate:useMemoryForSeason}):state.tab==='supportCards'?supportEntry(value,{...favoriteContext('supportCards',value.held.supportCardId),immersive:v.supportImmersive,targetLevel:state.supportTargets.get(targetKey),onTarget:level=>state.supportTargets.set(targetKey,level)}):state.tab==='idolCards'?idolEntry(value,{...favoriteContext('idolCards',value.held.idolCardId),immersive:v.idolImmersive,target:{...state.idolTargets.get(targetKey),art:state.idolArt[value.held.idolCardId]??state.idolTargets.get(targetKey)?.art},onTarget:target=>state.idolTargets.set(targetKey,target),onArt:art=>{state.idolArt[value.held.idolCardId]=art;persist();}}):skinEntry(value,skinOptions(value.held));
-    const identity=selection?{className:'selection-memory-card',dataset:{selectionKey:value.memory.key},label:title(value.memory)}:memory?{className:'memory-row memory-card',dataset:{memoryKey:value.key,memoryUse:memoryUse(value)},label:title(value)}:state.tab==='supportCards'?{className:'support-card',dataset:{supportId:value.held.supportCardId},label:value.info.name}:state.tab==='idolCards'?{className:'idol-card',dataset:{idolId:value.held.idolCardId},label:value.info.name}:{className:'skin-card',dataset:{skinId:value.held.idolCardSkinId},label:value.info.name};
-    fragment.append(entryIndex++<eagerCount?build():deferredEntry(build,identity));
-  }
-  const missing=selection?!state.selectionSnapshot:(state.tab==='supportCards'||state.tab==='idolCardSkins')&&s[state.tab]===undefined;
-  if(!values.length)fragment.append(el('div',missing?t(selection?'尚未采集选拔回忆，请导入独立快照。':'尚未导入主库存，请导入当前格式的账号目录。'):t(achievement?(v.achievementSection==='achievement'?'没有找到符合条件的成就。试试减少筛选条件，或清空搜索。':'没有找到符合条件的 Ending。试试清空搜索。'):'没有匹配条目。试试减少筛选条件或清空搜索。'),'empty-result'));
-  list.replaceChildren(fragment);sizeDeferredEntries(list);
-  updateTabCount(state.tab,values.length);
-  $('page-number').textContent=t("{0} / {1} 页",[v.page+1,pages]);$('previous').disabled=v.page===0;$('next').disabled=v.page+1>=pages;
-  const conditions=activeFilterKeys(state.tab,v);
-  const activeCount=renderActiveFilters(conditions,v,(key,value)=>{
-    v[key]=Array.isArray(v[key])?v[key].filter(item=>item!==value):defaults()[key];
-    v.page=0;syncControls();render();persist();$(achievement?'search':'filter-toggle').focus();
-  });
-  $('active-filters').hidden=!activeCount;
-  $('clear-active-filters').hidden=!activeCount;
-  $('clear-active-filters').onclick=()=>clearFilters(()=>{
-    resetFilters(v,state.tab,{keys:[...conditions,'query']});syncControls();render();persist();$(achievement?'search':'filter-toggle').focus();
-  });
+  renderInventoryList(values);
+  renderCurrentFilters();
   const trainingCount=s.memories.filter(m=>memoryUse(m)==='training').length;
   $('group-summary').textContent=memory?t('培养专用 {0} 条',[trainingCount]):'';
   selectionControls();syncMemoryDetailFocus();
+}
+function renderViewChoices(memoryChoices){
+  const v=view();
+  for(const [container,input,key,faces,tab] of CHOICE_GROUPS){
+    if(state.tab!==tab)continue;
+    const options=[...$(input).options].map(option=>[option.value,option.text,option.hidden]);
+    renderCachedControls(container,[v[key],options],()=>renderFilterChoices(container,input,key,faces,v,onFilterChoice));
+  }
+  if(state.tab==='supportCards'){
+    const choices=syncSupportEffectChoices(state.snapshot,v);
+    renderCachedControls('support-effects',[v.supportPlan,v.supportPlanCommon,v.supportType,v.supportSkills],()=>renderSupportEffectChoices(v,choices,onFilterChoice,supportPickerAvailability));
+  }
+  if(state.tab==='selectionMemories')renderCachedControls('selection-loadout',[v.selectionSkill,v.selectionItem,v.selectionSkillAll,v.selectionItemAll,v.selectionCharacter],()=>renderSelectionChoices(v,onFilterChoice,pickerAvailability));
+  if(memoryChoices){
+    renderCachedControls('memory-inheritance',[v.character,v.skill,v.ability,v.inheritanceStartOnly,v.inheritanceCustomizedOnly],()=>renderInheritanceChoices(v,memoryChoices,onFilterChoice,pickerAvailability));
+    renderCachedControls('memory-loadout',[v.character,v.memoryExamSkill,v.memoryExamItem,v.memoryExamSkillAll,v.memoryExamItemAll],()=>renderLoadoutChoices(v,onFilterChoice,{prefix:'memory',skillKey:'memoryExamSkill',itemKey:'memoryExamItem',choices:memoryChoices,characters:[],createAvailability:pickerAvailability}));
+  }
+}
+function currentValues(){
+  const v=view(),s=state.snapshot??{memories:[]},query=v.query.trim().toLowerCase();
+  return state.tab==='selectionMemories'?selectionValues(v):state.tab==='memories'?memoryValues(v):state.tab==='supportCards'?supportEntries(s,query,v.catalogSort,catalogFilters(state.tab,v)):state.tab==='idolCardSkins'?skinEntries(s,query,catalogFilters(state.tab,v)):idolEntries(s,query,v.catalogSort,catalogFilters(state.tab,v));
+}
+function refreshAchievementView(){
+  updateTabCount('achievements');
+  renderAchievementBrowser($('achievement-browser'),{snapshot:state.snapshot,view:state.views.achievements,ready:masterReadyFor('achievements'),renderVersion:catalogVersion('achievements'),change:()=>{refreshAchievementView();persist();}});
+}
+function refreshDetailNavigation(values=memoryValues(state.views.memories)){
+  if(!state.detail)return;
+  const index=values.findIndex(memory=>memory.key===state.detail);
+  $('detail-prev').disabled=index<=0;$('detail-next').disabled=index<0||index===values.length-1;
+}
+function refreshCurrentView({controls=true}={}){
+  clearTimeout(searchTimer);refreshFilterUndo();
+  if(state.tab==='achievements'){refreshAchievementView();renderedCatalogContext=currentCatalogContext();return;}
+  if(state.tab==='seasonSimulation'){renderSeasonPage();renderedCatalogContext=currentCatalogContext();return;}
+  if(!state.snapshot&&!state.selectionSnapshot)return;
+  if(!masterReadyFor(state.tab)&&!['memories','selectionMemories'].includes(state.tab))return;
+  const v=view(),context=currentCatalogContext(),contentChanged=!renderedCatalogContext||!sameMasterRequest(context,renderedCatalogContext);
+  if(controls||contentChanged){
+    syncControls();
+    if(state.tab==='selectionMemories')$('snapshot-meta').textContent=state.selectionSnapshot?t('快照 {0}',[new Date(state.selectionSnapshot.captured_at).toLocaleString(locale(),{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hour12:false})]):t('尚未采集');
+    const choices=state.tab==='memories'&&masterReadyFor('memories')?syncMemoryFilterOptions(state.snapshot,v):null;
+    renderViewChoices(choices);
+    if(state.tab==='memories')for(const id of ['inheritance-skill-open','inheritance-ability-open','memory-skill-open','memory-item-open'])$(id).disabled=!choices;
+    $('ownership').value=v.ownership==='favorites'&&state.tab!=='idolCardSkins'?'all':v.ownership;
+    $('owned-only').setAttribute('aria-checked',String(v.ownership==='owned'));
+    for(const kind of ['idol','support','memory','selection','skin'])$(kind+'-favorites-only').checked=v.ownership==='favorites';
+    $('memory-locked-only').checked=v.protection==='protected';$('selection-locked-only').checked=v.selectionProtection==='protected';
+    $('catalog-owned-first').setAttribute('aria-checked',String(v.ownedFirst));
+  }
+  $('search-clear').hidden=!v.query;renderFilterDisclosure();
+  const values=currentValues();renderInventoryList(values,{preserve:true});renderCurrentFilters();
+  if(state.tab==='memories'){refreshDetailNavigation(values);if(contentChanged&&state.detail)refreshMemoryDetail();}
+  renderedCatalogContext=currentCatalogContext();syncMemoryDetailFocus();
+}
+const inventoryKeyFields={memories:'memoryKey',selectionMemories:'selectionKey',idolCards:'idolId',supportCards:'supportId',idolCardSkins:'skinId'};
+function inventoryKey(value,tab){return tab==='memories'?value.key:tab==='selectionMemories'?value.memory.key:value.held[{idolCards:'idolCardId',supportCards:'supportCardId',idolCardSkins:'idolCardSkinId'}[tab]];}
+function buildInventoryEntry(value,tab){
+  const v=state.views[tab],key=inventoryKey(value,tab),targetKey=`${state.profile}:${key}`;
+  if(tab==='selectionMemories')return selectionMemoryEntry(value,{...tagContext(tab,key),...favoriteContext(tab,key),collapsed:v.selectionLoadoutCollapsed,detail:state.selectionSnapshot?.details?.find(detail=>detail.key===key)});
+  if(tab==='memories')return memoryEntry(value,{...tagContext(tab,key),...favoriteContext(tab,key),selected:state.selected.has(key),active:state.detail===key,purpose:v.purpose,sort:v.sort,open:openDetail,select:selectMemory,simulate:useMemoryForSeason});
+  if(tab==='supportCards')return supportEntry(value,{...favoriteContext(tab,key),immersive:v.supportImmersive,targetLevel:state.supportTargets.get(targetKey),onTarget:level=>state.supportTargets.set(targetKey,level)});
+  if(tab==='idolCards'){
+    const artwork=state.idolArt;
+    return idolEntry(value,{...favoriteContext(tab,key),immersive:v.idolImmersive,target:{...state.idolTargets.get(targetKey),art:artwork[key]??state.idolTargets.get(targetKey)?.art},onTarget:target=>state.idolTargets.set(targetKey,target),onArt:art=>{artwork[key]=art;if(state.idolArt===artwork)persist();}});
+  }
+  return skinEntry(value,skinOptions(value.held));
+}
+function renderInventoryList(values,{preserve=false}={}){
+  const s=state.snapshot??{memories:[]},v=view(),tab=state.tab,memory=tab==='memories',selection=tab==='selectionMemories';
+  const currentPageSize=tab==='supportCards'&&!v.supportImmersive?10:pageSize;
+  const pages=Math.max(1,Math.ceil(values.length/currentPageSize));v.page=Math.min(v.page,pages-1);
+  inventoryPagination={tab,pages};
+  const list=$('list'),field=inventoryKeyFields[tab];
+  list.className=`inventory-list ${selection?'selection-memory-catalog':memory?'compact-grid':tab==='supportCards'?'support-catalog':tab==='idolCardSkins'?'skin-catalog':'idol-catalog'}`;
+  list.classList.toggle('memory-catalog',memory);list.classList.toggle('support-immersive',tab==='supportCards'&&v.supportImmersive);list.classList.toggle('idol-immersive',tab==='idolCards'&&v.idolImmersive);
+  const rows=[],previous=preserve?new Map([...list.children].map(row=>[row.dataset[field],row])):new Map();
+  const context={tab,profile:state.profile,library:state.library,snapshot:state.snapshot,selectionSnapshot:state.selectionSnapshot,version:catalogVersion(tab),language:locale()};
+  const eagerCount=tab==='idolCardSkins'||v.idolImmersive||v.supportImmersive?8:2;
+  for(const [index,value] of values.slice(v.page*currentPageSize,(v.page+1)*currentPageSize).entries()){
+    const key=inventoryKey(value,tab),existing=previous.get(key),before=renderedEntries.get(existing);
+    // 排序和筛选只改变成员或顺序；仅卡片实际展示、账号库存或所属资料变化时替换节点。
+    const display=memory?Boolean(v.purpose!=='inheritance'&&(value.examBattleProduceCards?.length||value.examBattleProduceItemIds?.length)):tab==='idolCards'?v.idolImmersive:tab==='supportCards'?v.supportImmersive:false;
+    const next={...context,source:value.held?JSON.stringify(value.held):selection?value.memory:value,display};
+    let row;
+    if(before&&Object.keys(next).every(key=>next[key]===before[key])){
+      row=existing;
+      if(selection&&before.collapsed!==v.selectionLoadoutCollapsed)for(const section of row.querySelectorAll('.selection-loadout'))section.open=!v.selectionLoadoutCollapsed;
+    }else{
+      const build=()=>{const node=buildInventoryEntry(value,tab);renderedEntries.set(node,{...next,collapsed:state.views[tab].selectionLoadoutCollapsed});return node;};
+      const identity=selection?{className:'selection-memory-card',dataset:{selectionKey:key},label:title(value.memory)}:memory?{className:'memory-row memory-card',dataset:{memoryKey:key,memoryUse:memoryUse(value)},label:title(value)}:tab==='supportCards'?{className:'support-card',dataset:{supportId:key},label:value.info.name}:tab==='idolCards'?{className:'idol-card',dataset:{idolId:key},label:value.info.name}:{className:'skin-card',dataset:{skinId:key},label:value.info.name};
+      row=index<eagerCount?build():deferredEntry(build,identity);
+    }
+    renderedEntries.set(row,{...next,collapsed:v.selectionLoadoutCollapsed});
+    if(memory){
+      row.classList.toggle('selected',state.selected.has(key));row.classList.toggle('active',state.detail===key);
+      const input=row.querySelector('.pick input');if(input)input.checked=state.selected.has(key);
+    }
+    rows.push(row);
+  }
+  const missing=selection?!state.selectionSnapshot:(tab==='supportCards'||tab==='idolCardSkins')&&s[tab]===undefined;
+  if(!values.length)rows.push(previous.get(undefined)?.classList.contains('empty-result')?previous.get(undefined):el('div',missing?t(selection?'尚未采集选拔回忆，请导入独立快照。':'尚未导入主库存，请导入当前格式的账号目录。'):t('没有匹配条目。试试减少筛选条件或清空搜索。'),'empty-result'));
+  if(preserve){
+    const retained=new Set(rows);
+    for(const row of [...list.children])if(!retained.has(row)){releaseDeferredContent(row);row.remove();}
+    for(const [index,row] of rows.entries())if(list.children[index]!==row)list.insertBefore(row,list.children[index]??null);
+  }else list.replaceChildren(...rows);
+  sizeDeferredEntries(list);
+  updateTabCount(tab,values.length);
+  $('page-number').textContent=t("{0} / {1} 页",[v.page+1,pages]);$('previous').disabled=loading||v.page===0;$('next').disabled=loading||v.page+1>=pages;
+  inlineTags.sync();
+}
+function renderCurrentFilters(){
+  const v=view(),achievement=state.tab==='achievements';
+  const conditions=activeFilterKeys(state.tab,v);
+  renderCachedControls('active-filters',[v.query,conditions.map(key=>[key,v[key]]),v.memoryExamSkillAll,v.memoryExamItemAll,v.selectionSkillAll,v.selectionItemAll,v.supportCharacterAll,v.supportPlanCommon],()=>{
+    const activeCount=renderActiveFilters(conditions,v,(key,value)=>{
+      v[key]=Array.isArray(v[key])?v[key].filter(item=>item!==value):defaults()[key];
+      v.page=0;refreshCurrentView();persist();$(achievement?'search':'filter-toggle').focus();
+    });
+    $('active-filters').hidden=!activeCount;
+    $('clear-active-filters').hidden=!activeCount;
+    $('clear-active-filters').onclick=()=>clearFilters(()=>{
+      resetFilters(v,state.tab,{keys:[...conditions,'query']});refreshCurrentView();persist();$(achievement?'search':'filter-toggle').focus();
+    });
+  });
 }
 function selectMemory(m,checkbox){
   if(!canCompareMemory(m)){checkbox.checked=false;return;}
@@ -454,13 +625,14 @@ function syncDetailActiveRows(){
   for(const row of $('list').children)row.classList.toggle('active',row.dataset.memoryKey===state.detail);
 }
 function resetDetail(){
+  inlineTags.close();
   state.detail=null;$('detail-dialog').hidden=true;document.querySelector('.workbench').classList.remove('inspecting');
 }
 function closeDetail(restoreFocus=false){
   const key=state.detail,previousPage=view().page;
   if(restoreFocus&&key){const index=filteredMemories().findIndex(m=>m.key===key);if(index>=0)view().page=Math.floor(index/pageSize);}
   resetDetail();
-  if(view().page!==previousPage)render();else{syncDetailActiveRows();syncMemoryDetailFocus();}
+  if(view().page!==previousPage)refreshCurrentView({controls:false});else{syncDetailActiveRows();syncMemoryDetailFocus();}
   if(restoreFocus&&key)restoreMemoryEntryFocus(key);
 }
 $('close-detail').onclick=()=>closeDetail(true);
@@ -468,7 +640,7 @@ for(const [id,direction] of [['detail-prev',-1],['detail-next',1]])$(id).onclick
 document.addEventListener('keydown',event=>{if(event.key==='Escape'&&!document.querySelector('dialog[open]')&&state.detail)closeDetail(true);});
 // 所有账号入口共用一次安装；旧任务和页面选择在数据准备成功后统一失效。
 function applyAccountSession(session){
-  resetSeasonPage();resetDetail();state.selected.clear();clearFilterUndo();viewRun++;
+  tagUI.close();inlineTags.close();resetSeasonPage();resetDetail();state.selected.clear();clearFilterUndo();viewRun++;
   const {warnings,ignoredDetails,...account}=session;Object.assign(state,account);
   if(state.profile)ensureProfileOption(state.profile);$('profile').value=state.profile??'';
   setup();syncControls();render();
@@ -476,16 +648,16 @@ function applyAccountSession(session){
 }
 for(const id of ['empty-import-account','import-account-directory'])$(id).onclick=()=>$('account-directory-files').click();
 $('enable-preview-account').onclick=async()=>{
-  if(loading||!features.previewAccount)return;loading=true;$('profile').disabled=true;render();
+  if(loading||!features.previewAccount)return;setLoading(true);
   try{
     persist();applyAccountSession(await accountSessions.enablePreview());persist();$('data-dialog').close();void ensureMaster();
     message(t('已启用预览账号，可随时从账号列表切回自己的账号。'),false,{transient:true});
   }catch{message(t('预览账号启用失败，请重试；已有账号数据保留。'),true);}
-  finally{loading=false;$('profile').disabled=false;render();}
+  finally{setLoading(false);}
 };
 $('account-directory-files').onchange=async event=>{
   const files=[...event.target.files];event.target.value='';if(!files.length||loading)return;
-  loading=true;$('profile').disabled=true;render();
+  setLoading(true);
   try{
     const bundle=await readAccountDirectory(files);
     if(accountProfile(bundle.publicUserId)!==state.profile)persist();
@@ -494,16 +666,16 @@ $('account-directory-files').onchange=async event=>{
     const count=next.selectionSnapshot?.details?.length??0;
     message(t('账号目录已导入，已关联 {0} 条选拔详情。',[count])+(next.ignoredDetails?t('已略过 {0} 条不在当前选拔列表中的历史详情。',[next.ignoredDetails]):''),false,{transient:true});
   }catch(error){message(error instanceof AccountDirectoryError?t(error.message):t('账号目录导入失败，请检查快照格式和存储空间；原数据保留。'),true);}
-  finally{loading=false;$('profile').disabled=false;render();document.documentElement.classList.remove('profile-restoring');openMemoryLink();}
+  finally{setLoading(false);document.documentElement.classList.remove('profile-restoring');openMemoryLink();}
 };
 async function restoreProfile(profile=state.profile){
-  loading=true;$('profile').disabled=true;render();
+  setLoading(true);
   try{
     applyAccountSession(await accountSessions.restore(profile));
     if(state.snapshot||state.selectionSnapshot||state.tab==='achievements')void ensureMaster();
     return true;
   }catch(error){message(error instanceof AccountSessionError?t(error.message):t('浏览器工作副本无法恢复，请重新载入快照。'),true);return false;}
-  finally{$('profile').value=state.profile??'';loading=false;$('profile').disabled=false;render();document.documentElement.classList.remove('profile-restoring');openMemoryLink();}
+  finally{$('profile').value=state.profile??'';setLoading(false);document.documentElement.classList.remove('profile-restoring');openMemoryLink();}
 }
 $('profile').onchange=async()=>{
   const profile=normalizeProfile($('profile').value);$('profile').value=state.profile??'';persist();
@@ -524,23 +696,23 @@ for(const [id,key] of FILTER_BINDINGS)$(id).addEventListener($(id).matches('butt
   if(id==='purpose')resetDetail();
   if(id==='search'){
     clearTimeout(searchTimer);
-    if(!searchComposing)searchTimer=setTimeout(()=>{render();persist();},120);
+    if(!searchComposing)searchTimer=setTimeout(()=>{refreshCurrentView({controls:false});persist();},120);
     return;
   }
-  render();persist();});
+  refreshCurrentView();persist();});
 let searchComposing=false;
 $('search').addEventListener('compositionstart',()=>{searchComposing=true;clearTimeout(searchTimer);});
-$('search').addEventListener('compositionend',()=>{searchComposing=false;view().query=$('search').value;view().page=0;clearTimeout(searchTimer);searchTimer=setTimeout(()=>{render();persist();},120);});
-$('search-clear').onclick=()=>{view().query='';$('search').value='';view().page=0;render();persist();$('search').focus();};
+$('search').addEventListener('compositionend',()=>{searchComposing=false;view().query=$('search').value;view().page=0;clearTimeout(searchTimer);searchTimer=setTimeout(()=>{refreshCurrentView({controls:false});persist();},120);});
+$('search-clear').onclick=()=>{view().query='';$('search').value='';view().page=0;refreshCurrentView({controls:false});persist();$('search').focus();};
 $('search').addEventListener('keydown',e=>{if(e.key==='Escape'&&!e.isComposing&&!state.detail){e.preventDefault();$('search-clear').click();}});
 $('owned-only').onclick=()=>onFilterChoice('ownership',view().ownership==='owned'?'all':'owned');
 for(const kind of ['idol','support','memory','selection','skin'])$(kind+'-favorites-only').onchange=event=>onFilterChoice('ownership',event.target.checked?'favorites':'all');
 for(const [kind,key] of [['memory','protection'],['selection','selectionProtection']])$(kind+'-locked-only').onchange=event=>onFilterChoice(key,event.target.checked?'protected':'all');
 $('filter-toggle').onclick=()=>{if(expandedFilters.has(state.tab))expandedFilters.delete(state.tab);else expandedFilters.add(state.tab);renderFilterDisclosure();};
-for(const id of ['reset-selection-filters','reset-idol-filters','reset-support-filters','reset-skin-filters','reset-filters'])$(id).onclick=()=>clearFilters(()=>{resetFilters(view(),state.tab);syncControls();render();persist();});
+for(const id of ['reset-selection-filters','reset-idol-filters','reset-support-filters','reset-skin-filters','reset-filters'])$(id).onclick=()=>clearFilters(()=>{resetFilters(view(),state.tab);refreshCurrentView();persist();});
 function changePage(direction){
   if(state.detail)resetDetail();
-  view().page+=direction;render();persist();
+  view().page+=direction;refreshCurrentView({controls:false});persist();
   const list=$('list');list.tabIndex=-1;list.setAttribute('aria-label',t('第 {0} 页结果',[view().page+1]));
   list.focus({preventScroll:true});list.scrollIntoView({block:'start',behavior:'instant'});
 }
@@ -563,20 +735,63 @@ function linkedMasterScope(){
   for(const [key,tab] of [['selection-loadout','selectionMemories'],['selection-memory','selectionMemories'],['memory','memories'],['idol','idolCards'],['support','supportCards'],['skin','idolCardSkins']])if(params.has(key))return tab;
   return state.tab;
 }
+function currentCatalogContext(){
+  return {profile:state.profile,snapshot:state.snapshot,selectionSnapshot:state.selectionSnapshot,tab:state.tab,version:catalogVersion(state.tab),language:locale(),ready:masterReadyFor(state.tab)};
+}
+function masterRequest(){return {profile:state.profile,lifecycleId:state.lifecycleId,snapshot:state.snapshot,selectionSnapshot:state.selectionSnapshot,tab:state.tab,run:viewRun,hash:location.hash,language:locale()};}
+function sameMasterRequest(first,second){return Object.keys(first).every(key=>first[key]===second[key]);}
+function refreshMemoryDetail(){
+  const memory=state.snapshot?.memories.find(memory=>memory.key===state.detail);if(!memory)return;
+  const expanded=[...$('detail-content').querySelectorAll('details')].map(node=>node.open),scroll=$('detail-content').scrollTop;
+  showDetail(memory,{character:characterInfo(memory.characterId).name,group:groups.get(memory.config)??0,...tagContext('memories',memory.key,true)});
+  $('detail-content').querySelectorAll('details').forEach((node,index)=>{node.open=expanded[index]??node.open;});$('detail-content').scrollTop=scroll;
+  refreshDetailNavigation();syncMemoryDetailFocus();
+}
+async function completeMasterRequest(request,scope){
+  if(!sameMasterRequest(request,masterRequest())||!masterReadyFor(scope))return;
+  if(state.tab===scope){
+    const context=currentCatalogContext(),changed=!renderedCatalogContext||!sameMasterRequest(context,renderedCatalogContext);
+    if(changed||(controlsPending&&!['achievements','seasonSimulation'].includes(scope))){
+      if(scope==='memories')await prepareMemoryFilterOptions(request.snapshot,state.views.memories);
+      if(!sameMasterRequest(request,masterRequest()))return;
+      const firstCatalog=!renderedCatalogContext?.ready&&!['memories','selectionMemories','achievements','seasonSimulation'].includes(scope);
+      setup();
+      if(firstCatalog){syncControls();render();}else refreshCurrentView();
+    }
+    $('load-master').hidden=true;$('master-status').textContent=t('当前页面所需资料已载入。');
+  }
+  if(request.hash&&request.hash===location.hash)openCatalogLink();
+  viewTiming.complete();
+}
 async function ensureMaster(forLink=false){
-  const scope=forLink===true||location.hash?linkedMasterScope():state.tab;
+  const scope=forLink===true||location.hash?linkedMasterScope():state.tab,request=masterRequest();
   viewTiming.begin(state.tab,viewRun);
-  if(masterReadyFor(scope)){viewTiming.complete();$('load-master').hidden=true;$('master-status').textContent=t('当前页面所需资料已载入。');openCatalogLink();return;}
-  if(masterTasks.has(scope))return masterTasks.get(scope);
-  masterFailures.delete(scope);
-  $('load-master').disabled=true;$('master-status').textContent=t('正在读取本地主数据…');
-  const task=loadMaster(scope).then(async()=>{
-    if(masterReadyFor(state.tab)){$('load-master').hidden=true;$('master-status').textContent=t('当前页面所需资料已载入。');}
-    markLoading('package-ready',{scope});setup();
-    if(state.tab==='memories')await prepareMemoryFilterOptions(state.snapshot,view());
-    viewTiming.complete();syncControls();render();openCatalogLink();if(masterReadyFor('memories')&&state.detail)openDetail(state.snapshot.memories.find(m=>m.key===state.detail));
-  }).catch(()=>{masterFailures.add(scope);viewTiming.fail(scope);if(!masterReadyFor(state.tab)){$('master-status').textContent=t('主数据暂不可用，仍可查看库存数值。');$('load-master').disabled=false;$('load-master').hidden=false;}}).finally(()=>{masterTasks.delete(scope);renderPendingCatalogCounts();renderMasterReadiness();});
-  masterTasks.set(scope,task);renderPendingCatalogCounts();renderMasterReadiness();return task;
+  // 同一公共任务可以复用，但每个账号与页面仍独立接收完成结果，不能放行尚在准备的候选。
+  const pending=masterTasks.get(scope);
+  if(pending){
+    if(sameMasterRequest(request,pending.request))return pending.promise;
+    const next={request,promise:null};
+    next.promise=pending.promise.then(()=>completeMasterRequest(request,scope)).finally(()=>{
+      if(masterTasks.get(scope)===next)masterTasks.delete(scope);
+      renderPendingCatalogCounts();renderMasterReadiness();
+    });
+    masterTasks.set(scope,next);return next.promise;
+  }
+  const ready=masterReadyFor(scope);
+  if(!ready){
+    masterFailures.delete(scope);
+    $('load-master').disabled=true;$('master-status').textContent=t('正在读取本地主数据…');
+  }
+  const task={request,promise:null};
+  const load=ready?Promise.resolve():loadMaster(scope).then(()=>{observeCatalog({incremental:true});markLoading('package-ready',{scope});});
+  task.promise=load.then(()=>completeMasterRequest(request,scope)).catch(()=>{
+    masterFailures.add(scope);viewTiming.fail(scope);
+    if(state.tab===scope&&!masterReadyFor(scope)){$('master-status').textContent=t('主数据暂不可用，仍可查看库存数值。');$('load-master').disabled=false;$('load-master').hidden=false;}
+  }).finally(()=>{
+    if(masterTasks.get(scope)===task)masterTasks.delete(scope);
+    renderPendingCatalogCounts();renderMasterReadiness();
+  });
+  masterTasks.set(scope,task);renderPendingCatalogCounts();renderMasterReadiness();return task.promise;
 }
 $('load-master').onclick=ensureMaster;
 $('content-readiness-retry').onclick=()=>ensureMaster();
@@ -585,10 +800,10 @@ if(!$('web-version').textContent)$('web-version').textContent=WEB_VERSION;
 for(const [id,key] of [['find-character','character'],['find-skill','skill']])$(id).onclick=()=>{
   const m=state.snapshot.memories.find(row=>row.key===state.detail);const value=key==='character'?m?.characterId:m?.produceCard?.id;
   if(!value){message(t('该字段未记录，无法寻找比较对象。'));return;}
-  Object.assign(state.views.memories,defaults(),{[key]:value});state.selected.clear();state.selected.add(m.key);resetDetail();syncControls();render();persist();message(t('已筛出同类回忆并选中当前条目；相似不代表可删除。'));
+  Object.assign(state.views.memories,defaults(),{[key]:value});state.selected.clear();state.selected.add(m.key);resetDetail();refreshCurrentView();selectionControls();persist();message(t('已筛出同类回忆并选中当前条目；相似不代表可删除。'));
 };
 $('save-view').onclick=()=>{const name=prompt(t('为当前筛选、排序和阅读重点命名：'));if(!name?.trim())return;try{const values=savedViews();values.push({name:name.trim().slice(0,60),view:{...state.views.memories,page:0}});localStorage.setItem(`gakumas-web:saved-views:${state.profile}`,JSON.stringify(values));refreshSavedViews(String(values.length-1));}catch{message(t('常用视图保存失败。'),true);}};
-$('saved-view').onchange=()=>{$('delete-view').disabled=$('saved-view').value==='';const item=savedViews()[Number($('saved-view').value)];if($('saved-view').value!==''&&item){state.views.memories=createView(item.view);syncControls();render();persist();}};
+$('saved-view').onchange=()=>{$('delete-view').disabled=$('saved-view').value==='';const item=savedViews()[Number($('saved-view').value)];if($('saved-view').value!==''&&item){Object.assign(state.views.memories,createView(item.view));refreshCurrentView();persist();}};
 
 $('delete-view').onclick=()=>{
   const selected=$('saved-view').value;if(selected==='')return;
@@ -596,10 +811,9 @@ $('delete-view').onclick=()=>{
   catch{message(t('常用筛选删除失败。'),true);}
 };
 
-const tagUI=setupLibraryUI({current:()=>state.library,changed:()=>{
-  tagOptions();syncControls();render();persist();
-  if(state.detail){const memory=state.snapshot?.memories.find(row=>row.key===state.detail);if(memory)showDetail(memory,{...tagContext('memories',memory.key,true)});}
-}});
+const inlineTags=setupInlineTags({current:()=>loading?null:state.library,changed:refreshTags});
+const tagUI=setupLibraryUI({current:()=>loading?null:state.library,changed:refreshTags});
+customTagExport=setupCustomTagExport({current:()=>({profile:state.profile,snapshot:state.snapshot,selectionSnapshot:state.selectionSnapshot,library:state.library?.data,loading})});
 const updateStatic=staticTranslations();
 updateStatic();$('language').value=locale();
 $('language').onchange=()=>setLocale($('language').value);
@@ -615,6 +829,7 @@ onLocaleChange(()=>{
   }
   $('master-status').textContent=masterReadyFor(state.tab)?t('当前页面所需资料已载入。'):t('正在准备本地主数据');
   $('message').hidden=true;
+  if(state.snapshot||state.selectionSnapshot||state.tab==='achievements')void ensureMaster();
 });
 setupContentControls({loaded:()=>ensureMaster(),canReload:()=>!loading});
 
@@ -626,7 +841,7 @@ setupAccountPackage({
     applyAccountSession(await accountSessions.restoreBackup(payload));persist();
     $('data-dialog').close();void ensureMaster();
   },
-  lock:value=>{loading=value;$('profile').disabled=value;render();},report:message,
+  lock:setLoading,report:message,
 });
 const cleanupChannel=typeof BroadcastChannel==='function'?new BroadcastChannel('gakumas-web:account-cleanup'):null;
 cleanupChannel?.addEventListener('message',event=>{
@@ -635,7 +850,7 @@ cleanupChannel?.addEventListener('message',event=>{
 setupAccountCleanup({
   target:()=>({profile:state.profile,label:$('profile').selectedOptions[0]?.textContent??state.profile}),
   summary:accountDataSummary,
-  remove:async profile=>{resetSeasonPage({preserve:true});await clearAccountData(profile);},
+  remove:clearAccountData,
   complete:async profile=>{
     cleanupChannel?.postMessage({profile});
     history.replaceState(null,'',location.pathname+location.search);
@@ -647,7 +862,7 @@ setupAccountCleanup({
     if(!await restoreProfile(await refreshProfileOptions()))throw new Error('account_restore_failed');
     rememberAccount(state.profile);
   },
-  lock:value=>{loading=value;$('profile').disabled=value;render();},report:message,
+  lock:setLoading,report:message,
 });
 await restoreProfile(await refreshProfileOptions());
 if(state.snapshot||state.selectionSnapshot)markLoading('account-restored');
@@ -672,6 +887,7 @@ function openMemoryLink(){
   state.tab=selection?'selectionMemories':'memories';resetDetail();
   state.views[state.tab]={...defaults(),query:/^[a-f0-9]{64}$/.test(key)?key:'',page:0};
   syncControls();render();
+  if(masterTasks.has(state.tab)||!masterReadyFor(state.tab))void ensureMaster(true);
   if(loading)return true;
   if(!/^[a-f0-9]{64}$/.test(key)){message(t('回忆链接中的唯一标识无效。'),true);return true;}
   const rows=selection?state.selectionSnapshot?.selectionMemories:state.snapshot?.memories;

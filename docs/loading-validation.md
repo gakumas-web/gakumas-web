@@ -15,6 +15,8 @@
 
 图片 DOM 更新由应用入口显式安装 `ui/resource-images.mjs`；资源服务导入不会注册页面观察器。适配器处理冷缓存占位图、缓存就绪后才挂载的离屏节点与 SVG 图片，释放时取消订阅和观察器。完整职责见[应用架构](maintenance.md#应用架构与状态边界)。
 
+列表内搜索、筛选、排序、分页与收藏更新按记录身份复用仍显示的卡片，筛选控件按自身依赖更新；阅读方式、账号快照或所属资料变化时才重新构建受影响内容。成就页内部条件变化保留角色导航、介绍和 Ending，仅调整结果与相关控件。账号载入的禁用状态与页面内容分开更新；公共资料请求可共享，但完成通知按当前账号、页面、语言和链接接收，迟到的无关分包不重建当前页面。
+
 主要实现位于 `application/content-processing*.mjs`、`application/content-transfer.mjs`、`application/image-unpacker*.mjs`、`ui/deferred-picker.mjs` 和 `ui/filters.mjs`。
 
 ## 检查入口
@@ -26,6 +28,12 @@
 | 依赖分层、循环与 Worker 入口闭合 | `tests/architecture.test.mjs` |
 | 目录重装、语言相关缓存与按页加载 | `tests/catalog-cache.test.mjs`、`tests/master-loader.test.mjs` |
 | 会话准备、账号切换、导入与备份恢复 | `tests/account-session.test.mjs`、`tests/browser_account_session.py` |
+| 采集的技能卡转换设置、重新导入更新基准、手动覆盖与账号隔离 | `tests/captured-card-conversions.test.mjs`、`tests/browser_captured_card_conversions.py` |
+| 账号自定义标签精简导出、两类稳定标识与完整范围隔离 | `tests/custom-tag-export.test.mjs`、`tests/browser_custom_tag_export.py` |
+| 标签创建、关联、移除和改名的局部更新，卡片与详情节点保留及筛选结果同步 | `tests/browser_tag_updates.py`；`--baseline` 记录修复前的节点替换情况 |
+| 卡片内多标签连续编辑、精简布局、无提示移除、键盘收起、保存失败反馈及账号隔离 | `tests/browser_inline_tags.py`；桌面中文与手机日文，报告位于 `local/checks/inline-tags/` |
+| 五类列表搜索、筛选、分页、收藏及成就页控件的局部更新，角色／语言变化正确失效 | `tests/browser_incremental_updates.py`；`--baseline` 记录修复前的节点保留情况 |
+| 账号导入等待与失败恢复、PLv 更新、无关分包迟到及加载中切换语言／账号／回忆链接 | `tests/browser_background_updates.py`；只延迟真实文件读取与正式 Worker 完成消息 |
 | 历史保留、删除竞态、生命周期标识与并发导入 | `tests/browser_contest_history_store.py` |
 | 跨页签删除通知、同名账号重建与旧任务隔离 | `tests/browser_account_lifecycle.py` |
 | 模拟与搜索的取消、过期响应和结果保留 | `tests/contest-task-controllers.test.mjs`、`tests/contest-search-controllers.test.mjs` |

@@ -10,7 +10,7 @@
     "preview": "python3 -B tools/preview.py 18765 --bind 127.0.0.1 --directory dist",
     "build:local": "python3 -B tools/build.py --asset-lock local/asset-lock.json --content-lock local/content-lock.json",
     "content:local": "python3 -B tools/install_content.py --lock local/content-lock.json --asset-lock local/asset-lock.json --output dist",
-    "preview:local": "python3 -B tools/preview.py 18765 --bind 127.0.0.1 --directory local/ui-visual-refinement/dist",
+    "preview:local": "python3 -B tools/preview.py 18765 --bind 127.0.0.1 --directory local/ui-visual-refinement/dist --content-channel-url https://gakumas-web.github.io/gakumas-web/content/channel.json",
     "audit:engine": "node tools/audit_contest_engine.mjs"
   },
   "engines": {

@@ -3,8 +3,8 @@ import {el} from './dom.mjs';
 import {filterField} from './filter-field.mjs';
 import {collectionState} from './shared.mjs';
 import {supportHint} from './card-rewards.mjs';
-import {t} from '../i18n.mjs';
-import {achievementEntries,achievementCharacterIds,characterInfo,idolInfo,collectionRecords} from '../domain/catalog.mjs';
+import {t,locale} from '../i18n.mjs';
+import {achievementEntries,achievementCharacterIds,characterInfo,idolInfo,collectionRecords,catalogGeneration} from '../domain/catalog.mjs';
 import {characterAccent,characterArt,illustration} from './illustrations.mjs';
 import {achievementEntry,cardAchievementIcon,stageHint} from './achievements.mjs';
 import {endingBadges} from './ending-rewards.mjs';
@@ -13,6 +13,7 @@ import {watchImage} from './image-loading.mjs';
 import {portraitLayout,tallestPortrait} from './character-portrait-layout.mjs';
 
 import {achievementOwner,achievementDetailScope,achievementSummary,mergeCardAchievements,achievedCardStage} from '../domain/achievements.mjs';
+const browserSessions=new WeakMap();
 const entryName=id=>id==='nasr'?t('共通成就'):characterInfo(id).name;
 function entryFace(id){
   const art=characterArt(id);
@@ -44,11 +45,18 @@ function masterProgress(entry){
   const numbers=el('span','','character-master-value');numbers.append(el('span',String(value)),el('span',`/${target}`));
   fill.style.width=`${target>0?Math.min(100,value/target*100):0}%`;track.append(fill);row.append(star,track,numbers);group.append(cardAchievementIcon(entry,group),row);return group;
 }
-export function renderAchievementBrowser(root,{snapshot,view,ready,change}){
+export function renderAchievementBrowser(root,{snapshot,view,ready,change:notifyChange,renderVersion=catalogGeneration()}){
+  const roster=achievementCharacterIds(),selected=roster.includes(view.achievementCharacter)?view.achievementCharacter:'',language=locale(),generation=renderVersion;
+  const previous=browserSessions.get(root);
+  // 仅复用同一资料与账号快照的详情；控件回调始终使用本次应用提供的通知入口。
+  if(previous&&previous.snapshot===snapshot&&previous.view===view&&previous.ready===ready&&previous.selected===selected&&previous.language===language&&previous.generation===generation&&previous.section.parentElement===root&&root.firstElementChild===previous.nav){
+    previous.change=notifyChange;previous.update();return;
+  }
+  browserSessions.delete(root);
+  const session={snapshot,view,ready,selected,language,generation,change:notifyChange},change=()=>session.change();
   root.style.setProperty('--portrait-card-ratio',`1280 / ${tallestPortrait+160}`);
   const all=achievementEntries(snapshot,{achievementSection:'achievement'}),endings=achievementEntries(snapshot,{achievementSection:'ending'}),byId=new Map(endings.map(row=>[row.characterId,row]));
-  const roster=achievementCharacterIds(),owner=achievementOwner;
-  const selected=roster.includes(view.achievementCharacter)?view.achievementCharacter:'',focus=roster.includes(view.achievementFocus)?view.achievementFocus:roster[0];
+  const owner=achievementOwner,focus=roster.includes(view.achievementFocus)?view.achievementFocus:roster[0];
   const navigate=id=>{view.achievementFocus=id||selected||focus;view.achievementCharacter=id;view.page=0;change();if(id){root.querySelector('.character-detail-title')?.focus({preventScroll:true});root.scrollIntoView({block:'start'});}else{const portal=root.querySelector(`[data-character-portal="${view.achievementFocus}"]`);portal?.focus({preventScroll:true});portal?.scrollIntoView({block:'start',inline:'center'});}};
   const nav=el('nav','','character-quick-nav');nav.setAttribute('aria-label',t('快速切换角色'));
   let alignmentFrame;
@@ -95,50 +103,67 @@ export function renderAchievementBrowser(root,{snapshot,view,ready,change}){
   const hero=characterAccent(el('header','','character-detail-hero'),selected),intro=el('div','','character-detail-identity'),title=el('h1',entryName(selected),'character-detail-title');title.tabIndex=-1;if(selected!=='nasr')intro.append(el('span',t('角色成就'),'character-eyebrow'));intro.append(title);const signature=profileSignature(selected,info.name);if(signature)hero.append(signature);const quote=characterQuotes[selected];if(quote){const line=el('blockquote',quote.lines.join('\n'),'character-profile-quote');line.cite=quote.source;intro.append(line);}const master=all.find(row=>row.characterId===selected&&row.isMasterAchievement);if(master)intro.append(masterProgress(master));hero.append(intro,portrait(selected,true));const overview=el('div','','character-detail-overview');overview.append(hero);root.append(overview);
   if(ending){const endingSection=el('section','','character-detail-endings');endingSection.append(achievementEntry(ending));overview.append(endingSection);}
   const owned=all.filter(row=>owner(row)===selected),common=owned.filter(row=>!row.idolCardId&&!row.isMasterAchievement),cardEntries=owned.filter(row=>row.idolCardId);
-  const commonCategory=selected==='nasr'?(view.achievementCategory==='Other'?'Other':'Produce'):null;
-  const cardMode=selected!=='nasr'&&view.achievementScope==='card';
   const countEntries=rows=>rows.reduce((total,row)=>total+row.stages.length,0);
-  const filtered=achievementEntries(snapshot,{...view,query:'',achievementCategory:'',achievementSection:'achievement'});
-  const scopeCount=(options,total)=>{const count=countEntries(achievementDetailScope(filtered,{...view,...options}));return count===total?String(total):`${count} / ${total}`;};
   const section=el('section','','character-achievements'),headingRow=el('div','','character-achievement-heading'),heading=el('h2',t('成就')),filters=el('div','','character-achievement-filters');heading.tabIndex=-1;headingRow.append(heading);section.append(headingRow);
+  const scopeButtons=[],categoryButtons=[],filterSelects=new Map();
   if(selected!=='nasr'){
     const modes=el('div','','achievement-scope-switch');modes.setAttribute('role','group');modes.setAttribute('aria-label',t('成就归属'));
-    for(const [scope,label,count] of [['common','角色通用',countEntries(common)],['card','卡片专属',countEntries(cardEntries)]]){const button=el('button',`${t(label)} · ${scopeCount({achievementScope:scope},count)}`);button.dataset.achievementScope=scope;button.setAttribute('aria-pressed',String(cardMode===(scope==='card')));button.onclick=()=>{view.achievementScope=scope;view.page=0;change();root.querySelector(`[data-achievement-scope="${scope}"]`)?.focus({preventScroll:true});};modes.append(button);}headingRow.append(modes);
-  }
-  if(commonCategory){
+    for(const [scope,label,rows] of [['common','角色通用',common],['card','卡片专属',cardEntries]]){const button=el('button');button.dataset.achievementScope=scope;button.onclick=()=>{view.achievementScope=scope;view.page=0;change();button.focus({preventScroll:true});};scopeButtons.push({button,scope,label,total:countEntries(rows)});modes.append(button);}headingRow.append(modes);
+  }else{
     const modes=el('div','','achievement-scope-switch');modes.setAttribute('role','group');modes.setAttribute('aria-label',t('类别'));
     for(const [category,label] of [['Produce','培养'],['Other','其他']]){
-      const button=el('button',`${t(label)} · ${scopeCount({achievementCategory:category},countEntries(common.filter(row=>row.category===category)))}`);button.dataset.achievementCategory=category;button.setAttribute('aria-pressed',String(commonCategory===category));
-      button.onclick=()=>{view.achievementCategory=category;view.page=0;change();root.querySelector(`[data-achievement-category="${category}"]`)?.focus({preventScroll:true});};modes.append(button);
+      const button=el('button');button.dataset.achievementCategory=category;
+      button.onclick=()=>{view.achievementCategory=category;view.page=0;change();button.focus({preventScroll:true});};categoryButtons.push({button,category,label,total:countEntries(common.filter(row=>row.category===category))});modes.append(button);
     }
     headingRow.append(modes);
   }
-  const priority=el('button','','ownership-toggle achievement-incomplete-first'),check=el('span','','owned-only-check');priority.type='button';priority.id='achievement-incomplete-first';priority.setAttribute('role','switch');priority.setAttribute('aria-checked',String(view.achievementIncompleteFirst!==false));check.setAttribute('aria-hidden','true');priority.append(check,el('span',t('未达成优先')));filters.append(priority);
-  priority.onclick=()=>{view.achievementIncompleteFirst=priority.getAttribute('aria-checked')!=='true';view.page=0;change();root.querySelector('#achievement-incomplete-first')?.focus({preventScroll:true});};
+  const priority=el('button','','ownership-toggle achievement-incomplete-first'),check=el('span','','owned-only-check');priority.type='button';priority.id='achievement-incomplete-first';priority.setAttribute('role','switch');check.setAttribute('aria-hidden','true');priority.append(check,el('span',t('未达成优先')));filters.append(priority);
+  priority.onclick=()=>{view.achievementIncompleteFirst=priority.getAttribute('aria-checked')!=='true';view.page=0;change();priority.focus({preventScroll:true});};
   headingRow.append(filters);
-  for(const [key,label,choices] of [['achievementReward','奖励',[['','全部'],['experience','制作人经验'],['support','支援卡强化点'],['jewel','宝石'],['other','其他']]],['achievementState','状态',[['','全部'],['achieved','已达成'],['unachieved','未达成']]],['achievementSort','排序',[['original','原始顺序'],['near','接近下一门槛']]]]){const select=el('select'),wrapper=filterField(t(label),select);wrapper.dataset.achievementControl=key;select.dataset.achievementFilter=key;for(const [value,name] of choices)select.append(new Option(t(name),value));select.value=view[key];select.onchange=()=>{view[key]=select.value;view.page=0;change();root.querySelector(`[data-achievement-filter="${key}"]`)?.focus({preventScroll:true});};filters.append(wrapper);}
-  const entries=achievementDetailScope(filtered,view),count=countEntries(cardMode?cardEntries:commonCategory?common.filter(row=>row.category===commonCategory):common),result=el('p',t('成就 {0} / {1} 项',[countEntries(entries),count]),'character-achievement-result');result.setAttribute('role','status');section.append(result);
-  const groups=new Map();
-  if(cardMode)for(const entry of entries){if(!groups.has(entry.idolCardId))groups.set(entry.idolCardId,[]);groups.get(entry.idolCardId).push(entry);}
-  const heldCards=new Map(cardMode?collectionRecords(snapshot,'idolCards','all').map(row=>[row.idolCardId,row]):[]);
-  const units=cardMode?[...groups]:entries;
-  // 先按持有情况分组，再保留组内未达成优先顺序；必须在整卡分页之前排序。
-  if(cardMode&&view.achievementIncompleteFirst!==false)units.sort(([a],[b])=>Number(heldCards.get(b)?.ownership==='owned')-Number(heldCards.get(a)?.ownership==='owned'));
-  const capacity=cardMode?8:40,pages=Math.max(1,Math.ceil(units.length/capacity));view.page=Math.max(0,Math.min(view.page,pages-1));
-  const list=el('div','',cardMode?'achievement-card-groups':'inventory-list achievement-icon-catalog');
-  for(const unit of units.slice(view.page*capacity,(view.page+1)*capacity)){
-    if(!cardMode){list.append(achievementEntry(unit));continue;}
-    const [id,values]=unit,held=heldCards.get(id)??{idolCardId:id,ownership:'unknown'},info=idolInfo({...held,idolCardSkinId:''}),group=el('article','','achievement-idol-group');group.dataset.achievementIdol=id;group.dataset.ownership=held.ownership;
-    group.append(collectionState(held));
-    group.append(illustration(info.image,info.name,'achievement-card-art',{characterId:info.characterId,fullResolution:true}));
-    const icons=el('div','','card-achievement-icons'),matching=new Set(values.map(entry=>entry.id));
-    const order={MissionType_IncrementProduceIdolCardClearCount:1,MissionType_AbsoluteIdolCardLevelLimitRank:3,MissionType_IncrementProduceIdolCardPlayCount:2};
-    for(const entry of mergeCardAchievements(cardEntries.filter(row=>row.idolCardId===id)).sort((a,b)=>(order[a.missionType]??99)-(order[b.missionType]??99))){
-      if(!(entry.sourceEntries??[entry]).some(row=>matching.has(row.id)))continue;
-      const icon=cardAchievementIcon(entry,group);icon.style.gridRow=order[entry.missionType]??'auto';icons.append(icon);
+  for(const [key,label,choices] of [['achievementReward','奖励',[['','全部'],['experience','制作人经验'],['support','支援卡强化点'],['jewel','宝石'],['other','其他']]],['achievementState','状态',[['','全部'],['achieved','已达成'],['unachieved','未达成']]],['achievementSort','排序',[['original','原始顺序'],['near','接近下一门槛']]]]){const select=el('select'),wrapper=filterField(t(label),select);wrapper.dataset.achievementControl=key;select.dataset.achievementFilter=key;for(const [value,name] of choices)select.append(new Option(t(name),value));select.onchange=()=>{view[key]=select.value;view.page=0;change();select.focus({preventScroll:true});};filterSelects.set(key,select);filters.append(wrapper);}
+  const result=el('p','','character-achievement-result'),list=el('div'),empty=el('p',t('没有找到符合条件的成就。试试减少筛选条件。'));result.setAttribute('role','status');section.append(result,list);
+  const pager=el('div','','character-achievement-pager'),pageButtons=[],pageLabel=el('span');
+  for(const [label,delta] of [['上一页',-1],['下一页',1]]){const button=el('button',t(label));button.onclick=()=>{view.page+=delta;change();heading.focus({preventScroll:true});section.scrollIntoView({block:'start'});};pageButtons.push(button);pager.append(button);}pager.append(pageLabel);
+  const heldCards=new Map(collectionRecords(snapshot,'idolCards','all').map(row=>[row.idolCardId,row])),entryNodes=new Map(),cardNodes=new Map();
+  const order={MissionType_IncrementProduceIdolCardClearCount:1,MissionType_AbsoluteIdolCardLevelLimitRank:3,MissionType_IncrementProduceIdolCardPlayCount:2};
+  // 保留结果中已有的卡片与图片；只移动顺序变化的节点，移除本次不再显示的节点。
+  const updateChildren=(parent,nodes)=>{for(const [index,node] of nodes.entries())if(parent.children[index]!==node)parent.insertBefore(node,parent.children[index]??null);while(parent.children.length>nodes.length)parent.lastElementChild.remove();};
+  const cardNode=(id,values)=>{
+    let cached=cardNodes.get(id);
+    if(!cached){
+      const held=heldCards.get(id)??{idolCardId:id,ownership:'unknown'},info=idolInfo({...held,idolCardSkinId:''}),group=el('article','','achievement-idol-group'),icons=el('div','','card-achievement-icons');group.dataset.achievementIdol=id;group.dataset.ownership=held.ownership;
+      group.append(collectionState(held),illustration(info.image,info.name,'achievement-card-art',{characterId:info.characterId,fullResolution:true}));
+      const entries=mergeCardAchievements(cardEntries.filter(row=>row.idolCardId===id)).sort((a,b)=>(order[a.missionType]??99)-(order[b.missionType]??99));
+      const iconNodes=entries.map(entry=>{const node=cardAchievementIcon(entry,group);node.style.gridRow=order[entry.missionType]??'auto';return {entry,node};});
+      group.append(icons,el('h3',info.name,'achievement-idol-name'));cached={group,icons,iconNodes};cardNodes.set(id,cached);
     }
-    group.append(icons,el('h3',info.name,'achievement-idol-name'));list.append(group);
-  }
-  if(!entries.length)list.append(el('p',t('没有找到符合条件的成就。试试减少筛选条件。')));section.append(list);
-  if(pages>1){const pager=el('div','','character-achievement-pager');for(const [label,delta] of [['上一页',-1],['下一页',1]]){const button=el('button',t(label));button.disabled=delta<0?view.page===0:view.page+1>=pages;button.onclick=()=>{view.page+=delta;change();root.querySelector('.character-achievements h2')?.focus({preventScroll:true});root.querySelector('.character-achievements')?.scrollIntoView({block:'start'});};pager.append(button);}pager.append(el('span',`${view.page+1} / ${pages}`));section.append(pager);}root.append(section);
+    const matching=new Set(values.map(entry=>entry.id));
+    updateChildren(cached.icons,cached.iconNodes.filter(({entry})=>(entry.sourceEntries??[entry]).some(row=>matching.has(row.id))).map(({node})=>node));
+    return cached.group;
+  };
+  const update=()=>{
+    const commonCategory=selected==='nasr'?(view.achievementCategory==='Other'?'Other':'Produce'):null,cardMode=selected!=='nasr'&&view.achievementScope==='card';
+    const filtered=achievementEntries(snapshot,{...view,query:'',achievementCategory:'',achievementSection:'achievement'});
+    const scopeCount=(options,total)=>{const count=countEntries(achievementDetailScope(filtered,{...view,...options}));return count===total?String(total):`${count} / ${total}`;};
+    for(const {button,scope,label,total} of scopeButtons){button.textContent=`${t(label)} · ${scopeCount({achievementScope:scope},total)}`;button.setAttribute('aria-pressed',String(cardMode===(scope==='card')));}
+    for(const {button,category,label,total} of categoryButtons){button.textContent=`${t(label)} · ${scopeCount({achievementCategory:category},total)}`;button.setAttribute('aria-pressed',String(commonCategory===category));}
+    priority.setAttribute('aria-checked',String(view.achievementIncompleteFirst!==false));for(const [key,select] of filterSelects)select.value=view[key];
+    const entries=achievementDetailScope(filtered,view),count=countEntries(cardMode?cardEntries:commonCategory?common.filter(row=>row.category===commonCategory):common);
+    result.textContent=t('成就 {0} / {1} 项',[countEntries(entries),count]);
+    const groups=new Map();
+    if(cardMode)for(const entry of entries){if(!groups.has(entry.idolCardId))groups.set(entry.idolCardId,[]);groups.get(entry.idolCardId).push(entry);}
+    const units=cardMode?[...groups]:entries;
+    // 先按持有情况分组，再保留组内未达成优先顺序；必须在整卡分页之前排序。
+    if(cardMode&&view.achievementIncompleteFirst!==false)units.sort(([a],[b])=>Number(heldCards.get(b)?.ownership==='owned')-Number(heldCards.get(a)?.ownership==='owned'));
+    const capacity=cardMode?8:40,pages=Math.max(1,Math.ceil(units.length/capacity));view.page=Math.max(0,Math.min(view.page,pages-1));
+    list.className=cardMode?'achievement-card-groups':'inventory-list achievement-icon-catalog';
+    const nodes=units.slice(view.page*capacity,(view.page+1)*capacity).map(unit=>{
+      if(cardMode)return cardNode(...unit);
+      if(!entryNodes.has(unit.id))entryNodes.set(unit.id,achievementEntry(unit));return entryNodes.get(unit.id);
+    });
+    updateChildren(list,entries.length?nodes:[empty]);
+    pageButtons[0].disabled=view.page===0;pageButtons[1].disabled=view.page+1>=pages;pageLabel.textContent=`${view.page+1} / ${pages}`;
+    if(pages>1){if(pager.parentElement!==section)section.append(pager);}else pager.remove();
+  };
+  root.append(section);session.nav=nav;session.section=section;session.update=update;browserSessions.set(root,session);update();
 }

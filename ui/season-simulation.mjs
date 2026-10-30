@@ -7,7 +7,7 @@ import {updateMemoryPower} from '../domain/memory-power.mjs';
 import {memoryPower} from '../domain/catalog.mjs';
 import {contestExtraItemLimit} from '../domain/contest-item-rules.mjs';
 import {createContestOptimization} from './contest-optimization.mjs';
-import {cardConversionRules} from '../domain/card-conversions.mjs';
+import {cardConversionRules,resolveCardConversionPreferences} from '../domain/card-conversions.mjs';
 import {loadCardConversions,saveCardConversions} from '../application/card-conversion-preferences.mjs';
 import {openContestCardConversionSettings} from './contest-card-conversions.mjs';
 import {accountProducerLevel} from '../domain/catalog.mjs';
@@ -60,7 +60,7 @@ function pendingStageWorkspace(stage,initialState){
   return {element,capabilityPending:true,captureDraft:()=>null,captureState:()=>initialState??null,dispose(){},showTask(){},refreshConversions(){},restore:()=>false,useLoadout:()=>false,useMemory:()=>false};
 }
 
-export function createSeasonSimulation({profile,lifecycleId,memories,idolCards=[],supportCards,producerExp,initialState,onOpenMemory}){
+export function createSeasonSimulation({profile,lifecycleId,memories,idolCards=[],supportCards,producerExp,produceCardConversions,initialState,onOpenMemory}){
   const catalog=contestCatalog(),groups=contestSeasonGroups(catalog.choices),element=el('section','','season-simulation-dialog season-simulation-page');element.id='season-simulation-page';element.setAttribute('aria-label',t('赛季模拟'));
   if(!groups.length){element.append(el('p',t('当前资料尚未包含比赛配置，请更新资料后重试。')));return {element,dispose(){}};}
   const tabs=el('div','','season-stage-tabs'),content=el('section','','season-stage-content');tabs.setAttribute('role','tablist');tabs.setAttribute('aria-label',t('选择舞台'));content.id='season-stage-content';content.setAttribute('role','tabpanel');
@@ -69,7 +69,8 @@ export function createSeasonSimulation({profile,lifecycleId,memories,idolCards=[
   const recovery=el('section','','contest-draft-recovery small'),recoveryMessage=el('p'),recoveryHint=el('p',t('草稿仅保留本账号最近 5 条，30 天后过期。'),'muted'),recoveryList=el('div');recovery.setAttribute('aria-label',t('未完成配置草稿'));recoveryMessage.setAttribute('role','status');recovery.append(el('h2',t('未完成配置草稿')),recoveryHint,recoveryMessage,recoveryList);recovery.hidden=true;element.insertBefore(recovery,tabs);
   let disposed=false,pendingDrafts=[];const dirtyStages=new Set(initialState?.draftDirtyStages??[]),fingerprints=new Map(),revisions=new Map(),draftIds=new Map(),taskConfigurations=new Map(),timers=new Map();let currentStage=catalog.choices.find(stage=>stage.id===initialState?.stage?.id)??groups[0].stages[0],currentGroup;let userSelected=false,capabilitiesResolved=false,pendingMemory=initialState?.pendingMemory??null;
   const producerLevel=accountProducerLevel(producerExp);
-  let conversionPreferences=loadCardConversions(profile),conversionRules=cardConversionRules(contestCardConversions(),producerLevel,conversionPreferences);
+  const conversionBaseline=resolveCardConversionPreferences(contestCardConversions(),produceCardConversions);
+  let conversionOverrides=loadCardConversions(profile),conversionPreferences={...conversionBaseline,...conversionOverrides},conversionRules=cardConversionRules(contestCardConversions(),producerLevel,conversionPreferences);
   const getConversionRules=()=>conversionRules;
   function drawRecovery(){
     recoveryList.replaceChildren();recoveryHint.hidden=!pendingDrafts.length;recovery.hidden=!pendingDrafts.length&&!recoveryMessage.textContent;
@@ -109,8 +110,11 @@ export function createSeasonSimulation({profile,lifecycleId,memories,idolCards=[
   const configurationEvent=()=>queueDraft(currentStage.id);for(const type of ['input','change','click'])element.addEventListener(type,configurationEvent);
   void simulationDrafts(profile).then(entries=>{if(disposed)return;pendingDrafts=entries.filter(entry=>![...draftIds.values()].includes(entry.id));drawRecovery();}).catch(()=>{if(!disposed){recoveryMessage.textContent=t('未能读取配置草稿，请保留当前页面后重试。');recovery.hidden=false;}});
   function openConversions(){
-    openContestCardConversionSettings({choices:contestCustomizationCatalog().cards,level:producerLevel,preferences:conversionPreferences,onChange:next=>{
-      saveCardConversions(profile,next);conversionPreferences=next;conversionRules=cardConversionRules(contestCardConversions(),producerLevel,next);
+    openContestCardConversionSettings({choices:contestCustomizationCatalog().cards,level:producerLevel,preferences:conversionPreferences,capturedKnown:produceCardConversions!==undefined,onChange:(next,{beforeProduceCardId,version})=>{
+      // 只保存用户实际修改的配对；回到采集值时撤销该配对的本地覆盖。
+      const overrides={...conversionOverrides};
+      if(conversionBaseline[beforeProduceCardId]===version)delete overrides[beforeProduceCardId];else overrides[beforeProduceCardId]=version;
+      saveCardConversions(profile,overrides);conversionOverrides=overrides;conversionPreferences=next;conversionRules=cardConversionRules(contestCardConversions(),producerLevel,next);
       for(const workspace of workspaces.values())workspace.refreshConversions();
     }});
   }

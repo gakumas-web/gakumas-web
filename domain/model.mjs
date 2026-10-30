@@ -58,9 +58,18 @@ export function parseSnapshot(input) {
     format:x=>x===CAPTURE_FORMAT,schema_version:x=>x===CAPTURE_SCHEMA,source:x=>x==='user_get',
     captured_at: validCapturedAt, count: integer,
     producerExp:x=>Number.isSafeInteger(x)&&x>=0,
+    produceCardConversions:array(record),
     achievements: array(record),characters: array(record),supportCards: array(record), memories: array(record), idolCards: array(record), items: array(record), idolCardSkins: array(record),
   }, ['format','schema_version','source','publicUserId','captured_at','count','memories','idolCards','items','idolCardSkins','supportCards','achievements','characters']);
   if (result.count !== result.memories.length) throw new InputError();
+  if(result.produceCardConversions!==undefined){
+    const pairs=new Set(),schema={beforeProduceCardId:x=>typeof x==='string'&&x.length>0,afterProduceCardId:x=>typeof x==='string'&&x.length>0,enable:boolean};
+    result.produceCardConversions=result.produceCardConversions.map(value=>{
+      if(Object.keys(value).length!==3)throw new InputError();
+      const row=fields(value,schema,Object.keys(schema)),key=JSON.stringify([row.beforeProduceCardId,row.afterProduceCardId]);
+      if(pairs.has(key))throw new InputError();pairs.add(key);return row;
+    });
+  }
   const seen = new Set();
   result.memories = result.memories.map(inputMemory => {
     const m = fields(inputMemory, {...memorySchema,inheritCount:integer,isInUse:boolean}, Object.keys(memorySchema));

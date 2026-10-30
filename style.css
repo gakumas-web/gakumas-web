@@ -1671,7 +1671,7 @@ details[open]>summary.customization-heading>.customization-title::before{content
 
 /* ----- 普通回忆与选拔详情 ----- */
 /* 普通回忆以继承技能和培养能力为主，比赛配置按需展开。 */
-.compact-grid.memory-catalog{grid-template-columns:repeat(auto-fit,minmax(min(100%,360px),1fr));gap:var(--space-4);align-items:start}
+.compact-grid.memory-catalog{grid-template-columns:repeat(auto-fill,minmax(min(100%,360px),1fr));gap:var(--space-4);align-items:start}
 .compact-grid.memory-catalog .memory-card{--memory-art-width:64px;--memory-column-gap:12px;display:flex;flex-direction:column;align-items:stretch;gap:var(--space-3);min-width:0;padding:var(--panel-inset);border:1px solid var(--line);border-top:4px solid var(--character-color,var(--line));border-radius:var(--radius-card);background:var(--paper)}
 .compact-grid.memory-catalog .memory-card.selected{border-color:var(--accent);border-top-color:var(--character-color,var(--accent));background:#f7faff;box-shadow:0 0 0 1px var(--accent)}
 .memory-card-topline{display:flex;align-items:center;justify-content:space-between;gap:var(--space-2);min-width:0}
@@ -2009,6 +2009,16 @@ button.danger-confirm:hover:enabled{color:white;background:var(--danger-deep);bo
 .inline-tags .custom-tag{display:inline-flex;flex:0 1 auto}
 .inline-tags .edit-custom-tags:hover:enabled{background:#ffebc2;border-color:#b68a41}
 .custom-tag-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.inline-tag-editor{display:flex;flex-direction:column;flex:1 0 100%;box-sizing:border-box;min-width:0;max-width:100%;gap:var(--space-1);color:var(--ink);font-size:var(--text-xs);font-weight:400;line-height:16px;white-space:normal;text-align:left}
+.inline-tag-options{display:flex;flex-wrap:wrap;align-content:flex-start;gap:var(--space-1) 6px;max-height:180px;overflow:auto;scrollbar-width:thin;scrollbar-color:var(--line) transparent;padding:3px}
+.inline-tag-option{display:inline-flex;align-items:center;gap:var(--space-1);min-height:0;max-width:100%;margin:0;padding:2px 6px;border:1px solid var(--line);border-radius:4px;background:var(--paper);color:var(--muted);font-size:var(--text-xs);font-weight:400;line-height:16px;text-align:left;white-space:normal;overflow-wrap:anywhere}
+.inline-tag-option::before{content:"";flex:none;box-sizing:border-box;width:10px;height:10px;border:1px solid currentColor;border-radius:2px}
+.inline-tag-option[aria-pressed=true]{color:#805215;background:#fff4df;border-color:#d8b26b}
+.inline-tag-option[aria-pressed=true]::before{width:6px;height:9px;margin:0 2px;border:0;border-right:2px solid currentColor;border-bottom:2px solid currentColor;border-radius:0;transform:translateY(-2px) rotate(45deg)}
+.inline-tag-option:hover:enabled{border-color:#b68a41;background:#ffebc2;color:#805215}
+.inline-tag-empty[hidden],.inline-tag-error[hidden]{display:none}
+.inline-tag-empty{color:var(--muted);font-size:var(--text-label);font-weight:400;line-height:1.5}
+.inline-tag-error{color:var(--danger);font-size:var(--text-label);line-height:1.5}
 .tag-chip-remove,.tag-remove-confirm{flex:none;min-height:0;margin:0;padding:0 2px;border:0;border-radius:2px;background:transparent;color:inherit;font:inherit;line-height:inherit}
 .tag-chip-remove:hover:enabled,.tag-remove-confirm:hover:enabled{background:#f5dcab}
 .tag-chip-remove{display:inline-grid;place-items:center;box-sizing:border-box;width:12px;height:12px;padding:0;border:1px solid currentColor;border-radius:50%;font-size:var(--text-xs);line-height:1}
@@ -2026,6 +2036,7 @@ button.danger-confirm:hover:enabled{color:white;background:var(--danger-deep);bo
 /* 手机保留紧凑标签外观，同时给操作留出互不重叠的点击区域。 */
 @media(max-width:599px),(pointer:coarse){
   .inline-tags .custom-tag{min-height:34px;gap:var(--space-1)}
+  .inline-tag-option{min-height:34px;padding:var(--space-1) var(--space-2)}
   .inline-tags .edit-custom-tags{min-height:34px;padding:var(--space-1) var(--space-2)}
   .tag-chip-remove{position:relative;width:32px;height:32px;min-height:var(--control-height-compact);border:0;border-radius:4px;font-size:var(--text-label)}
   .tag-chip-remove::before{content:"";position:absolute;inset:9px;border:1px solid currentColor;border-radius:50%;pointer-events:none}
@@ -2103,6 +2114,10 @@ button.danger-confirm:hover:enabled{color:white;background:var(--danger-deep);bo
 .account-manager .account-directory-section,.account-manager .account-cleanup-section{display:flex;align-items:center;justify-content:space-between;gap:var(--space-5);margin-top:var(--space-5);padding:var(--space-4) 0 0;border-top:1px solid var(--line)}
 .account-manager .account-directory-section p,.account-manager .account-cleanup-section p{margin:5px 0 0;font-size:var(--text-label);line-height:1.7;max-width:390px}
 .account-directory-section>button,.account-cleanup-section>button{flex:none;font-size:var(--text-label);min-height:38px}
+.account-manager .account-tag-section{flex-wrap:wrap}
+.account-tag-actions{flex:none}
+.account-tag-actions>button{font-size:var(--text-label);min-height:38px}
+.account-tag-section>#custom-tag-export-status{flex-basis:100%;max-width:none}
 .account-manager .account-package-section{margin-top:var(--space-5);padding-top:var(--space-4);border-top:1px solid var(--line)}
 .account-cleanup-section h3{color:var(--danger)}
 .account-manager .data-status{border:0;margin-top:var(--space-5);padding:0;font-size:var(--text-sm);color:var(--muted)}
@@ -2142,6 +2157,7 @@ button.danger-confirm:hover:enabled{color:white;background:var(--danger-deep);bo
  .account-transfer-card h4{line-height:26px}
  .account-manager .account-directory-section,.account-manager .account-cleanup-section{display:block;margin-top:var(--space-4);padding-top:var(--space-4)}
  .account-directory-section>button,.account-cleanup-section>button{margin-top:10px;width:100%}
+ .account-tag-actions{margin-top:10px}.account-tag-actions>button{flex:1;min-height:40px}
  .account-section-heading{flex-wrap:wrap;gap:var(--space-1) var(--space-3)}
  .account-flow-dialog{width:calc(100vw - 16px);padding:var(--space-4);max-height:calc(100dvh - 16px)}
  .account-flow-dialog .package-summary{padding:var(--space-3)}

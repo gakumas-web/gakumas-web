@@ -5,6 +5,13 @@ export function conversionUnlocked(conversion,level){
 export function activeConversionCard(conversion,level,preferences={}){
   return conversionUnlocked(conversion,level)&&preferences[conversion.beforeProduceCardId]!=='before'?conversion.afterProduceCardId:conversion.beforeProduceCardId;
 }
+// 完整采集列表中未记录的配对使用原版；缺少整个列表仍表示未采集。
+export function resolveCardConversionPreferences(conversions,captured,overrides={}){
+  if(captured===undefined)return {...overrides};
+  const recorded=new Map(captured.map(row=>[JSON.stringify([row.beforeProduceCardId,row.afterProduceCardId]),row.enable]));
+  const baseline=Object.fromEntries(conversions.map(pair=>[pair.beforeProduceCardId,recorded.get(JSON.stringify([pair.beforeProduceCardId,pair.afterProduceCardId]))===true?'after':'before']));
+  return {...baseline,...overrides};
+}
 // 自选候选只受解锁等级限制；非当前版本仍可放入编组，由模拟阶段排除。
 export function conversionChoiceAvailable(choice,level){
   if(!choice.conversion)return !choice.isConversion;

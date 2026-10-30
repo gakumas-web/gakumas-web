@@ -12,6 +12,7 @@
 | [赛季模拟](contest-simulation.md) | 推荐、自定义推荐、自选模拟、统计、保存与引擎边界。 |
 | [内置预览](preview-account.md) | 体验入口、部署开关和样本保留边界。 |
 | [快照与账号数据包](snapshot-contract.md) | 导入格式、完整性、账号标识、P 等级和备份范围。 |
+| [自定义标签导出](custom-tag-export.md) | 导出已标记普通回忆和选拔回忆的稳定标识与全部自定义标签。 |
 
 ## 内容与图片
 
@@ -27,7 +28,7 @@
 | --- | --- |
 | [开发与发布维护](maintenance.md) | 项目边界、模块分层、账号生命周期、任务控制器、验证选择和交付顺序。 |
 | [CSS 可复用规范](css-conventions.md) | 公共令牌、组件 class、状态语义、响应式和层级边界。 |
-| [GitHub Pages](github-pages.md) | 工作流开关、固定内容来源、基础图片缓存、部署身份核对。 |
+| [GitHub Pages](github-pages.md) | 工作流开关、CNB 公开来源核验、基础图片缓存、GitHub 部署身份核对。 |
 | [Windows 便携版](portable-release.md) | 制品、公开 Release、同提交复用和启动器验证。 |
 | [加载与浏览器验证](loading-validation.md) | 当前加载实现、账号与任务回归入口、网络边界和性能测量口径。 |
 | [模拟引擎审计](contest-engine-audit.md) | 实际交付站点的完整候选池审计与支持范围基准。 |

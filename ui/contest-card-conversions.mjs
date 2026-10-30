@@ -8,7 +8,7 @@ import {choiceFilterIcons} from './choice-filter-icons.mjs';
 import {activeConversionCard,conversionUnlocked} from '../domain/card-conversions.mjs';
 
 let dialog;
-export function openContestCardConversionSettings({choices,level,preferences,onChange}){
+export function openContestCardConversionSettings({choices,level,preferences,capturedKnown=false,onChange}){
   if(!dialog){dialog=el('dialog','','contest-conversion-dialog');dialog.id='contest-card-conversion-dialog';dialog.setAttribute('aria-labelledby','contest-card-conversion-title');dialog.addEventListener('close',closeRewardPopover);document.body.append(dialog);}
   const head=el('div','','dialog-head'),title=el('h2',t('技能卡转换状态')),close=el('button',t('关闭'));
   title.id='contest-card-conversion-title';close.onclick=()=>dialog.close();head.append(title,close);
@@ -16,7 +16,7 @@ export function openContestCardConversionSettings({choices,level,preferences,onC
   const pairs=new Map(choices.filter(choice=>choice.conversion).map(choice=>[choice.conversion.beforeProduceCardId,choice.conversion]));
   const byId=new Map(choices.map(choice=>[choice.id,choice]));
   const panel=el('section','','contest-card-conversions');
-  panel.append(el('p',t('所有舞台的自选和推荐模拟共用此设置，解锁后默认启用转换版。已有回忆中的非当前版本，在实际比赛中视为空技能卡槽位。'),'small muted'));
+  panel.append(el('p',t(capturedKnown?'默认采用采集的游戏转换设置，手动选择仅在本站生效。':'尚未采集游戏转换设置，解锁后默认启用转换版，可手动调整。')+t('所有舞台共用此设置，已有回忆中的非当前版本在实际比赛中视为空技能卡槽位。'),'small muted'));
   const list=el('div','','contest-card-conversion-list');panel.append(list);
   const filters=el('div','','contest-conversion-filters contest-memory-plan-flows contest-item-filters'),plan=el('select');plan.id='contest-conversion-plan';
   plan.append(new Option(t('全部'),''));
@@ -34,7 +34,7 @@ export function openContestCardConversionSettings({choices,level,preferences,onC
 
   function drawRows(){
     closeRewardPopover();list.replaceChildren();
-    for(const pair of pairs.values()){
+    for(const pair of [...pairs.values()].sort((a,b)=>a.unlockProducerLevel-b.unlockProducerLevel)){
       const before=byId.get(pair.beforeProduceCardId),after=byId.get(pair.afterProduceCardId),unlocked=conversionUnlocked(pair,level);
       const row=el('section','','contest-card-conversion'),heading=el('div','','contest-conversion-heading'),name=el('h3',after.name),symbol=filterSymbol(after.metadata.plan);
       row.dataset.conversionId=pair.beforeProduceCardId;row.dataset.plan=after.metadata.plan;row.setAttribute('role','group');row.setAttribute('aria-label',`${before.name} → ${after.name}`);
@@ -58,7 +58,7 @@ export function openContestCardConversionSettings({choices,level,preferences,onC
         input.onchange=()=>{
           if(!input.checked)return;
           const next={...preferences,[pair.beforeProduceCardId]:version};
-          try{onChange(next);preferences=next;error.hidden=true;}
+          try{onChange(next,{beforeProduceCardId:pair.beforeProduceCardId,version});preferences=next;error.hidden=true;}
           catch{error.textContent=t('版本设置保存失败，请检查浏览器存储。');error.hidden=false;}
           sync();
         };

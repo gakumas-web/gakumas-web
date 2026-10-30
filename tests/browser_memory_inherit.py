@@ -74,6 +74,21 @@ def check(url):
                 row.locator('.memory-detail-open').click()
                 check_badges(page.locator('#detail-content'), count, used, in_use, protected)
                 page.locator('#close-detail').click()
+        # 新开关默认关闭；隐藏明确使用中的卡片，未知状态继续显示。
+        hidden_in_use = page.locator('#memory-hide-in-use')
+        expect(hidden_in_use).not_to_be_checked()
+        assert page.locator('#memory-modes label').first.locator('input').get_attribute('id') == 'memory-hide-in-use'
+        hidden_in_use.check()
+        expect(page.locator('#list .memory-row')).to_have_count(2)
+        expect(page.locator('#list .badge.in-use')).to_have_count(0)
+        page.locator('#memory-locked-only').check()
+        expect(page.locator('#list .memory-row')).to_have_count(1)
+        page.locator('#memory-locked-only').uncheck()
+        page.reload(wait_until='networkidle')
+        expect(hidden_in_use).to_be_checked()
+        expect(page.locator('#list .memory-row')).to_have_count(2)
+        hidden_in_use.uncheck()
+        expect(page.locator('#list .memory-row')).to_have_count(4)
         for width in [1280, 375]:
             page.set_viewport_size({'width': width, 'height': 1000})
             assert page.evaluate('document.documentElement.scrollWidth <= innerWidth')

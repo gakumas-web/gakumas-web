@@ -127,6 +127,7 @@ export function filterMemories(snapshot,v,groups,tagFor=()=>[]){
     if(!abilityGroups.every(group=>group.some(id=>heldAbilities.has(id))))return false;
     if(!matchesExamChoices(v.memoryExamSkill,(m.examBattleProduceCards??[]).map(selectionSkillKey),v.memoryExamSkillAll)||!matchesExamChoices(v.memoryExamItem,m.examBattleProduceItemIds??[],v.memoryExamItemAll))return false;
     if(!matchesAny(v.character,[m.characterId]))return false;
+    if(v.hideInUse&&m.isInUse===true)return false;
     if(v.protection==='protected'&&m.isProtected!==true)return false;
     if(!query||m.key===query)return true;
     const summary=summaryText(m);
