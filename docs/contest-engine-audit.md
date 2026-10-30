@@ -10,10 +10,10 @@
 2. 对实际交付目录执行审计：
 
    ```sh
-   npm run audit:engine -- --site dist --baseline tools/contest-engine-compatibility-baseline.json --report local/contest-engine-audit.json
+   npm run audit:engine -- --site dist --baseline-snapshot local/contest-baseline/baseline.json --baseline tools/contest-engine-compatibility-baseline.json --report local/contest-engine-audit.json
    ```
 
-3. 检查报告中的 `newUnsupported`、`resolved` 和 `stageChecks`。新增不支持项或同一不支持项的公开定义变化会返回非零退出码；最新赛季的三个舞台还须通过实际倍率计算与参考属性反推。缺失舞台参考、回合不一致、内容哈希错误、程序缺失或审计失败同样阻止发布。
+3. 检查报告中的 `candidatePoolChecked`、`newUnsupported`、`stageChecks` 和 `pendingStages`。全部技能卡、附魔与 P 道具始终完成真实审计。新舞台明确缺少参考或引擎记录时仅将模拟标为待补，允许基础资料正常发布；已就绪舞台不得降级为待补。定义变化、新增不支持项、回合或规则不一致、内容哈希错误、程序缺失及真实执行失败仍阻止发布。
 4. 修复可证明等价的映射后重新审计。确实未实现的效果继续排除，并在人工核对支持范围后显式更新基准：
 
    ```sh
@@ -26,6 +26,10 @@
 
 ## 浏览器运行时
 
+界面只加载由固定来源生成的轻量能力索引；11 字段投影不依赖引擎 bundle。正常构建和引擎更新同步生成该索引，正式 Worker 与审计器再逐项核对真实 registry 和 map，索引过期或漏项仍会阻止计算。
+
+舞台选择保留 raw 参数与规则。缺模拟参考或引擎记录时显示“模拟资料待补充”，不创建模拟、推荐或倍率计算任务，也不启动该舞台的草稿配置；首次默认选择最新可用舞台，已经选择的舞台与草稿不自动切换。赛期未知只显示未收录，不影响数值模拟。参考或引擎后补后，正式能力校验通过即可启用，无需制造空的数据更新。
+
 自定义推荐打开时对当前账号、舞台对应的候选池执行同一套正式 Worker 校验，完成前禁止开始搜索。不支持的技能版本、附魔项目与 P 道具不再作为可选候选，支持／排除计数和清单仅供内部检查，不显示在配置界面。
 
 已经固定的不支持配置保留在表单中并明确提示，不静默替换或丢弃。搜索提交后再次校验固定技能、附魔、P 道具和公共卡组，失败发生在评分前；自动候选继续按支持结果过滤。审计只证明定义和映射的支持情况，不代替回忆评级、持有解锁、容量和附魔组合合法性校验，也不保证推荐分数最优。
@@ -33,6 +37,8 @@
 引擎署名直接读取生成映射的来源提交，并链接到对应提交，不另行维护可能漂移的版本文字。
 
 ## 配套引擎自动更新
+
+Pages 在构建或复用制品前冻结当时已部署的 release、内容清单、原始 progression/effects、旧目录投影和引擎/map，验证各自哈希并在捕获结束时重新核对版本。`update` 与最终审计共用同一份 `--baseline-snapshot`，不得用当前候选反算旧能力；网络、混装或校验错误不能退化为空基线。只有显式首次部署且程序与频道均真实 404 时才允许空基线。
 
 公共资料同步工作流同时检查 GakumasTools 引擎版本。即使内容版本未变，只要引擎运行输入发生变化，也会触发 Pages 构建。检测时固定提交与核对报告，构建时读取同一份 `engine-update.json`；不在下载与打包之间跟随可变的 HEAD。
 
@@ -50,6 +56,7 @@
 
 ```sh
 python3 -B tools/update_contest_engine.py --site local/ui-visual-refinement/dist \
+  --baseline-snapshot local/contest-baseline/baseline.json \
   --esbuild <固定版本的esbuild路径> --output local/engine-update-candidate
 ```
 
@@ -69,8 +76,8 @@ python3 -B tools/update_contest_engine.py --site local/ui-visual-refinement/dist
 
 ## 数据候选的独立审计入口
 
-`tools/audit_contest_candidate.py` 接收数据项目导出的候选与基线五个业务分包及 `review-manifest.json`，校验内容哈希后，以指定的引擎提交生成程序并运行完整候选池审计。目标包含最新赛季所有舞台、新增或定义变化的舞台；舞台定义包含递归解析的隐藏物品和效果等依赖，因此依赖变化也会纳入受影响的历史舞台。删除舞台、缺失参考、未知或新增不支持机制均不能当作通过。
+`tools/audit_contest_candidate.py` 接收数据项目导出的候选与基线五个业务分包及 `review-manifest.json`，校验内容哈希后，以指定的引擎提交生成程序并运行完整候选池审计。目标包含最新赛季所有舞台、新增或定义变化的舞台；舞台定义包含递归解析的隐藏物品和效果等依赖，因此依赖变化也会纳入受影响的历史舞台。目标还包括新近可用舞台与固定基线最近可用赛季的完整保护范围。删除舞台、未知或新增不支持机制均不能当作通过；明确缺输入的新舞台保留为待补，不阻止基础资料发布。
 
-数据侧通过固定的公开 Web 提交调用该入口，参数为 `--candidate-content`、`--baseline-content`、`--engine-commit`、`--auditor-commit`、`--esbuild` 和 `--output`，均为必填；输出目录须不存在且不能与输入重叠。报告 `contest-engine-audit-report.json` 记录输入清单哈希、审计器代码身份、引擎锁、支持范围基准和逐舞台结果；退出码 `0`、`2`、`1` 分别表示 `passed`、`waiting`、`blocked`。本地工作树审计身份为 `local_validation` 时，仅供验证，不能满足数据自动合并所需的 `verified_commit`。
+数据侧通过固定的公开 Web 提交调用该入口，参数为 `--candidate-content`、`--baseline-content`、`--engine-commit`、`--auditor-commit`、`--esbuild` 和 `--output`，均为必填；输出目录须不存在且不能与输入重叠。报告 `contest-engine-audit-report.json` 记录输入清单哈希、审计器代码身份、引擎锁、支持范围基准和逐舞台结果；`passed` 与 `partial` 退出码均为 `0`；`waiting` 为 `2`，`blocked` 为 `1`。`partial` 必须完整检查候选池，执行舞台与待补舞台无交集且精确覆盖全部目标；报告绑定基线程序的锁、registry 与映射身份。只有明确缺少参考或引擎记录能标为待补，日期缺失独立显示为未收录。本地工作树审计身份为 `local_validation` 时，仅供验证，不能满足数据自动合并所需的 `verified_commit`。
 
 启用数据侧自动流程前，应先将此审计入口及其依赖提交到可匿名读取的 Web `main`，再提交并启用数据侧配置。这里描述源码能力，不表示远程流程或站点已经发布。

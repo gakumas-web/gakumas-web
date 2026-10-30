@@ -1,3 +1,4 @@
+import {contestStageCapability} from '../domain/contest-stage-capability.mjs';
 import {appendContestCriteria} from './contest-criteria.mjs';
 import {el} from './dom.mjs';
 import {filterTitle} from './filter-field.mjs';
@@ -37,6 +38,7 @@ export function createContestSeasonPicker(groups,onSelect){
       option.append(heading);
       for(const stage of group.stages){
         const row=el('span','','season-picker-stage'),allocation=el('span','','season-picker-allocation');row.append(el('span',t('{0} 回合',[stage.turn]),'season-picker-turns'),allocation);
+        if(contestStageCapability(stage).state==='pending')allocation.append(el('small',t('模拟资料待补充')+' · ','muted'));
         if(stage.criteria)appendContestCriteria(allocation,stage.criteria);
         else allocation.append(el('span',t('属性分配未收录'),'small muted'));
         option.append(row);

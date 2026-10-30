@@ -11,12 +11,13 @@ import sys
 from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 from contest_engine_tables import parse_csv
+from contest_baseline_contract import read_baseline_snapshot
 
 ROOT=Path(__file__).resolve().parents[1]
 REPOSITORY='https://github.com/gakumas-tools/gakumas-tools.git'
 LOCK=ROOT/'tools/contest-engine-source.json'
 RECORD_TABLES={f'packages/gakumas-data/json/{name}.json' for name in ['skill_cards','p_items','p_idols','stages']}
-OUTPUTS=['tools/contest-engine-source.json','tools/contest-engine-reviewed-mappings.json','tools/contest-status-effects.json','domain/upstream-contest-engine.mjs','domain/contest-engine-map.mjs','THIRD_PARTY.md']
+OUTPUTS=['tools/contest-engine-source.json','tools/contest-engine-reviewed-mappings.json','tools/contest-status-effects.json','domain/upstream-contest-engine.mjs','domain/contest-engine-map.mjs','domain/contest-stage-index.mjs','THIRD_PARTY.md']
 
 
 def sha(raw):return hashlib.sha256(raw).hexdigest()
@@ -141,7 +142,9 @@ def site_content(site):
     return manifest,release.parent/'effects.json'
 
 
-def update(site,output,esbuild,plan=None,apply=False):
+def update(site,output,esbuild,plan=None,apply=False,baseline_snapshot=None):
+    if baseline_snapshot is None:raise ValueError('需要冻结的已部署模拟基线 --baseline-snapshot')
+    baseline_snapshot=Path(baseline_snapshot).resolve();baseline_bytes=baseline_snapshot.read_bytes();baseline=read_baseline_snapshot(baseline_snapshot)
     manifest,effects=site_content(site);master=read(effects);output=Path(output);output.mkdir(parents=True,exist_ok=True)
     # 检测阶段的固定提交在构建阶段再次核对，不在两次读取之间改用新的 HEAD。
     if plan is None:
@@ -153,7 +156,7 @@ def update(site,output,esbuild,plan=None,apply=False):
     mapping=(ROOT/'domain/contest-engine-map.mjs').read_text().split('export const contestEngineMap=',1)[1].strip().removesuffix(';')
     current=json.loads(mapping)['source']
     if current['commit']==plan['selected_commit'] and current['effectsSha256']==sha(effects.read_bytes()):
-        report={'updated':False,'plan':plan};write(output/'report.json',report);return report
+        report={'updated':False,'plan':plan,'baseline_snapshot_sha256':sha(baseline_bytes),'deployedBaseline':baseline};write(output/'report.json',report);return report
     candidate=output/'candidate'
     if candidate.exists():raise ValueError('引擎候选目录已存在，请使用新的输出目录')
     candidate.mkdir();(candidate/'local').mkdir();(candidate/'tools').mkdir()
@@ -169,18 +172,19 @@ def update(site,output,esbuild,plan=None,apply=False):
     attribution=(candidate/'THIRD_PARTY.md').read_text().replace(plan['repository_base_commit'],plan['selected_commit']);(candidate/'THIRD_PARTY.md').write_text(attribution)
     subprocess.run([sys.executable,'-B',str(candidate/'tools/build_contest_engine.py'),'--source',str(source.resolve()),'--effects',str(effects),'--esbuild',str(Path(esbuild).resolve()),'--report',str((output/'build.json').resolve())],check=True)
     subprocess.run(['node','--test','tests/contest-engine.test.mjs','tests/contest-reviewed-mappings.test.mjs'],cwd=candidate,check=True)
-    subprocess.run(['node',str(ROOT/'tools/audit_contest_engine.mjs'),'--site',str(Path(site).resolve()),'--program',str(candidate.resolve()),'--baseline',str(ROOT/'tools/contest-engine-compatibility-baseline.json'),'--report',str((output/'audit.json').resolve())],check=True)
+    subprocess.run(['node',str(ROOT/'tools/audit_contest_engine.mjs'),'--site',str(Path(site).resolve()),'--program',str(candidate.resolve()),'--baseline-snapshot',str(baseline_snapshot),'--baseline',str(ROOT/'tools/contest-engine-compatibility-baseline.json'),'--report',str((output/'audit.json').resolve())],check=True)
+    if baseline_snapshot.read_bytes()!=baseline_bytes:raise ValueError('已部署模拟基线在验证期间发生变化')
     changed=[name for name in OUTPUTS if (ROOT/name).read_bytes()!=(candidate/name).read_bytes()]
-    report={'updated':bool(changed),'applied':apply,'files':changed,'plan':plan};write(output/'report.json',report)
+    report={'updated':bool(changed),'applied':apply,'files':changed,'plan':plan,'baseline_snapshot_sha256':sha(baseline_bytes),'deployedBaseline':baseline};write(output/'report.json',report)
     if apply:
         for name in changed:shutil.copyfile(candidate/name,ROOT/name)
     return report
 
 
 def main():
-    parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--site',type=Path);parser.add_argument('--output',type=Path,default=ROOT/'local/engine-update');parser.add_argument('--esbuild',type=Path);parser.add_argument('--plan',type=Path);parser.add_argument('--apply',action='store_true');args=parser.parse_args()
+    parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--site',type=Path);parser.add_argument('--output',type=Path,default=ROOT/'local/engine-update');parser.add_argument('--esbuild',type=Path);parser.add_argument('--plan',type=Path);parser.add_argument('--apply',action='store_true');parser.add_argument('--baseline-snapshot',type=Path,required=True);args=parser.parse_args()
     if not args.site or not args.esbuild:parser.error('更新必须提供 --site 和 --esbuild')
-    report=update(args.site,args.output,args.esbuild,read(args.plan) if args.plan else None,args.apply)
+    report=update(args.site,args.output,args.esbuild,read(args.plan) if args.plan else None,args.apply,args.baseline_snapshot)
     if os.environ.get('GITHUB_OUTPUT'):
         with open(os.environ['GITHUB_OUTPUT'],'a') as stream:stream.write('updated='+str(report['updated']).lower()+'\n')
     print(json.dumps({'updated':report['updated'],'status':report['plan']['status'],'commit':report['plan']['selected_commit']},ensure_ascii=False))

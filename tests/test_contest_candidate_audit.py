@@ -45,7 +45,7 @@ def audit_result(ids, *, failures=None, unsupported=0):
     failures = failures or {}
     checks = [{'id': id, 'supported': id not in failures,
                **({'reason': failures[id]} if id in failures else {})} for id in ids]
-    return {'format': 1, 'stageChecks': checks,
+    return {'format': 1, 'candidatePoolChecked': True, 'pendingStages': [], 'stageChecks': checks,
             'summary': {'total': 3, 'supported': 3 - unsupported, 'unsupported': unsupported,
                         'newUnsupported': unsupported, 'resolved': 0, 'stageFailures': len(failures)},
             'newUnsupported': [{} for _ in range(unsupported)]}
@@ -125,10 +125,25 @@ class StageScopeTest(unittest.TestCase):
             'contest:pvp_rate_config-1:0', 'contest:pvp_rate_config-4:0', 'contest:pvp_rate_config-4:1'])
         self.assertEqual(audit.expected_stage_ids(baseline, baseline), [
             'contest:pvp_rate_config-3:0', 'contest:pvp_rate_config-3:1'])
+        baseline[2]['capability'] = {'state': 'ready'}
+        baseline[3]['capability'] = {'state': 'ready'}
+        guarded = audit.expected_stage_ids(candidate, baseline)
+        self.assertIn('contest:pvp_rate_config-3:0', guarded)
+        self.assertIn('contest:pvp_rate_config-3:1', guarded)
         with self.assertRaisesRegex(audit.AuditError, 'stage_deleted'):
             audit.expected_stage_ids(baseline[1:], baseline)
         with self.assertRaisesRegex(audit.AuditError, 'stage_catalog_invalid'):
             audit.expected_stage_ids([projected(3), projected(3)], baseline)
+
+    def test_old_ready_loss_is_always_included_outside_latest_guard(self):
+        old, guard, latest = (f'contest:pvp_rate_config-{season}:0' for season in (53, 54, 55))
+        expected, newly = audit.updated_stage_ids([guard, latest], [
+            {'id': old, 'capability': {'state': 'pending'}},
+            {'id': guard, 'capability': {'state': 'ready'}},
+            {'id': latest, 'capability': {'state': 'pending'}},
+        ], [old, guard])
+        self.assertEqual(expected, [old, guard, latest])
+        self.assertEqual(newly, [])
 
     def test_missing_source_is_proved_by_real_csv_and_does_not_mask_audit_failures(self):
         expected = ['contest:pvp_rate_config-54:0', 'contest:pvp_rate_config-55:0']
@@ -140,14 +155,17 @@ class StageScopeTest(unittest.TestCase):
             (directory / 'stages.csv').write_text(header + '1,contest,sense,54,1,,"0.3,0.3,0.4","3,3,4","0,0,1",,\n')
             missing = audit.missing_engine_stages(source, expected)
             self.assertEqual(missing, [expected[1]])
-            waiting = audit_result(expected, failures={expected[1]: 'stage_reference_mismatch'})
-            self.assertEqual(audit.check_audit_result(waiting, expected, missing, 1), 'waiting')
-            with self.assertRaisesRegex(audit.AuditError, 'stage_audit_failed'):
-                audit.check_audit_result(waiting, expected, [], 1)
+            waiting = audit_result(expected[:1])
+            waiting['pendingStages'] = [{'id': expected[1], 'reasons': ['missing_stage_reference', 'missing_engine_stage']}]
+            self.assertEqual(audit.check_audit_result(waiting, expected, missing, 0), 'partial')
+            with self.assertRaisesRegex(audit.AuditError, 'engine_stage_proof_mismatch'):
+                audit.check_audit_result(waiting, expected, [], 0)
+            with self.assertRaisesRegex(audit.AuditError, 'ready_stage_regressed'):
+                audit.check_audit_result(waiting, expected, missing, 0, baseline_ready_ids=[expected[1]])
             waiting['summary']['newUnsupported'] = 1; waiting['summary']['unsupported'] = 1
             waiting['summary']['supported'] = 2; waiting['newUnsupported'] = [{}]
             with self.assertRaisesRegex(audit.AuditError, 'new_unsupported_candidates'):
-                audit.check_audit_result(waiting, expected, missing, 1)
+                audit.check_audit_result(waiting, expected, missing, 0)
             (directory / 'stages.csv').write_text('id,type,season,stage\n1,contest,no-number,1\n')
             with self.assertRaisesRegex(audit.AuditError, 'engine_stages_invalid'):
                 audit.missing_engine_stages(source, expected)
@@ -159,9 +177,11 @@ class StageScopeTest(unittest.TestCase):
         for checks in [passed['stageChecks'][:1], [passed['stageChecks'][0]] * 2, []]:
             with self.subTest(checks=checks), self.assertRaisesRegex(audit.AuditError, 'stage_coverage_mismatch'):
                 audit.check_audit_result({**passed, 'stageChecks': checks}, ids, [], 0)
+        with self.assertRaisesRegex(audit.AuditError, 'audit_report_invalid'):
+            audit.check_audit_result({**passed, 'candidatePoolChecked': False}, ids, [], 0)
         failed = audit_result(ids, failures={ids[0]: 'invalid_stage_parameters'})
         with self.assertRaisesRegex(audit.AuditError, 'stage_audit_failed'):
-            audit.check_audit_result(failed, ids, [ids[0]], 1)
+            audit.check_audit_result(failed, ids, [], 1)
         with self.assertRaisesRegex(audit.AuditError, 'audit_failed'):
             audit.check_audit_result(passed, ids, [], 1)
 
@@ -242,6 +262,7 @@ class ProductionStageRangeTest(unittest.TestCase):
             base = Path(temporary)
             inputs = base / 'inputs'; content(inputs)
             parts = {name: json.loads((inputs / (name + '.json')).read_bytes()) for name in audit.SCOPES}
+            parts['effects']['tables']['ProduceCard'] = [fixture['requests'][0]['cards'][0]['record']]
             parts['progression']['contests'] = {'tables': {
                 'PvpRateConfig': [{'id': 'pvp_rate_config-53', 'examSettingId': 'fixture',
                                   'stages': [{'turn': sum(row['turnCounts'].values()), 'produceItemIds': []} for row in presets]},
@@ -261,6 +282,33 @@ class ProductionStageRangeTest(unittest.TestCase):
             actual = json.loads(report.read_bytes())
             self.assertEqual([row['id'] for row in actual['stageChecks']], ids)
             self.assertEqual(actual['summary']['stageFailures'], 0)
+            self.assertIs(actual['candidatePoolChecked'], True)
+            self.assertGreater(actual['summary']['total'], 0)
+            audit.write_json(scope, ['contest:pvp_rate_config-999:0'])
+            pending = subprocess.run(command, capture_output=True)
+            self.assertEqual(pending.returncode, 0, pending.stderr.decode())
+            pending_report = json.loads(report.read_bytes())
+            self.assertEqual(pending_report['state'], 'partial')
+            self.assertIs(pending_report['candidatePoolChecked'], True)
+            self.assertEqual(pending_report['stageChecks'], [])
+            self.assertEqual(pending_report['pendingStages'], [{'id': 'contest:pvp_rate_config-999:0', 'reasons': ['missing_stage_reference', 'missing_engine_stage']}])
+            self.assertEqual(pending_report['summary']['total'], actual['summary']['total'])
+            guarded = base / 'baseline-ready.json'
+            audit.write_json(guarded, ['contest:pvp_rate_config-999:0'])
+            regressed = subprocess.run(command + ['--baseline-ready-ids', str(guarded)], capture_output=True)
+            self.assertEqual(regressed.returncode, 1)
+            self.assertEqual(json.loads(report.read_bytes())['stageChecks'][0]['reason'], 'ready_stage_regressed')
+            # 旧舞台在显式范围以外失去指纹匹配时，必须阻止遗漏而非只检查最新舞台。
+            broken = copy.deepcopy(parts)
+            broken['progression']['contests']['stagePresets'][0]['criteria']['vocal'] += 0.01
+            broken_files = {name + '.json': audit.canonical(value) for name, value in broken.items()}
+            broken_site = audit._site({'files': broken_files, 'manifest': {'files': {
+                name: {'sha256': audit.sha(raw)} for name, raw in broken_files.items()}}}, base / 'regression')
+            audit.write_json(guarded, [ids[0]])
+            broken_command = command.copy(); broken_command[broken_command.index('--site') + 1] = str(broken_site)
+            lost = subprocess.run(broken_command + ['--baseline-ready-ids', str(guarded)], capture_output=True)
+            self.assertNotEqual(lost.returncode, 0)
+            self.assertIn('遗漏已可用舞台', lost.stderr.decode())
             for selected in [[], ids + [ids[0]], ['contest:pvp_rate_config-1000:0']]:
                 audit.write_json(scope, selected)
                 failed = subprocess.run(command, capture_output=True)

@@ -1,3 +1,4 @@
+import {verifyEngineStageCapability as verifyContestStageCapability} from './contest-stage-engine-capability.mjs';
 import {CONTEST_PARAMETER_TARGETS} from './contest-parameter-targets.mjs';
 import {IdolConfig,StageConfig,IdolStageConfig,StageEngine,StagePlayer,STRATEGIES,resetRand,S,SkillCards,PItems,Customizations,Stages} from './upstream-contest-engine.mjs';
 import {generatedSkillReference} from './contest-engine-display.mjs';
@@ -54,8 +55,9 @@ export async function validateContestOptimizationOptions(options,onProgress=()=>
 }
 
 export async function previewContestMultipliers(request){
-  const preset=request.stage.preset,source=preset&&Stages.getById(preset.id);
-  if(!source||request.stage.custom||source.type==='linkContest'||request.stage.kind!==source.type||await fingerprint(preset)!==contestEngineMap.stages[preset.id])throw new ContestSimulationError('unsupported_stage');
+  const capability=await verifyContestStageCapability(request.stage);
+  if(capability.state!=='ready')throw new ContestSimulationError(capability.code??'unsupported_stage');
+  const preset=request.stage.preset,source=Stages.getById(preset.id);
   if(request.manualMultipliers)return Object.fromEntries(['vocal','dance','visual'].map(key=>[key,Number.isFinite(request.manualMultipliers[key])&&request.manualMultipliers[key]>=0?request.manualMultipliers[key]/100:null]));
   if(!Number.isFinite(request.supportBonus)||request.supportBonus<0)throw new ContestSimulationError('missing_support_bonus');
   const keys=['vocal','dance','visual'],valid=key=>Number.isSafeInteger(request.params[key])&&request.params[key]>=0;
@@ -87,8 +89,9 @@ export async function suggestContestParameters(request){
 export async function prepareContestSimulation(request){
   if(!['sense','logic','anomaly'].includes(request.plan)||!['vocal','dance','visual','stamina'].every(key=>Number.isFinite(request.params[key])&&request.params[key]>=0)||request.params.stamina<=0||!request.cards.length)throw new ContestSimulationError('invalid_loadout');
   if(!Number.isFinite(request.supportBonus)||request.supportBonus<0)throw new ContestSimulationError('missing_support_bonus');
-  const preset=request.stage.preset,source=preset&&Stages.getById(preset.id);
-  if(!source||request.stage.custom||source.type==='linkContest'||request.stage.kind!==source.type||await fingerprint(preset)!==contestEngineMap.stages[preset.id]||request.stage.turn!==Object.values(source.turnCounts).reduce((sum,value)=>sum+value,0))throw new ContestSimulationError('unsupported_stage');
+  const capability=await verifyContestStageCapability(request.stage);
+  if(capability.state!=='ready')throw new ContestSimulationError(capability.code??'unsupported_stage');
+  const preset=request.stage.preset,source=Stages.getById(preset.id);
   if(source.plan!=='free'&&source.plan!==request.plan)throw new ContestSimulationError('invalid_loadout');
   if(request.stage.setting&&[['handLimit',5],['holdLimit',2],['turnStartDistribute',3],['examTurnEndRecoveryStamina',2]].some(([key,value])=>request.stage.setting[key]!==value))throw new ContestSimulationError('unsupported_stage_rules');
   if(request.manualMultipliers&&!['vocal','dance','visual'].every(key=>Number.isFinite(request.manualMultipliers[key])&&request.manualMultipliers[key]>=0))throw new ContestSimulationError('missing_manual_multipliers');

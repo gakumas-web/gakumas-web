@@ -24,7 +24,7 @@ TOOLS = ('audit_contest_candidate.py', 'audit_contest_engine.mjs', 'build_contes
          'update_contest_engine.py', 'contest_engine_tables.py', 'contest_status_effects.py',
          'contest-engine-source.json', 'contest-engine-reviewed-mappings.json',
          'contest-status-effects.json', 'contest-engine-compatibility-baseline.json',
-         'content_contract.py', 'image_delivery.py', 'reference_contract.py')
+         'content_contract.py', 'image_delivery.py', 'reference_contract.py', 'contest_baseline_contract.py')
 PROGRAM_FILES = ('resources.mjs', 'image-config.mjs', 'i18n.mjs', 'THIRD_PARTY.md')
 REGRESSIONS = ('contest-engine.test.mjs', 'contest-reviewed-mappings.test.mjs')
 
@@ -153,6 +153,7 @@ import fs from 'node:fs/promises';
 import {pathToFileURL} from 'node:url';
 const [program,candidate,baseline,output]=process.argv.slice(2);
 const {createContestCatalog}=await import(pathToFileURL(program+'/domain/contest-simulation.mjs'));
+const {verifyEngineStageCapability:verifyContestStageCapability}=await import(pathToFileURL(program+'/domain/contest-stage-engine-capability.mjs'));
 const read=async path=>JSON.parse(await fs.readFile(path,'utf8'));
 const strings=value=>typeof value==='string'?[value]:Array.isArray(value)?value.flatMap(strings):value&&typeof value==='object'?Object.values(value).flatMap(strings):[];
 const project=async directory=>{
@@ -167,14 +168,14 @@ const project=async directory=>{
    const item={table,definition},group=index.get(row.id)??[];group.push(item);index.set(row.id,group);
   }
  }
- return choices.map(stage=>{
+ return Promise.all(choices.map(async stage=>{
   const {season,...value}=stage;
   if(value.preset){const {name,...preset}=value.preset;value.preset=preset;}
   const queue=strings(value),seen=new Set(),dependencies=[];
   while(queue.length){const id=queue.pop();if(seen.has(id))continue;seen.add(id);for(const row of index.get(id)??[]){dependencies.push(row);queue.push(...strings(row.definition));}}
   dependencies.sort((a,b)=>JSON.stringify(a).localeCompare(JSON.stringify(b)));
-  return {id:stage.id,season:stage.seasonNumber,preset:stage.preset??null,definition:{stage:value,dependencies}};
- });
+  return {id:stage.id,season:stage.seasonNumber,preset:stage.preset??null,capability:await verifyContestStageCapability(stage),definition:{stage:value,dependencies}};
+ }));
 };
 await fs.writeFile(output,JSON.stringify({candidate:await project(candidate),baseline:await project(baseline)}));
 '''
@@ -214,7 +215,18 @@ def expected_stage_ids(candidate, baseline):
     expected = {id for id, row in current.items()
                 if row['season'] == latest or id not in previous
                 or canonical(row['definition']) != canonical(previous[id]['definition'])}
+    ready = [row for row in previous.values() if row.get('capability', {}).get('state') == 'ready']
+    if ready:
+        latest_ready = max(row['season'] for row in ready)
+        expected.update(row['id'] for row in ready if row['season'] == latest_ready)
     return sorted(expected)
+
+
+def updated_stage_ids(expected, capabilities, baseline_ready_ids):
+    ready = {row['id'] for row in capabilities if row['capability']['state'] == 'ready'}
+    previous = set(baseline_ready_ids)
+    newly_ready, lost_ready = ready - previous, previous - ready
+    return sorted(set(expected) | newly_ready | lost_ready), sorted(newly_ready)
 
 
 def missing_engine_stages(source, expected):
@@ -244,13 +256,28 @@ def missing_engine_stages(source, expected):
     return sorted(set(expected) - known)
 
 
-def check_audit_result(audit, expected, missing, returncode):
-    if not isinstance(audit, dict) or audit.get('format') != 1 or not isinstance(audit.get('stageChecks'), list):
+def check_audit_result(audit, expected, missing, returncode, *, baseline_ready_ids=()):
+    if (not isinstance(audit, dict) or audit.get('format') != 1
+            or audit.get('candidatePoolChecked') is not True
+            or not isinstance(audit.get('stageChecks'), list)
+            or not isinstance(audit.get('pendingStages'), list)):
         raise AuditError('audit_report_invalid')
-    checks = audit['stageChecks']
+    checks, pending = audit['stageChecks'], audit['pendingStages']
     ids = [row.get('id') if isinstance(row, dict) else None for row in checks]
-    if len(ids) != len(expected) or set(ids) != set(expected):
+    pending_ids = [row.get('id') if isinstance(row, dict) else None for row in pending]
+    if (len(ids) != len(set(ids)) or len(pending_ids) != len(set(pending_ids))
+            or set(ids) & set(pending_ids) or set(ids) | set(pending_ids) != set(expected)):
         raise AuditError('stage_coverage_mismatch')
+    if set(pending_ids) & set(baseline_ready_ids):
+        raise AuditError('ready_stage_regressed')
+    for row in pending:
+        reasons = row.get('reasons')
+        if (not isinstance(reasons, list) or not reasons or len(set(reasons)) != len(reasons)
+                or set(reasons) - {'missing_stage_reference', 'missing_engine_stage'}):
+            raise AuditError('pending_stage_invalid')
+    actual_missing = {row['id'] for row in pending if 'missing_engine_stage' in row['reasons']}
+    if actual_missing != set(missing):
+        raise AuditError('engine_stage_proof_mismatch')
     if any(type(row.get('supported')) is not bool for row in checks):
         raise AuditError('audit_report_invalid')
     summary = audit.get('summary')
@@ -265,14 +292,10 @@ def check_audit_result(audit, expected, missing, returncode):
     if summary['newUnsupported']:
         raise AuditError('new_unsupported_candidates')
     if failures:
-        if (set(row['id'] for row in failures) == set(missing)
-                and all(row.get('reason') in ('stage_reference_mismatch', 'unsupported_stage') for row in failures)
-                and returncode == 1):
-            return 'waiting'
         raise AuditError('stage_audit_failed')
-    if missing or returncode != 0:
+    if returncode != 0:
         raise AuditError('audit_failed')
-    return 'passed'
+    return 'partial' if pending else 'passed'
 
 
 def _freeze_content(content, output, name):
@@ -309,7 +332,9 @@ def audit_candidate(candidate_content, baseline_content, engine_commit, auditor_
               'candidate_manifest_sha256': None, 'baseline_manifest_sha256': None, 'upstream_commit': None,
               'auditor': None, 'engine': {'repository': 'gakumas-tools/gakumas-tools', 'commit': engine_commit, 'lock_sha256': None},
               'compatibility_baseline_sha256': None, 'expectedStageIds': [], 'stageChecks': [],
-              'summary': {}, 'missing_stage_ids': [], 'issues': []}
+              'summary': {}, 'candidatePoolChecked': False, 'pendingStages': [],
+              'baselineReadyStageIds': [], 'baselineGuardStageIds': [], 'newlyReadyStageIds': [],
+              'baselineEngine': None, 'missing_stage_ids': [], 'issues': []}
     try:
         if not COMMIT.fullmatch(engine_commit) or not COMMIT.fullmatch(auditor_commit):
             raise AuditError('commit_invalid')
@@ -319,6 +344,13 @@ def audit_candidate(candidate_content, baseline_content, engine_commit, auditor_
         names = _program_inputs(root)
         report['auditor'] = auditor_identity(root, auditor_commit, names)
         report['compatibility_baseline_sha256'] = sha((root / 'tools/contest-engine-compatibility-baseline.json').read_bytes())
+        baseline_lock = production.read(root / 'tools/contest-engine-source.json')
+        baseline_files = report['auditor']['code_files']
+        report['baselineEngine'] = {'repository': 'gakumas-tools/gakumas-tools', 'commit': baseline_lock['commit'],
+            'source_lock_sha256': baseline_files['tools/contest-engine-source.json'],
+            'lock_sha256': baseline_files['tools/contest-engine-source.json'],
+            'registry_sha256': baseline_files['domain/upstream-contest-engine.mjs'],
+            'mapping_sha256': baseline_files['domain/contest-engine-map.mjs']}
         program = copy_program(root, output, names)
         if any(sha((program / name).read_bytes()) != expected
                for name, expected in report['auditor']['code_files'].items()):
@@ -331,6 +363,12 @@ def audit_candidate(candidate_content, baseline_content, engine_commit, auditor_
                        cwd=root, output=output, label='stage_projection'):
             raise AuditError('stage_projection_failed')
         stages = read_json(projected.read_bytes(), 'stage_projection_invalid')
+        ready = [row for row in stages['baseline'] if row['capability']['state'] == 'ready']
+        report['baselineReadyStageIds'] = sorted(row['id'] for row in ready)
+        latest_ready = max((row['season'] for row in ready), default=None)
+        report['baselineGuardStageIds'] = sorted(row['id'] for row in ready if row['season'] == latest_ready)
+        if ready and not report['baselineGuardStageIds']:
+            raise AuditError('baseline_guard_missing')
         expected = expected_stage_ids(stages['candidate'], stages['baseline'])
         report['expectedStageIds'] = expected
         write_json(output / 'expected-stage-ids.json', expected)
@@ -351,7 +389,6 @@ def audit_candidate(candidate_content, baseline_content, engine_commit, auditor_
             file.write_bytes(raw)
         write_json(program / 'tools/contest-engine-source.json', engine_lock)
         report['engine']['lock_sha256'] = sha((program / 'tools/contest-engine-source.json').read_bytes())
-        report['missing_stage_ids'] = missing_engine_stages(source, expected)
         reviewed = production.read(program / 'tools/contest-engine-reviewed-mappings.json')
         reviewed.update(engineCommit=engine_commit, effectsRevision=candidate['parts']['effects']['revision'])
         write_json(program / 'tools/contest-engine-reviewed-mappings.json', reviewed)
@@ -365,17 +402,36 @@ def audit_candidate(candidate_content, baseline_content, engine_commit, auditor_
         if run_command(['node', '--test', *(str(Path('tests') / name) for name in REGRESSIONS)],
                        cwd=program, output=output, label='engine_regressions'):
             raise AuditError('engine_regressions_failed')
+        capability_script = output / 'candidate-capabilities.mjs'
+        capability_script.write_text("import fs from 'node:fs/promises';import {pathToFileURL} from 'node:url';"
+            "const [program,input,output]=process.argv.slice(2);"
+            "const {verifyEngineStageCapability:verifyContestStageCapability}=await import(pathToFileURL(program+'/domain/contest-stage-engine-capability.mjs'));"
+            "const rows=JSON.parse(await fs.readFile(input,'utf8')).candidate;"
+            "const result=await Promise.all(rows.map(async row=>({id:row.id,capability:await verifyContestStageCapability(row.definition.stage)})));"
+            "await fs.writeFile(output,JSON.stringify(result));")
+        capability_file = output / 'candidate-capabilities.json'
+        if run_command(['node', str(capability_script), str(program), str(projected), str(capability_file)],
+                       cwd=root, output=output, label='candidate_capabilities'):
+            raise AuditError('candidate_capabilities_failed')
+        capabilities = read_json(capability_file.read_bytes(), 'candidate_capabilities_invalid')
+        expected, report['newlyReadyStageIds'] = updated_stage_ids(expected, capabilities, report['baselineReadyStageIds'])
+        report['expectedStageIds'] = expected
+        write_json(output / 'expected-stage-ids.json', expected)
+        write_json(output / 'baseline-ready-stage-ids.json', report['baselineReadyStageIds'])
+        report['missing_stage_ids'] = missing_engine_stages(source, expected)
         site = _site(candidate, output)
         raw_report = output / 'candidate-audit.json'
         returncode = run_command(['node', str(program / 'tools/audit_contest_engine.mjs'), '--site', str(site),
                                   '--program', str(program), '--stage-ids', str(output / 'expected-stage-ids.json'),
+                                  '--baseline-ready-ids', str(output / 'baseline-ready-stage-ids.json'),
                                   '--baseline', str(program / 'tools/contest-engine-compatibility-baseline.json'),
                                   '--report', str(raw_report)], cwd=root, output=output, label='candidate_audit')
         audit = read_json(raw_report.read_bytes(), 'audit_report_invalid')
         report['stageChecks'], report['summary'] = audit.get('stageChecks', []), audit.get('summary', {})
-        report['state'] = check_audit_result(audit, expected, report['missing_stage_ids'], returncode)
-        if report['state'] == 'waiting':
-            report['issues'].append({'kind': 'engine_stage_source_missing', 'stage_ids': report['missing_stage_ids']})
+        report['candidatePoolChecked'] = audit.get('candidatePoolChecked') is True
+        report['pendingStages'] = audit.get('pendingStages', [])
+        report['state'] = check_audit_result(audit, expected, report['missing_stage_ids'], returncode,
+                                             baseline_ready_ids=report['baselineReadyStageIds'])
     except AuditError as error:
         report['issues'].append({'kind': error.kind, **({'message': error.message} if error.message else {})})
     except (ValueError, RuntimeError, KeyError, TypeError, OSError) as error:
@@ -397,7 +453,7 @@ def main():
         print(json.dumps({'state': 'blocked', 'issues': [{'kind': error.kind if isinstance(error, AuditError) else 'output_unavailable'}]}))
         return 1
     print(json.dumps({'state': report['state'], 'fingerprint': report['fingerprint'], 'issues': report['issues']}, ensure_ascii=False))
-    return {'passed': 0, 'waiting': 2, 'blocked': 1}[report['state']]
+    return {'passed': 0, 'partial': 0, 'waiting': 2, 'blocked': 1}[report['state']]
 
 
 if __name__ == '__main__':

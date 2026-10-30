@@ -1,0 +1,85 @@
+{
+  "source": "gakumas-data@32048e614442eea39a79b032d184d3862c209577",
+  "stages": [
+    {
+      "id": "contest:pvp_rate_config-53:0",
+      "kind": "contest",
+      "turn": 10,
+      "planType": "ProducePlanType_Plan1",
+      "preset": {
+        "criteria": {
+          "dance": 0.35,
+          "visual": 0.45,
+          "vocal": 0.2
+        },
+        "effectReference": "at:startOfTurn { if:countCards[!removed & trouble]>=2 { setScoreBuff(0.5); perfectConditionTurns+=3 }; limit:2 }",
+        "firstTurns": {
+          "dance": 0,
+          "visual": 1,
+          "vocal": 0
+        },
+        "id": 184,
+        "linkTurnCounts": [],
+        "name": "シーズン53 ステージ1",
+        "plan": "sense",
+        "preview": false,
+        "round": "",
+        "season": 53,
+        "stage": 1,
+        "turnCounts": {
+          "dance": 3,
+          "visual": 5,
+          "vocal": 2
+        },
+        "type": "contest"
+      },
+      "setting": {
+        "examTurnEndRecoveryStamina": 2,
+        "handLimit": 5,
+        "holdLimit": 2,
+        "id": "p_exam_setting-1",
+        "turnStartDistribute": 3
+      }
+    },
+    {
+      "id": "contest:pvp_rate_config-54:0",
+      "kind": "contest",
+      "turn": 10,
+      "planType": "ProducePlanType_Plan1",
+      "preset": {
+        "criteria": {
+          "dance": 0.2,
+          "visual": 0.45,
+          "vocal": 0.35
+        },
+        "effectReference": "at:cardUsed { if:turnsRemaining<=5 & turnCardsUsed%2==1 { concentration+=4; setConcentrationEffectBuff(0.15) }; limit:5 }",
+        "firstTurns": {
+          "dance": 0,
+          "visual": 1,
+          "vocal": 0
+        },
+        "id": 187,
+        "linkTurnCounts": [],
+        "name": "シーズン54 ステージ1",
+        "plan": "sense",
+        "preview": true,
+        "round": "",
+        "season": 54,
+        "stage": 1,
+        "turnCounts": {
+          "dance": 2,
+          "visual": 5,
+          "vocal": 3
+        },
+        "type": "contest"
+      },
+      "setting": {
+        "examTurnEndRecoveryStamina": 2,
+        "handLimit": 5,
+        "holdLimit": 2,
+        "id": "p_exam_setting-1",
+        "turnStartDistribute": 3
+      }
+    }
+  ]
+}

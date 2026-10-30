@@ -6,6 +6,10 @@ on:
         description: '可选：复用同一提交、同一预览开关的既有运行制品编号；留空重新构建'
         type: string
         default: ''
+      allow_bootstrap:
+        description: '仅在当前程序清单与公共频道均不存在时允许首次部署'
+        type: boolean
+        default: false
       preview_account:
         description: '启用预览账号（当前测试站默认开启）'
         type: boolean
@@ -68,6 +72,15 @@ jobs:
       - run: python -B tests/browser_content_updates.py
       - run: python -B tests/browser_image_delivery.py
       - run: python -B tests/browser_review_regressions.py
+      - name: 冻结当前部署的旧程序与旧资料能力
+        env:
+          ALLOW_BOOTSTRAP: ${{ github.event_name == 'workflow_dispatch' && inputs.allow_bootstrap }}
+        run: |
+          if [ "$ALLOW_BOOTSTRAP" = "true" ]; then
+            python -B tools/freeze_contest_baseline.py --output local/contest-baseline/baseline.json --allow-bootstrap
+          else
+            python -B tools/freeze_contest_baseline.py --output local/contest-baseline/baseline.json
+          fi
       - name: 读取已有站点制品
         if: inputs.reuse_run_id != ''
         env:
@@ -128,9 +141,9 @@ jobs:
         id: engine-update
         run: |
           if [ -f local/content-source/engine-update.json ]; then
-            python -B tools/update_contest_engine.py --site dist --esbuild local/engine-tools/node_modules/.bin/esbuild --plan local/content-source/engine-update.json --apply
+            python -B tools/update_contest_engine.py --site dist --esbuild local/engine-tools/node_modules/.bin/esbuild --plan local/content-source/engine-update.json --baseline-snapshot local/contest-baseline/baseline.json --apply
           else
-            python -B tools/update_contest_engine.py --site dist --esbuild local/engine-tools/node_modules/.bin/esbuild --apply
+            python -B tools/update_contest_engine.py --site dist --esbuild local/engine-tools/node_modules/.bin/esbuild --baseline-snapshot local/contest-baseline/baseline.json --apply
           fi
       - name: 用通过校验的引擎重建站点
         if: steps.engine-update.outputs.updated == 'true'
@@ -159,7 +172,7 @@ jobs:
           ENABLE_PREVIEW_ACCOUNT: ${{ inputs.preview_account }}
         run: python -B tools/verify_portable_artifacts.py --site dist --expected-commit "$GITHUB_SHA" --expected-preview "$ENABLE_PREVIEW_ACCOUNT"
       - name: 审计模拟引擎完整公开候选池
-        run: node tools/audit_contest_engine.mjs --site dist --baseline tools/contest-engine-compatibility-baseline.json --report local/contest-engine-audit.json
+        run: node tools/audit_contest_engine.mjs --site dist --baseline tools/contest-engine-compatibility-baseline.json --baseline-snapshot local/contest-baseline/baseline.json --report local/contest-engine-audit.json
       - name: 验收模拟交互、迁移、草稿与任务隔离
         timeout-minutes: 15
         run: |
@@ -200,7 +213,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: contest-engine-audit
-          path: local/contest-engine-audit.json
+          path: |
+            local/contest-engine-audit.json
+            local/contest-baseline/
           if-no-files-found: ignore
       - name: 保存可复用站点制品
         uses: actions/upload-artifact@v4

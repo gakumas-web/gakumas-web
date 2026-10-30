@@ -12,6 +12,7 @@ from unittest.mock import patch
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'tools'))
 from update_contest_engine import assess,sha,verify_evidence
 import update_contest_engine as engine
+from contest_baseline_contract import HASH_FIELDS,baseline_fingerprint
 
 
 class EngineUpdateTest(unittest.TestCase):
@@ -129,6 +130,8 @@ class EngineUpdateTest(unittest.TestCase):
         (root/'domain/contest-engine-map.mjs').write_text('export const contestEngineMap='+json.dumps({'source':source})+';')
         after={**self.before,self.code:b'fixed code'} if engine_changed else self.before
         plan={**assess(self.lock,self.before,after,'2'*40),'repository_base_commit':self.lock['commit'],'previous_lock':None}
+        baseline={'format':'gakumas-contest-deployed-baseline','schema_version':1,'state':'ready','site_url':'https://example.invalid/','engine_commit':self.lock['commit'],'readyStageIds':['contest:pvp_rate_config-53:0'],**{key:'a'*64 for key in HASH_FIELDS}}
+        baseline['fingerprint']=baseline_fingerprint(baseline);(root/'baseline.json').write_text(json.dumps(baseline))
         return effects,after,plan
 
     def update_patches(self,stack,root,effects,after,plan):
@@ -151,7 +154,7 @@ class EngineUpdateTest(unittest.TestCase):
                         for name in engine.OUTPUTS:(root/'output/candidate'/name).write_text('candidate')
                     if len(calls)==failure+1:raise subprocess.CalledProcessError(1,command)
                 stack.enter_context(patch.object(engine.subprocess,'run',side_effect=run))
-                with self.assertRaises(subprocess.CalledProcessError):engine.update(root/'site',root/'output',root/'esbuild',plan,apply=True)
+                with self.assertRaises(subprocess.CalledProcessError):engine.update(root/'site',root/'output',root/'esbuild',plan,apply=True,baseline_snapshot=root/'baseline.json')
                 self.assertEqual(len(calls),failure+1)
                 self.assertEqual({name:(root/name).read_bytes() for name in engine.OUTPUTS},original)
                 self.assertFalse((root/'output/report.json').exists())
@@ -167,11 +170,32 @@ class EngineUpdateTest(unittest.TestCase):
                     calls.append(command)
                     if len(calls)==1:(root/'output/candidate/domain/upstream-contest-engine.mjs').write_text('built engine')
                 stack.enter_context(patch.object(engine.subprocess,'run',side_effect=run))
-                report=engine.update(root/'site',root/'output',root/'esbuild',plan,apply=True)
-                self.assertEqual(len(calls),3);self.assertIn('--source',calls[0]);self.assertIn('--test',calls[1]);self.assertIn('--baseline',calls[2])
+                report=engine.update(root/'site',root/'output',root/'esbuild',plan,apply=True,baseline_snapshot=root/'baseline.json')
+                self.assertEqual(len(calls),3);self.assertIn('--source',calls[0]);self.assertIn('--test',calls[1]);self.assertIn('--baseline',calls[2]);self.assertIn('--baseline-snapshot',calls[2]);self.assertNotIn('--baseline-program',calls[2])
                 self.assertEqual(calls[2][calls[2].index('--baseline')+1],str(root/'tools/contest-engine-compatibility-baseline.json'))
                 self.assertTrue(report['updated']);self.assertTrue(report['applied'])
                 self.assertEqual((root/'domain/upstream-contest-engine.mjs').read_text(),'built engine')
+
+    def test_update_requires_explicit_frozen_deployed_baseline(self):
+        with TemporaryDirectory() as temporary:
+            root=Path(temporary);effects,after,plan=self.update_fixture(root)
+            with self.assertRaisesRegex(ValueError,'需要冻结的已部署模拟基线'):
+                engine.update(root/'site',root/'output',root/'esbuild',plan)
+            self.assertFalse((root/'output').exists())
+
+    def test_changed_frozen_baseline_prevents_apply(self):
+        with TemporaryDirectory() as temporary,ExitStack() as stack:
+            root=Path(temporary);effects,after,plan=self.update_fixture(root)
+            original={name:(root/name).read_bytes() for name in engine.OUTPUTS}
+            self.update_patches(stack,root,effects,after,plan);calls=[]
+            def run(command,**kwargs):
+                calls.append(command)
+                if len(calls)==1:(root/'output/candidate/domain/upstream-contest-engine.mjs').write_text('built engine')
+                if len(calls)==3:(root/'baseline.json').write_text('{}')
+            stack.enter_context(patch.object(engine.subprocess,'run',side_effect=run))
+            with self.assertRaisesRegex(ValueError,'基线在验证期间发生变化'):
+                engine.update(root/'site',root/'output',root/'esbuild',plan,apply=True,baseline_snapshot=root/'baseline.json')
+            self.assertEqual({name:(root/name).read_bytes() for name in engine.OUTPUTS},original)
 
     def test_no_change_skips_build_and_apply(self):
         with TemporaryDirectory() as temporary,ExitStack() as stack:
@@ -179,7 +203,7 @@ class EngineUpdateTest(unittest.TestCase):
             original={name:(root/name).read_bytes() for name in engine.OUTPUTS}
             self.update_patches(stack,root,effects,after,plan)
             run=stack.enter_context(patch.object(engine.subprocess,'run'))
-            report=engine.update(root/'site',root/'output',root/'esbuild',plan,apply=True)
+            report=engine.update(root/'site',root/'output',root/'esbuild',plan,apply=True,baseline_snapshot=root/'baseline.json')
             self.assertFalse(report['updated']);run.assert_not_called()
             self.assertEqual({name:(root/name).read_bytes() for name in engine.OUTPUTS},original)
 
@@ -190,7 +214,7 @@ class EngineUpdateTest(unittest.TestCase):
             self.update_patches(stack,root,effects,after,plan)
             changed=copy.deepcopy(plan);changed['lock']['files'][self.code]='0'*64
             run=stack.enter_context(patch.object(engine.subprocess,'run'))
-            with self.assertRaisesRegex(ValueError,'自动引擎更新输入已变化'):engine.update(root/'site',root/'output',root/'esbuild',changed,apply=True)
+            with self.assertRaisesRegex(ValueError,'自动引擎更新输入已变化'):engine.update(root/'site',root/'output',root/'esbuild',changed,apply=True,baseline_snapshot=root/'baseline.json')
             run.assert_not_called()
             self.assertEqual({name:(root/name).read_bytes() for name in engine.OUTPUTS},original)
 
@@ -200,7 +224,7 @@ class EngineUpdateTest(unittest.TestCase):
             original={name:(root/name).read_bytes() for name in engine.OUTPUTS}
             self.update_patches(stack,root,effects,{**after,self.code:b'drift'},plan)
             run=stack.enter_context(patch.object(engine.subprocess,'run'))
-            with self.assertRaisesRegex(ValueError,'候选引擎文件身份变化'):engine.update(root/'site',root/'output',root/'esbuild',plan,apply=True)
+            with self.assertRaisesRegex(ValueError,'候选引擎文件身份变化'):engine.update(root/'site',root/'output',root/'esbuild',plan,apply=True,baseline_snapshot=root/'baseline.json')
             run.assert_not_called()
             self.assertEqual({name:(root/name).read_bytes() for name in engine.OUTPUTS},original)
 

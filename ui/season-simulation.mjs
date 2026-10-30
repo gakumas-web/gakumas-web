@@ -1,3 +1,4 @@
+import {contestStageCapability,verifyContestStageCapability,latestAvailableContestStage} from '../domain/contest-stage-capability.mjs';
 import {contentManager} from '../application/content-manager.mjs';
 import {createContestDraft,revalidateContestDraft} from '../application/contest-drafts.mjs';
 import {simulationDrafts,saveSimulationDraft,deleteSimulationDraft} from '../application/storage.mjs';
@@ -38,6 +39,27 @@ function stageItem(reward){
   const description=el('div','','season-stage-item-description'),content=semanticContent({entries:[reward.description]});content.querySelector('h4')?.remove();description.append(content);row.append(hint,description);return row;
 }
 
+// 待补舞台保留公开规则，不创建推荐、倍率或模拟控制器。
+function pendingStageWorkspace(stage,initialState){
+  const element=el('div','','season-stage-workspace'),rules=el('section','','season-rules-section'),status=contestStageCapability(stage);
+  element.dataset.stageCapability=status.state;
+  const heading=el('h2',t('舞台规则')),message=el('p',t(status.state==='invalid'?'当前舞台资料不一致，暂不能模拟。':status.state==='checking'?'正在核对模拟资料…':'模拟资料待补充'),'message');message.setAttribute('role','status');
+  rules.append(heading,contestStageSummary(stage,{showCapability:false}),message,el('p',t('舞台参数与规则可查看，资料补全后开放模拟。'),'small muted'));
+  const values=el('dl','','season-basic-values');
+  if(['vocal','dance','visual'].every(key=>Number.isFinite(stage[key]))){values.append(el('dt',t('原始属性权重')),el('dd',`Vo ${stage.vocal} / Da ${stage.dance} / Vi ${stage.visual}`));}
+  for(const [key,label] of [['handLimit','手牌上限'],['holdLimit','保留上限'],['turnStartDistribute','回合开始抽牌'],['examTurnEndRecoveryStamina','回合结束体力恢复']])if(stage.setting?.[key]!==undefined)values.append(el('dt',t(label)),el('dd',String(stage.setting[key])));
+  const columns=el('div','','season-stage-columns'),effects=el('div','','season-stage-effects'),reference=el('div','','season-stage-reference'),guide=createInfoDisclosure(t('基础规则和属性评分曲线'),'season-stage-guide');
+  guide.append(values);
+  for(const gimmick of stage.gimmicks??[]){const row=el('div','','season-gimmick');row.append(el('strong',t('第 {0} 回合',[gimmick.startTurn])),effectReading('',{descriptionParts:gimmick.descriptions,leadingEffectIcons:true}));effects.append(row);}
+  for(const id of stage.produceItemIds??[])effects.append(stageItem(itemRewardInfo(id)));
+  if(stage.curve?.length)guide.append(contestScoreCurve(stage.curve));
+  reference.append(guide);columns.append(effects,reference);rules.append(columns);
+  const controls=el('div','','contest-simulation-controls');
+  for(const label of ['开始模拟','开始搜索','填入参考属性']){const button=el('button',t(label));button.disabled=true;controls.append(button);}
+  rules.append(controls);element.append(rules);
+  return {element,capabilityPending:true,captureDraft:()=>null,captureState:()=>initialState??null,dispose(){},showTask(){},refreshConversions(){},restore:()=>false,useLoadout:()=>false,useMemory:()=>false};
+}
+
 export function createSeasonSimulation({profile,lifecycleId,memories,idolCards=[],supportCards,producerExp,initialState,onOpenMemory}){
   const catalog=contestCatalog(),groups=contestSeasonGroups(catalog.choices),element=el('section','','season-simulation-dialog season-simulation-page');element.id='season-simulation-page';element.setAttribute('aria-label',t('赛季模拟'));
   if(!groups.length){element.append(el('p',t('当前资料尚未包含比赛配置，请更新资料后重试。')));return {element,dispose(){}};}
@@ -45,7 +67,7 @@ export function createSeasonSimulation({profile,lifecycleId,memories,idolCards=[
   const picker=createContestSeasonPicker(groups,group=>activate(group.stages[0]));const taskList=el('div','','season-simulation-tasks');taskList.setAttribute('aria-label',t('模拟任务'));taskList.hidden=true;element.append(tabs,taskList,content);
   const workspaces=new Map(),saved=new Map(initialState?.stageStates??[]);
   const recovery=el('section','','contest-draft-recovery small'),recoveryMessage=el('p'),recoveryHint=el('p',t('草稿仅保留本账号最近 5 条，30 天后过期。'),'muted'),recoveryList=el('div');recovery.setAttribute('aria-label',t('未完成配置草稿'));recoveryMessage.setAttribute('role','status');recovery.append(el('h2',t('未完成配置草稿')),recoveryHint,recoveryMessage,recoveryList);recovery.hidden=true;element.insertBefore(recovery,tabs);
-  let disposed=false,pendingDrafts=[];const dirtyStages=new Set(initialState?.draftDirtyStages??[]),fingerprints=new Map(),revisions=new Map(),draftIds=new Map(),taskConfigurations=new Map(),timers=new Map();let currentStage=initialState?.stage??groups[0].stages[0],currentGroup;
+  let disposed=false,pendingDrafts=[];const dirtyStages=new Set(initialState?.draftDirtyStages??[]),fingerprints=new Map(),revisions=new Map(),draftIds=new Map(),taskConfigurations=new Map(),timers=new Map();let currentStage=catalog.choices.find(stage=>stage.id===initialState?.stage?.id)??groups[0].stages[0],currentGroup;let userSelected=false,capabilitiesResolved=false,pendingMemory=initialState?.pendingMemory??null;
   const producerLevel=accountProducerLevel(producerExp);
   let conversionPreferences=loadCardConversions(profile),conversionRules=cardConversionRules(contestCardConversions(),producerLevel,conversionPreferences);
   const getConversionRules=()=>conversionRules;
@@ -54,11 +76,12 @@ export function createSeasonSimulation({profile,lifecycleId,memories,idolCards=[
     for(const entry of pendingDrafts){
       const row=el('div'),stage=catalog.choices.find(stage=>stage.id===entry.stage.id),restore=el('button',t('恢复草稿')),discard=el('button',t('放弃草稿'));
       row.dataset.draftId=entry.id;row.append(el('span',`${stage?contestStageName(stage):entry.stage.id} · ${t(({selected:'自选模拟',recommended:'回忆编组搜索',optimization:'推荐编组搜索'})[entry.mode])} · ${new Intl.DateTimeFormat(locale(),{dateStyle:'short',timeStyle:'short'}).format(new Date(entry.updatedAt))} `),restore,discard);
-      restore.disabled=!stage||dirtyStages.has(stage.id);
+      restore.disabled=!stage||contestStageCapability(stage).state!=='ready'||dirtyStages.has(stage.id);
       if(stage&&dirtyStages.has(stage.id))row.append(el('span',t('此舞台已有新配置，草稿不会覆盖当前填写。'),'muted'));
+      else if(stage&&contestStageCapability(stage).state!=='ready')row.append(el('span',t('模拟资料待补充'),'muted'));
       else if(!stage)row.append(el('span',t('当前资料已不包含此舞台，无法恢复草稿。'),'muted'));
       restore.onclick=()=>{
-        if(disposed||dirtyStages.has(stage.id))return;
+        if(disposed||contestStageCapability(stage).state!=='ready'||dirtyStages.has(stage.id))return;
         const existing=workspaces.get(stage.id)?.captureDraft();if(existing&&fingerprints.get(stage.id)!==JSON.stringify([existing.mode,existing.configuration])){dirtyStages.add(stage.id);drawRecovery();return;}
         const ownership={idolCardIds:new Set(idolCards.map(card=>card.idolCardId)),supportCardIds:new Set((supportCards??[]).map(card=>card.supportCardId)),producerLevel};
         const restored=revalidateContestDraft(entry,{stage,memories,catalog:contestCustomizationCatalog(),ownership,optimizationContext:{stage,idolCards,supportCards,producerLevel,manual:entry.configuration.loadout.manual,conversionRules:getConversionRules()},contentVersion:contentManager.status().version});
@@ -75,7 +98,7 @@ export function createSeasonSimulation({profile,lifecycleId,memories,idolCards=[
     if(disposed)return;clearTimeout(timers.get(stageId));
     timers.set(stageId,setTimeout(()=>{
       timers.delete(stageId);if(disposed)return;const workspace=workspaces.get(stageId);if(!workspace)return;
-      const entry=workspace.captureDraft(),fingerprint=JSON.stringify([entry.mode,entry.configuration]);
+      const entry=workspace.captureDraft();if(!entry)return;const fingerprint=JSON.stringify([entry.mode,entry.configuration]);
       if(fingerprints.get(stageId)===fingerprint)return;
       fingerprints.set(stageId,fingerprint);dirtyStages.add(stageId);drawRecovery();
       const key=`${stageId}:${entry.mode}`;if(!draftIds.has(key))draftIds.set(key,`${entry.id}:${crypto.randomUUID()}`);entry.id=draftIds.get(key);
@@ -93,7 +116,7 @@ export function createSeasonSimulation({profile,lifecycleId,memories,idolCards=[
   }
 
   const jump=el('button',t('前往模拟'),'season-jump-simulation');jump.type='button';
-  jump.onclick=()=>{picker.hide();const title=content.querySelector('#contest-simulation-result-title');if(title){title.tabIndex=-1;title.focus({preventScroll:true});title.scrollIntoView({block:'start'});}};
+  jump.onclick=()=>{if(contestStageCapability(currentStage).state!=='ready')return;picker.hide();const title=content.querySelector('#contest-simulation-result-title');if(title){title.tabIndex=-1;title.focus({preventScroll:true});title.scrollIntoView({block:'start'});}};
   picker.element.insertBefore(jump,picker.element.querySelector('.season-activity-toggle'));
   const tasks=new Map();
   function drawTasks(){
@@ -130,7 +153,9 @@ export function createSeasonSimulation({profile,lifecycleId,memories,idolCards=[
     void deleteSimulationDraft(profile,id,lifecycleId,()=>!disposed&&revisions.get(key)===revision).then(()=>{if(!disposed&&revisions.get(key)===revision){draftIds.delete(key);pendingDrafts=pendingDrafts.filter(value=>value.id!==id);drawRecovery();}}).catch(()=>{});
   }
   const narrow=matchMedia('(max-width:699px)'),syncOrientation=()=>tabs.setAttribute('aria-orientation',narrow.matches?'vertical':'horizontal');narrow.addEventListener('change',syncOrientation);syncOrientation();
-  function activate(stage){
+  function activate(stage,{automatic=false}={}){
+    if(!automatic)userSelected=true;
+    jump.hidden=jump.disabled=contestStageCapability(stage).state!=='ready';
     closeRewardPopover();currentStage=stage;for(const task of tasks.values())if(task.stage.id===stage.id&&task.state==='completed')task.seen=true;const group=groups.find(group=>group.stages.some(value=>value.id===stage.id));
     if(!group)return;picker.update(group);
     if(currentGroup!==group.id){
@@ -144,25 +169,36 @@ export function createSeasonSimulation({profile,lifecycleId,memories,idolCards=[
     for(const button of tabs.children){const selected=button.dataset.stageId===stage.id;button.setAttribute('aria-selected',String(selected));button.tabIndex=selected?0:-1;if(selected)content.setAttribute('aria-labelledby',button.id);}
     if(!workspaces.has(stage.id)){
       const workspace=createStageWorkspace({profile,lifecycleId,memories,idolCards,supportCards,producerExp,stage,getConversionRules,onOpenConversions:openConversions,initialState:saved.get(stage.id),onOpenMemory,onConfigurationChange:()=>queueDraft(stage.id),onTaskChange:(mode,task)=>taskChanged(stage,mode,task),onQuickStage:(targetId,loadout)=>{
-        const target=catalog.choices.find(value=>value.id===targetId);if(!target)return;
+        const target=catalog.choices.find(value=>value.id===targetId);if(!target||contestStageCapability(target).state!=='ready')return;
         activate(target);workspaces.get(target.id).useLoadout(loadout);content.scrollIntoView({block:'start'});
       },onRestore:entry=>{
-        const target=catalog.choices.find(value=>value.id===entry.stage.id||value.kind===entry.stage.kind&&entry.stage.preset?.id!==undefined&&value.preset?.id===entry.stage.preset.id);if(!target||!entry.loadout)return false;
+        const target=catalog.choices.find(value=>value.id===entry.stage.id||value.kind===entry.stage.kind&&entry.stage.preset?.id!==undefined&&value.preset?.id===entry.stage.preset.id);if(!target||!entry.loadout||contestStageCapability(target).state!=='ready')return false;
         activate(target);const restored=workspaces.get(target.id).restore(entry);if(restored)content.scrollIntoView({block:'start'});return restored;
-      }});saved.delete(stage.id);workspaces.set(stage.id,workspace);const draft=workspace.captureDraft();fingerprints.set(stage.id,JSON.stringify([draft.mode,draft.configuration]));
+      }});saved.delete(stage.id);workspaces.set(stage.id,workspace);const draft=workspace.captureDraft();if(draft)fingerprints.set(stage.id,JSON.stringify([draft.mode,draft.configuration]));
     }
     if(content.firstElementChild!==workspaces.get(stage.id).element)content.replaceChildren(workspaces.get(stage.id).element);
     drawTasks();
   }
-  activate(currentStage);
-  return {element,controls:picker.element,hidePicker:picker.hide,dispose(){disposed=true;for(const timer of timers.values())clearTimeout(timer);for(const type of ['input','change','click'])element.removeEventListener(type,configurationEvent);picker.dispose();for(const workspace of workspaces.values())workspace.dispose();narrow.removeEventListener('change',syncOrientation);closeRewardPopover();},captureState(){return {stage:currentStage,draftDirtyStages:[...dirtyStages],stageStates:[...saved,...[...workspaces].map(([id,workspace])=>[id,workspace.captureState()])]};},useMemory(memory){
+  function applyMemory(memory){
+    if(!capabilitiesResolved){pendingMemory=memory;return true;}
     const planType=({2:'ProducePlanType_Plan1',3:'ProducePlanType_Plan2',4:'ProducePlanType_Plan3'})[memory?.planType],group=groups.find(group=>group.id===currentGroup);
-    const stage=currentStage.planType===planType?currentStage:group.stages.find(value=>value.planType===planType)??catalog.choices.find(value=>value.kind==='contest'&&value.planType===planType);if(!stage)return false;
-    activate(stage);return workspaces.get(stage.id).useMemory(memory);
-  }};
+    const usable=value=>value.planType===planType&&contestStageCapability(value).state==='ready';
+    const stage=usable(currentStage)?currentStage:group?.stages.find(usable)??catalog.choices.find(value=>value.kind==='contest'&&usable(value));
+    if(!stage){pendingMemory=memory;return false;}
+    activate(stage);const applied=workspaces.get(stage.id).useMemory(memory);if(applied)pendingMemory=null;return applied;
+  }
+  activate(currentStage,{automatic:true});
+  void Promise.all(catalog.choices.map(verifyContestStageCapability)).then(()=>{
+    if(disposed)return;capabilitiesResolved=true;
+    for(const [id,workspace] of workspaces)if(workspace.capabilityPending){saved.set(id,workspace.captureState());workspace.dispose();workspaces.delete(id);}
+    if(!userSelected&&!initialState?.stage)currentStage=latestAvailableContestStage(catalog.choices)??currentStage;
+    currentGroup=null;activate(currentStage,{automatic:true});drawRecovery();if(pendingMemory)applyMemory(pendingMemory);
+  });
+  return {element,controls:picker.element,hidePicker:picker.hide,dispose(){disposed=true;for(const timer of timers.values())clearTimeout(timer);for(const type of ['input','change','click'])element.removeEventListener(type,configurationEvent);picker.dispose();for(const workspace of workspaces.values())workspace.dispose();narrow.removeEventListener('change',syncOrientation);closeRewardPopover();},captureState(){return {stage:currentStage,pendingMemory,draftDirtyStages:[...dirtyStages],stageStates:[...saved,...[...workspaces].map(([id,workspace])=>[id,workspace.captureState()])]};},useMemory:applyMemory};
 }
 
 function createStageWorkspace({profile,lifecycleId,memories,idolCards,supportCards,producerExp,stage,getConversionRules,onOpenConversions,initialState,onOpenMemory,onRestore,onQuickStage,onTaskChange,onConfigurationChange}){
+  if(contestStageCapability(stage).state!=='ready')return pendingStageWorkspace(stage,initialState);
   const dialog=el('div','','season-stage-workspace'),body=el('div','','season-simulation-body');dialog.append(body);
   const catalog=contestCatalog(),editCatalog=contestCustomizationCatalog(),ownedIdols=new Map(idolCards.map(card=>[card.idolCardId,card]));
   const rules=el('div','','season-stage-rules'),ruleSection=el('section','','season-rules-section'),ruleTitle=el('h2',t('舞台规则')),results=el('section','','season-memory-results');ruleTitle.id='season-rules-title';ruleSection.setAttribute('aria-labelledby',ruleTitle.id);const ruleHeading=el('div','','season-rules-heading season-section-heading'),rulePlan=el('span','','contest-stage-plan season-rules-plan');ruleHeading.append(ruleTitle,rulePlan);ruleSection.append(ruleHeading,rules);body.append(ruleSection,results);
@@ -246,15 +282,15 @@ function createStageWorkspace({profile,lifecycleId,memories,idolCards,supportCar
   }
   function restoreSimulation(entry){
     const stage=catalog.choices.find(stage=>stage.id===entry.stage.id||stage.kind===entry.stage.kind&&entry.stage.preset?.id!==undefined&&stage.preset?.id===entry.stage.preset.id);
-    if(!stage||!entry.loadout)return false;
+    if(!stage||!entry.loadout||contestStageCapability(stage).state!=='ready')return false;
     simulationPanel.showSelected();currentStage=stage;drawStage();manual=structuredClone(entry.loadout.manual??{});for(const [key,input] of Object.entries(manualInputs))input.value=manual[key]===undefined?'':String(manual[key]);
     selected=(entry.loadout.originals??entry.loadout.memories).map((memory,index)=>memory?{...structuredClone(memory),key:`simulation-${entry.id}-${index}`,simulationRestored:true}:null);
     drafts=entry.loadout.memories.map((memory,index)=>memory?{...structuredClone(memory),key:selected[index].key,simulationRestored:true}:null);editing=[false,false];drawSelection();simulationPanel.showSelected();return true;
   }
-  simulationPanel=createContestSimulationPanel({profile,lifecycleId,onOpenConversions,stage:currentStage,supportBonus:bonus,onTaskChange:task=>onTaskChange('selected',task),quickStages:contestSeasonGroups(catalog.choices).flatMap(group=>group.stages).filter(target=>target.kind==='contest'&&target.id!==currentStage.id&&target.planType===currentStage.planType),onQuickStage:currentStage.kind==='contest'?targetId=>onQuickStage(targetId,{selected,drafts}):undefined,getInput:()=>({request:createContestSimulationRequest(drafts,currentStage,supportCards,manual,getConversionRules()),stage:currentStage,loadout:captureSimulationLoadout(drafts,manual,selected),characterId:drafts[0]?.characterId}),onRestore:entry=>{
+  simulationPanel=createContestSimulationPanel({profile,lifecycleId,onOpenConversions,stage:currentStage,supportBonus:bonus,onTaskChange:task=>onTaskChange('selected',task),quickStages:contestSeasonGroups(catalog.choices).flatMap(group=>group.stages).filter(target=>target.kind==='contest'&&contestStageCapability(target).state==='ready'&&target.id!==currentStage.id&&target.planType===currentStage.planType),onQuickStage:currentStage.kind==='contest'?targetId=>onQuickStage(targetId,{selected,drafts}):undefined,getInput:()=>({request:createContestSimulationRequest(drafts,currentStage,supportCards,manual,getConversionRules()),stage:currentStage,loadout:captureSimulationLoadout(drafts,manual,selected),characterId:drafts[0]?.characterId}),onRestore:entry=>{
     return onRestore(entry);
   }});
-  if(initialState)currentStage=initialState.stage;drawStage();
+  if(initialState?.stage?.custom)currentStage=initialState.stage;drawStage();
   if(initialState){selected=initialState.selected;drafts=initialState.drafts;editing=initialState.editing;manual=initialState.manual;for(const [key,input] of Object.entries(manualInputs))input.value=initialState.manualInputValues?.[key]??manual[key]??'';drawSelection();}
   simulationPanel.setModes(results,recommendations,optimization);dialog.append(simulationPanel.element);
   if(initialState?.result)simulationPanel.restoreState(initialState.result);
