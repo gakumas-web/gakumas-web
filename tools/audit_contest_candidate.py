@@ -27,6 +27,7 @@ TOOLS = ('audit_contest_candidate.py', 'audit_contest_engine.mjs', 'build_contes
          'content_contract.py', 'image_delivery.py', 'reference_contract.py', 'contest_baseline_contract.py')
 PROGRAM_FILES = ('resources.mjs', 'image-config.mjs', 'i18n.mjs', 'THIRD_PARTY.md')
 REGRESSIONS = ('contest-engine.test.mjs', 'contest-reviewed-mappings.test.mjs')
+REGRESSION_HELPERS = ('contest-current-content.mjs',)
 
 
 class AuditError(Exception):
@@ -111,6 +112,7 @@ def _program_inputs(root):
         text = (root / relative).read_text()
         for fixture in re.findall(r"\./fixtures/public-data/([A-Za-z0-9._-]+\.json)", text):
             names.append(Path('tests/fixtures/public-data') / fixture)
+    names += [Path('tests') / name for name in REGRESSION_HELPERS]
     return sorted(set(names))
 
 
@@ -121,7 +123,7 @@ def auditor_identity(root, commit, names):
     env = {**os.environ, 'GIT_OPTIONAL_LOCKS': '0', 'GIT_NO_LAZY_FETCH': '1',
            'GIT_TERMINAL_PROMPT': '0', 'GIT_ASKPASS': '/bin/false'}
     try:
-        command = ['git', '--no-lazy-fetch', '-C', str(root)]
+        command = ['git', '-C', str(root)]
         top = subprocess.run(command + ['rev-parse', '--show-toplevel'], capture_output=True,
                              stdin=subprocess.DEVNULL, timeout=20, env=env)
         if top.returncode or Path(top.stdout.decode().strip()).resolve() != root.resolve():
@@ -181,10 +183,10 @@ await fs.writeFile(output,JSON.stringify({candidate:await project(candidate),bas
 '''
 
 
-def run_command(command, *, cwd, output, label, timeout=240):
+def run_command(command, *, cwd, output, label, timeout=240, extra_env=None):
     try:
         result = subprocess.run(command, cwd=cwd, stdin=subprocess.DEVNULL, capture_output=True,
-                                timeout=timeout, env={**os.environ, 'PYTHONDONTWRITEBYTECODE': '1'})
+                                timeout=timeout, env={**os.environ, 'PYTHONDONTWRITEBYTECODE': '1', **(extra_env or {})})
     except subprocess.TimeoutExpired:
         raise AuditError(label + '_timeout') from None
     except OSError:
@@ -332,7 +334,7 @@ def audit_candidate(candidate_content, baseline_content, engine_commit, auditor_
               'candidate_manifest_sha256': None, 'baseline_manifest_sha256': None, 'upstream_commit': None,
               'auditor': None, 'engine': {'repository': 'gakumas-tools/gakumas-tools', 'commit': engine_commit, 'lock_sha256': None},
               'compatibility_baseline_sha256': None, 'expectedStageIds': [], 'stageChecks': [],
-              'summary': {}, 'candidatePoolChecked': False, 'pendingStages': [],
+              'summary': {}, 'candidatePoolChecked': False, 'auditedRecords': [], 'pendingStages': [],
               'baselineReadyStageIds': [], 'baselineGuardStageIds': [], 'newlyReadyStageIds': [],
               'baselineEngine': None, 'missing_stage_ids': [], 'issues': []}
     try:
@@ -400,7 +402,8 @@ def audit_candidate(candidate_content, baseline_content, engine_commit, auditor_
                         '--report', str(output / 'engine-build.json')], cwd=root, output=output, label='engine_build'):
             raise AuditError('engine_build_failed')
         if run_command(['node', '--test', *(str(Path('tests') / name) for name in REGRESSIONS)],
-                       cwd=program, output=output, label='engine_regressions'):
+                       cwd=program, output=output, label='engine_regressions',
+                       extra_env={'GAKUMAS_CONTEST_TEST_EFFECTS':str(current/'effects.json')}):
             raise AuditError('engine_regressions_failed')
         capability_script = output / 'candidate-capabilities.mjs'
         capability_script.write_text("import fs from 'node:fs/promises';import {pathToFileURL} from 'node:url';"
@@ -429,6 +432,7 @@ def audit_candidate(candidate_content, baseline_content, engine_commit, auditor_
         audit = read_json(raw_report.read_bytes(), 'audit_report_invalid')
         report['stageChecks'], report['summary'] = audit.get('stageChecks', []), audit.get('summary', {})
         report['candidatePoolChecked'] = audit.get('candidatePoolChecked') is True
+        report['auditedRecords'] = audit.get('auditedRecords', [])
         report['pendingStages'] = audit.get('pendingStages', [])
         report['state'] = check_audit_result(audit, expected, report['missing_stage_ids'], returncode,
                                              baseline_ready_ids=report['baselineReadyStageIds'])

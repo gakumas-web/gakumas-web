@@ -8,6 +8,7 @@ import subprocess
 import sys
 from tempfile import TemporaryDirectory
 import unittest
+from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'tools'))
 import audit_contest_candidate as audit
@@ -235,6 +236,22 @@ class StageScopeTest(unittest.TestCase):
 
 
 class AuditorIdentityTest(unittest.TestCase):
+    def test_git_239_compatible_arguments_keep_offline_identity_guards(self):
+        with TemporaryDirectory() as temporary:
+            root=Path(temporary);(root/'auditor.py').write_bytes(b'fixed source\n');calls=[]
+            def git(command,**kwargs):
+                calls.append(command)
+                self.assertEqual(command[:3],['git','-C',str(root)])
+                self.assertNotIn('--no-lazy-fetch',command)
+                self.assertEqual(kwargs['env']['GIT_NO_LAZY_FETCH'],'1')
+                self.assertEqual(kwargs['env']['GIT_TERMINAL_PROMPT'],'0')
+                self.assertEqual(kwargs['stdin'],subprocess.DEVNULL)
+                self.assertEqual(kwargs['timeout'],20)
+                return subprocess.CompletedProcess(command,0,stdout=(str(root)+'\n').encode() if command[3]=='rev-parse' else b'fixed source\n')
+            with patch.object(audit.subprocess,'run',side_effect=git):
+                self.assertEqual(audit.auditor_identity(root,'a'*40,[Path('auditor.py')])['identity_state'],'verified_commit')
+            self.assertEqual([command[3] for command in calls],['rev-parse','show'])
+
     def test_only_exact_source_commit_receives_verified_identity(self):
         with TemporaryDirectory() as temporary:
             root = Path(temporary)
@@ -284,6 +301,20 @@ class ProductionStageRangeTest(unittest.TestCase):
             self.assertEqual(actual['summary']['stageFailures'], 0)
             self.assertIs(actual['candidatePoolChecked'], True)
             self.assertGreater(actual['summary']['total'], 0)
+            record=fixture['requests'][0]['cards'][0]['record']
+            self.assertEqual(actual['auditedRecords'],[{'table':'ProduceCard','id':record['id'],'upgradeCount':record['upgradeCount'],'fingerprint':audit.sha(audit.canonical(record))}])
+            pool_parts=copy.deepcopy(parts)
+            for id,hidden in [('unmapped-public-card',False),('hidden-public-card',True)]:
+                extra=copy.deepcopy(record);extra['id']=id;extra['definition']['id']=id;extra['definition']['libraryHidden']=hidden
+                pool_parts['effects']['tables']['ProduceCard'].append(extra)
+            pool_files={name+'.json':audit.canonical(value) for name,value in pool_parts.items()}
+            pool_site=audit._site({'files':pool_files,'manifest':{'files':{name:{'sha256':audit.sha(raw)} for name,raw in pool_files.items()}}},base/'pool-evidence')
+            pool_command=command.copy();pool_command[pool_command.index('--site')+1]=str(pool_site)
+            pool_result=subprocess.run(pool_command,capture_output=True)
+            self.assertEqual(pool_result.returncode,0,pool_result.stderr.decode())
+            pool_report=json.loads(report.read_bytes())
+            self.assertGreater(pool_report['summary']['unsupported'],0)
+            self.assertEqual(pool_report['auditedRecords'],actual['auditedRecords'])
             audit.write_json(scope, ['contest:pvp_rate_config-999:0'])
             pending = subprocess.run(command, capture_output=True)
             self.assertEqual(pending.returncode, 0, pending.stderr.decode())
@@ -293,6 +324,7 @@ class ProductionStageRangeTest(unittest.TestCase):
             self.assertEqual(pending_report['stageChecks'], [])
             self.assertEqual(pending_report['pendingStages'], [{'id': 'contest:pvp_rate_config-999:0', 'reasons': ['missing_stage_reference', 'missing_engine_stage']}])
             self.assertEqual(pending_report['summary']['total'], actual['summary']['total'])
+            self.assertEqual(pending_report['auditedRecords'],actual['auditedRecords'])
             guarded = base / 'baseline-ready.json'
             audit.write_json(guarded, ['contest:pvp_rate_config-999:0'])
             regressed = subprocess.run(command + ['--baseline-ready-ids', str(guarded)], capture_output=True)

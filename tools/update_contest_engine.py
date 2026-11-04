@@ -142,10 +142,18 @@ def site_content(site):
     return manifest,release.parent/'effects.json'
 
 
-def update(site,output,esbuild,plan=None,apply=False,baseline_snapshot=None):
+def run_validation(command,step,**kwargs):
+    try:subprocess.run(command,check=True,**kwargs)
+    except subprocess.CalledProcessError as error:
+        error.engine_update_step=step
+        raise
+
+
+def _update(site,output,esbuild,plan=None,apply=False,baseline_snapshot=None):
     if baseline_snapshot is None:raise ValueError('需要冻结的已部署模拟基线 --baseline-snapshot')
     baseline_snapshot=Path(baseline_snapshot).resolve();baseline_bytes=baseline_snapshot.read_bytes();baseline=read_baseline_snapshot(baseline_snapshot)
     manifest,effects=site_content(site);master=read(effects);output=Path(output);output.mkdir(parents=True,exist_ok=True)
+    if (output/'candidate').exists():raise ValueError('引擎候选目录已存在，请使用新的输出目录')
     # 检测阶段的固定提交在构建阶段再次核对，不在两次读取之间改用新的 HEAD。
     if plan is None:
         config=ROOT/'resources/content-publication.json'
@@ -158,7 +166,6 @@ def update(site,output,esbuild,plan=None,apply=False,baseline_snapshot=None):
     if current['commit']==plan['selected_commit'] and current['effectsSha256']==sha(effects.read_bytes()):
         report={'updated':False,'plan':plan,'baseline_snapshot_sha256':sha(baseline_bytes),'deployedBaseline':baseline};write(output/'report.json',report);return report
     candidate=output/'candidate'
-    if candidate.exists():raise ValueError('引擎候选目录已存在，请使用新的输出目录')
     candidate.mkdir();(candidate/'local').mkdir();(candidate/'tools').mkdir()
     for directory in ['domain','application','locales','tests']:shutil.copytree(ROOT/directory,candidate/directory,ignore=shutil.ignore_patterns('__pycache__','*.pyc'))
     for name in ['resources.mjs','image-config.mjs','i18n.mjs','THIRD_PARTY.md']:shutil.copyfile(ROOT/name,candidate/name)
@@ -170,15 +177,28 @@ def update(site,output,esbuild,plan=None,apply=False,baseline_snapshot=None):
     reviewed=read(candidate/'tools/contest-engine-reviewed-mappings.json');reviewed.update(engineCommit=plan['selected_commit'],effectsRevision=master['revision']);write(candidate/'tools/contest-engine-reviewed-mappings.json',reviewed)
     evidence=prepare_evidence(read(candidate/'tools/contest-status-effects.json'),master,manifest['upstream_commit']);write(candidate/'tools/contest-status-effects.json',evidence)
     attribution=(candidate/'THIRD_PARTY.md').read_text().replace(plan['repository_base_commit'],plan['selected_commit']);(candidate/'THIRD_PARTY.md').write_text(attribution)
-    subprocess.run([sys.executable,'-B',str(candidate/'tools/build_contest_engine.py'),'--source',str(source.resolve()),'--effects',str(effects),'--esbuild',str(Path(esbuild).resolve()),'--report',str((output/'build.json').resolve())],check=True)
-    subprocess.run(['node','--test','tests/contest-engine.test.mjs','tests/contest-reviewed-mappings.test.mjs'],cwd=candidate,check=True)
-    subprocess.run(['node',str(ROOT/'tools/audit_contest_engine.mjs'),'--site',str(Path(site).resolve()),'--program',str(candidate.resolve()),'--baseline-snapshot',str(baseline_snapshot),'--baseline',str(ROOT/'tools/contest-engine-compatibility-baseline.json'),'--report',str((output/'audit.json').resolve())],check=True)
+    run_validation([sys.executable,'-B',str(candidate/'tools/build_contest_engine.py'),'--source',str(source.resolve()),'--effects',str(effects),'--esbuild',str(Path(esbuild).resolve()),'--report',str((output/'build.json').resolve())],'build')
+    run_validation(['node','--test','tests/contest-engine.test.mjs','tests/contest-reviewed-mappings.test.mjs'],'regressions',cwd=candidate,env={**os.environ,'GAKUMAS_CONTEST_TEST_EFFECTS':str(effects.resolve())})
+    run_validation(['node',str(ROOT/'tools/audit_contest_engine.mjs'),'--site',str(Path(site).resolve()),'--program',str(candidate.resolve()),'--baseline-snapshot',str(baseline_snapshot),'--baseline',str(ROOT/'tools/contest-engine-compatibility-baseline.json'),'--report',str((output/'audit.json').resolve())],'audit')
     if baseline_snapshot.read_bytes()!=baseline_bytes:raise ValueError('已部署模拟基线在验证期间发生变化')
     changed=[name for name in OUTPUTS if (ROOT/name).read_bytes()!=(candidate/name).read_bytes()]
     report={'updated':bool(changed),'applied':apply,'files':changed,'plan':plan,'baseline_snapshot_sha256':sha(baseline_bytes),'deployedBaseline':baseline};write(output/'report.json',report)
     if apply:
         for name in changed:shutil.copyfile(candidate/name,ROOT/name)
     return report
+
+
+def update(site,output,esbuild,plan=None,apply=False,baseline_snapshot=None):
+    try:return _update(site,output,esbuild,plan,apply,baseline_snapshot)
+    except (ValueError,RuntimeError,KeyError,TypeError,OSError,subprocess.CalledProcessError) as error:
+        output=Path(output)
+        # 保留首轮失败及其固定输入，重复使用候选目录时不覆盖原诊断。
+        if (output/'plan.json').exists() and not (output/'report.json').exists():
+            report={'updated':False,'applied':False,'state':'blocked','failedStep':getattr(error,'engine_update_step','prepare'),
+                    'plan':read(output/'plan.json'),'issues':[{'kind':type(error).__name__,'message':str(error)}]}
+            if isinstance(error,subprocess.CalledProcessError):report['exitCode']=error.returncode
+            write(output/'report.json',report)
+        raise
 
 
 def main():

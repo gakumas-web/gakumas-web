@@ -1,12 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import fs from 'node:fs';
+import {readContestFixture,bindContestEntry} from './contest-current-content.mjs';
 import {prepareContestSimulation,runContestSimulation} from '../domain/contest-engine-runner.mjs';
 import {contestEngineMap} from '../domain/contest-engine-map.mjs';
 import {IdolConfig,StageConfig,IdolStageConfig,StageEngine,StagePlayer,STRATEGIES,resetRand,Stages,S} from '../domain/upstream-contest-engine.mjs';
 import {createContestSimulationRequest} from '../domain/contest-engine-request.mjs';
 import {installMaster} from '../domain/catalog.mjs';
-const fixture=JSON.parse(fs.readFileSync(new URL('./fixtures/public-data/contest-engine.json',import.meta.url)));
+const fixture=readContestFixture(new URL('./fixtures/public-data/contest-engine.json',import.meta.url));
 
 test('复用公开定义校验不能掩盖内容变化，重复准备仍创建独立战斗配置',async()=>{
   const request=structuredClone(fixture.customized),first=await prepareContestSimulation(request);
@@ -72,7 +72,7 @@ test('请求保留允许重复的卡片，实际引擎牌库张数一致且不�
 });
 
 test('共用附魔逐卡核对，至高のエンタメ+与已验证的ハイタッチ+均使用元气九点',async()=>{
-  const data=JSON.parse(fs.readFileSync(new URL('./fixtures/public-data/contest-customization-compatibility.json',import.meta.url))),request=structuredClone(fixture.customized);
+  const data=readContestFixture(new URL('./fixtures/public-data/contest-customization-compatibility.json',import.meta.url)),request=structuredClone(fixture.customized);
   request.cards[2]=data.card;
   const config=await prepareContestSimulation(request);assert.ok(config.idol.cards.some(card=>card.customizations?.[28]===1));
   const result=await runContestSimulation(request,{runs:3,seed:42});assert.ok(result.mean>0);
@@ -82,11 +82,11 @@ test('共用附魔逐卡核对，至高のエンタメ+与已验证的ハイタ�
 });
 
 test('月明かりに包まれて名称差异映射支持未强化、强化及两种附魔，并完成真实模拟',async()=>{
-  const data=JSON.parse(fs.readFileSync(new URL('./fixtures/public-data/contest-card-name-matching.json',import.meta.url)));
+  const data=readContestFixture(new URL('./fixtures/public-data/contest-card-name-matching.json',import.meta.url));
   for(const [upgrade,customId] of [[0,null],[1,null],[1,data.customizations[0].id],[1,data.customizations[1].id]]){
     const request=structuredClone(fixture.customized),record=data.cards.find(row=>row.upgradeCount===upgrade),custom=data.customizations.find(row=>row.id===customId);
     const grows=custom?custom.produceCardGrowEffectIds.map(id=>data.grows.find(row=>row.id===id)):[];
-    request.cards[2]={reference:{id:record.id,upgradeCount:upgrade,customizes:custom?[{id:custom.id,customizeCount:1}]:[]},record,customizations:custom?[{record:custom,grows,effects:grows.filter(row=>row.playProduceExamEffectId).map(row=>data.effects.find(effect=>effect.id===row.playProduceExamEffectId))}]:[]};
+    request.cards[2]=bindContestEntry({reference:{id:record.id,upgradeCount:upgrade,customizes:custom?[{id:custom.id,customizeCount:1}]:[]},record,customizations:custom?[{record:custom,grows,effects:grows.filter(row=>row.playProduceExamEffectId).map(row=>data.effects.find(effect=>effect.id===row.playProduceExamEffectId))}]:[]});
     assert.equal(contestEngineMap.cards[JSON.stringify([record.id,upgrade])][0],upgrade?587:586);
     const config=await prepareContestSimulation(request);assert.ok(config.idol.cards.some(card=>card.id===(upgrade?587:586)));
     const result=await runContestSimulation(request,{runs:3,seed:42});assert.equal(result.runs,3);assert.ok(result.mean>0);
@@ -94,14 +94,14 @@ test('月明かりに包まれて名称差异映射支持未强化、强化及�
 });
 
 test('モチベ+的山札选择保留附魔映射到现有引擎并完成真实对局',async()=>{
-  const data=JSON.parse(fs.readFileSync(new URL('./fixtures/public-data/contest-hold-customization.json',import.meta.url)));
+  const data=readContestFixture(new URL('./fixtures/public-data/contest-hold-customization.json',import.meta.url));
   const request=structuredClone(fixture.requests.find(request=>request.plan==='anomaly'));request.cards.push(data.card);
   const config=await prepareContestSimulation(request);assert.ok(config.idol.cards.some(card=>card.id===553&&card.customizations?.[43]===1));
   const result=await runContestSimulation(request,{runs:3,seed:42});assert.equal(result.runs,3);assert.ok(result.mean>0);
 });
 
 test('预览审计修复的附魔保持原配置并完成对应计划的真实模拟',async()=>{
-  const data=JSON.parse(fs.readFileSync(new URL('./fixtures/public-data/contest-preview-customizations.json',import.meta.url)));
+  const data=readContestFixture(new URL('./fixtures/public-data/contest-preview-customizations.json',import.meta.url));
   for(const entry of data.entries){
     const request=structuredClone(fixture.requests.find(row=>row.plan===entry.plan));request.cards.push(entry.card);
     const config=await prepareContestSimulation(request),id=contestEngineMap.cards[JSON.stringify([entry.card.reference.id,entry.card.reference.upgradeCount])][0];
@@ -111,7 +111,7 @@ test('预览审计修复的附魔保持原配置并完成对应计划的真实�
 });
 
 test('持续附魔替换原触发而不叠加，保留次数、直接效果条件和独立计数',async()=>{
-  const data=JSON.parse(fs.readFileSync(new URL('./fixtures/public-data/contest-status-customizations.json',import.meta.url)));
+  const data=readContestFixture(new URL('./fixtures/public-data/contest-status-customizations.json',import.meta.url));
   for(const entry of data.entries){
     const request=structuredClone(fixture.requests.find(row=>row.plan==='logic'));request.cards.push(entry);
     const config=await prepareContestSimulation(request),engine=new StageEngine(config),state=engine.getInitialState(),id=contestEngineMap.cards[JSON.stringify([entry.reference.id,1])][0],index=state[S.cardMap].findIndex(card=>card.id===id),lines=engine.cardManager.getLines(state,index,'actions'),triggers=lines.filter(line=>line.phase);
@@ -134,7 +134,7 @@ test('逐回合与统计缩略图保留本次输入的实际附魔引用',async(
 });
 
 test('生成的眠気保留卡面引用，逐回合手牌选择和分组状态变化来自真实日志',async()=>{
-  const request=structuredClone(fixture.customized);request.cards[request.cards.length-1]=JSON.parse(fs.readFileSync(new URL('./fixtures/public-data/contest-sleepiness-card.json',import.meta.url)));
+  const request=structuredClone(fixture.customized);request.cards[request.cards.length-1]=readContestFixture(new URL('./fixtures/public-data/contest-sleepiness-card.json',import.meta.url));
   const result=await runContestSimulation(request,{runs:10,seed:42}),sleep=result.statistics.total.rows.find(row=>row.name==='眠気');
   assert.ok(sleep?.draw>0);assert.equal(sleep.reference.id,'p_card-00-acc-0_002');
   const {simulationCardReference}=await import('../domain/contest-engine-display.mjs');assert.deepEqual(simulationCardReference({...sleep,reference:null}),sleep.reference);assert.equal(simulationCardReference({name:'眠気'}),null);
@@ -148,7 +148,7 @@ test('生成的眠気保留卡面引用，逐回合手牌选择和分组状态�
 });
 
 test('Agitato 咲季普通和强化专属卡及道具通过正式校验并完成比赛',async()=>{
-  const additions=JSON.parse(fs.readFileSync(new URL('./fixtures/public-data/agitato-saki.json',import.meta.url)));
+  const additions=readContestFixture(new URL('./fixtures/public-data/agitato-saki.json',import.meta.url));
   for(const upgrade of [0,1]){
     const request=structuredClone(fixture.requests.find(row=>row.plan==='logic'));
     request.cards[0]=additions.cards[upgrade];request.items=[additions.items[upgrade]];

@@ -2,6 +2,7 @@
 import copy
 from contextlib import ExitStack
 import json
+import os
 from pathlib import Path
 import subprocess
 import sys
@@ -157,7 +158,13 @@ class EngineUpdateTest(unittest.TestCase):
                 with self.assertRaises(subprocess.CalledProcessError):engine.update(root/'site',root/'output',root/'esbuild',plan,apply=True,baseline_snapshot=root/'baseline.json')
                 self.assertEqual(len(calls),failure+1)
                 self.assertEqual({name:(root/name).read_bytes() for name in engine.OUTPUTS},original)
-                self.assertFalse((root/'output/report.json').exists())
+                report=json.loads((root/'output/report.json').read_text())
+                self.assertEqual(report['state'],'blocked');self.assertFalse(report['updated']);self.assertFalse(report['applied'])
+                self.assertEqual(report['failedStep'],['build','regressions','audit'][failure]);self.assertEqual(report['exitCode'],1)
+                self.assertEqual(report['plan'],plan)
+                previous=(root/'output/report.json').read_bytes()
+                with self.assertRaisesRegex(ValueError,'候选目录已存在'):engine.update(root/'site',root/'output',root/'esbuild',plan,apply=True,baseline_snapshot=root/'baseline.json')
+                self.assertEqual((root/'output/report.json').read_bytes(),previous)
 
     def test_code_only_and_content_only_updates_run_every_validation_before_apply(self):
         for engine_changed,content_changed in [(True,False),(False,True)]:
@@ -169,6 +176,7 @@ class EngineUpdateTest(unittest.TestCase):
                     self.assertEqual({name:(root/name).read_bytes() for name in engine.OUTPUTS},original)
                     calls.append(command)
                     if len(calls)==1:(root/'output/candidate/domain/upstream-contest-engine.mjs').write_text('built engine')
+                    if len(calls)==2:self.assertEqual(kwargs['env']['GAKUMAS_CONTEST_TEST_EFFECTS'],str(effects.resolve()))
                 stack.enter_context(patch.object(engine.subprocess,'run',side_effect=run))
                 report=engine.update(root/'site',root/'output',root/'esbuild',plan,apply=True,baseline_snapshot=root/'baseline.json')
                 self.assertEqual(len(calls),3);self.assertIn('--source',calls[0]);self.assertIn('--test',calls[1]);self.assertIn('--baseline',calls[2]);self.assertIn('--baseline-snapshot',calls[2]);self.assertNotIn('--baseline-program',calls[2])
@@ -238,6 +246,48 @@ class EngineUpdateTest(unittest.TestCase):
             with self.assertRaises(ValueError):verify_evidence(evidence,master,changed)
         changed=copy.deepcopy(master);changed['tables']['ProduceExamEffect'][0]['definition']['value']=5
         with self.assertRaises(ValueError):verify_evidence(evidence,changed,tables)
+
+
+CURRENT_CONTENT_INPUTS=('GAKUMAS_CONTEST_UPDATE_CONTENT','GAKUMAS_CONTEST_UPDATE_PLAN','GAKUMAS_CONTEST_UPDATE_BASELINE','GAKUMAS_CONTEST_UPDATE_ESBUILD')
+
+
+@unittest.skipUnless(all(os.environ.get(name) for name in CURRENT_CONTENT_INPUTS),'需要显式固定内容、计划、已部署基线和 esbuild 才运行真实更新回归')
+class CurrentContentUpdateTest(unittest.TestCase):
+    def test_same_identity_source_name_and_cost_correction_runs_real_candidate_pipeline(self):
+        from content_contract import validate_manifest,validate_part
+        from build_contest_engine import canonical,digest
+        content=Path(os.environ[CURRENT_CONTENT_INPUTS[0]]).resolve()
+        manifest=validate_manifest((content/'manifest.json').read_bytes())
+        for name in manifest['files']:validate_part(name,(content/name).read_bytes(),manifest)
+        original=json.loads((content/'effects.json').read_text());master=copy.deepcopy(original)
+        row=next(row for row in master['tables']['ProduceCard'] if row['id']=='p_card-02-ido-3_086' and row['upgradeCount']==0)
+        old=copy.deepcopy(row);row['name']+=' (current-content regression)';row['definition']['name']=row['name'];row['definition']['stamina']+=1
+        master['revision']=digest({key:value for key,value in master.items() if key not in ('scope','revision')})
+        fixed={name:sha((engine.ROOT/name).read_bytes()) for name in engine.OUTPUTS}
+        with TemporaryDirectory() as temporary:
+            workspace=Path(os.environ.get('GAKUMAS_CONTEST_UPDATE_OUTPUT',temporary)).resolve()
+            if workspace!=Path(temporary):workspace.mkdir(parents=True,exist_ok=False)
+            release=workspace/'site/content/releases/same-identity-regression';release.mkdir(parents=True)
+            for name in manifest['files']:(release/name).write_bytes((content/name).read_bytes())
+            raw=(canonical(master)+'\n').encode();(release/'effects.json').write_bytes(raw)
+            manifest=copy.deepcopy(manifest);manifest['version']='same-identity-regression'
+            manifest['files']['effects.json'].update(bytes=len(raw),sha256=sha(raw),revision=master['revision'])
+            manifest['master_revision']=digest({name:row.get('revision') for name,row in manifest['files'].items()})
+            manifest_raw=(canonical(manifest)+'\n').encode();(release/'manifest.json').write_bytes(manifest_raw)
+            engine.write(workspace/'site/content/channel.json',{'version':manifest['version'],'manifest':'releases/'+manifest['version']+'/manifest.json','sha256':sha(manifest_raw)})
+            (workspace/'site/content-config.mjs').write_text('export const contentConfig={channelURL:"./content/channel.json"};\n')
+            report=engine.update(workspace/'site',workspace/'update',Path(os.environ[CURRENT_CONTENT_INPUTS[3]]),
+                                 engine.read(os.environ[CURRENT_CONTENT_INPUTS[1]]),baseline_snapshot=Path(os.environ[CURRENT_CONTENT_INPUTS[2]]))
+            self.assertTrue(report['updated']);self.assertFalse(report['applied'])
+            built=engine.read(workspace/'update/build.json');audit=engine.read(workspace/'update/audit.json')
+            key=canonical([row['id'],row['upgradeCount']]);resolution=next(value for value in built['reviewedMappingResolutions'] if value['key']==key)
+            self.assertEqual(resolution['resolution'],'reviewed_identity_preserved')
+            self.assertEqual(resolution['sourceSha256'],digest(row));self.assertEqual(resolution['reviewedSourceSha256'],digest(old))
+            self.assertTrue(audit['candidatePoolChecked']);self.assertEqual(audit['summary']['unsupported'],0)
+            self.assertEqual(audit['summary']['stageFailures'],0);self.assertEqual(audit['newUnsupported'],[])
+            self.assertEqual(next(value['fingerprint'] for value in audit['auditedRecords'] if value['table']=='ProduceCard' and value['id']==row['id'] and value['upgradeCount']==0),digest(row))
+            self.assertEqual({name:sha((engine.ROOT/name).read_bytes()) for name in engine.OUTPUTS},fixed)
+            engine.write(workspace/'same-identity-regression.json',{'synthetic':True,'sourceKey':key,'oldRecordSha256':digest(old),'currentRecordSha256':digest(row),'changedFields':['name','definition.name','definition.stamina'],'updated':report['updated'],'applied':report['applied'],'candidatePoolChecked':audit['candidatePoolChecked'],'summary':audit['summary']})
 
 
 if __name__=='__main__':unittest.main()

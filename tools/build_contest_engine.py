@@ -19,12 +19,60 @@ def canonical(value):return json.dumps(value,ensure_ascii=False,sort_keys=True,s
 def digest(value):return hashlib.sha256(canonical(value).encode()).hexdigest()
 REVIEWED_PATH=ROOT/'tools/contest-engine-reviewed-mappings.json'
 
-def reviewed_target(reviewed,kind,key,source,targets):
+class ReviewedMappingError(ValueError):
+    def __init__(self,issue):
+        self.issue=issue
+        super().__init__('已核对的引擎身份映射发生变化，需重新确认：'+issue['key'])
+
+def reviewed_identity(kind,source,target):
+    def fields(row,names):return {name:row[name] for name in names if name in row}
+    if kind=='customizations':
+        return {'source':[fields(material['record'],('id','customizeCount')) for material in source],
+                'engine':fields(target,('id','type','max','alias'))}
+    definition=source['definition']
+    names=('id','upgradeCount','planType','rarity','category','originIdolCardId','originSupportCardId','originCharacterId') if kind=='cards' else ('id','isUpgraded','planType','rarity','originIdolCardId','originSupportCardId')
+    record=('id','upgradeCount','rarity','category') if kind=='cards' else ('id','isUpgraded')
+    engine=('id','upgraded','plan','rarity','type','sourceType','pIdolId') if kind=='cards' else ('id','upgraded','plan','rarity','mode','sourceType','pIdolId')
+    return {'source':{**fields(source,record),'definition':fields(definition,names)},'engine':fields(target,engine)}
+
+def reviewed_name_ids(kind,source,targets):
+    if kind not in ('cards','items'):return []
+    upgraded=bool(source['upgradeCount']) if kind=='cards' else source['isUpgraded']
+    plan=PLANS.get(source['definition']['planType']);normalize=normalized if kind=='cards' else item_name
+    def name(target):
+        value=normalize(target['name'])
+        return value+'+' if kind=='items' and upgraded and not value.endswith('+') else value
+    candidates=[target for target in targets if target['upgraded']==upgraded and target['plan']==plan]
+    exact=[target['id'] for target in candidates if name(target)==normalize(source['name'])]
+    return exact or [target['id'] for target in candidates if matching_name(target['name'],upgraded)==matching_name(source['name'],upgraded)]
+
+def reviewed_target(reviewed,kind,key,source,targets,*,matched=None,match_method=None,resolutions=None):
     entry=reviewed.get(kind,{}).get(key)
     if not entry:return None
-    target=next((row for row in targets if row['id']==entry['engineId']),None)
-    if target is None or digest(source)!=entry['sourceSha256'] or digest(target)!=entry['engineSha256']:
-        raise ValueError('已核对的引擎身份映射发生变化，需重新确认：'+key)
+    matching_targets=[row for row in targets if row['id']==entry['engineId']]
+    target=matching_targets[0] if len(matching_targets)==1 else None
+    source_hash=digest(source);target_hash=digest(target) if target is not None else None
+    named_ids=reviewed_name_ids(kind,source,targets) if target is not None else []
+    identity_conflict=len(named_ids)>1 or bool(named_ids and named_ids[0]!=entry['engineId']) or match_method in ('ambiguous_name','ambiguous_normalized_name') or matched is not None and matched['id']!=entry['engineId']
+    if target is None or source_hash!=entry['sourceSha256'] or target_hash!=entry['engineSha256'] or identity_conflict:
+        issue={'mappingKind':kind,'key':key,'engineId':entry['engineId'],
+               'sourceSha256':source_hash,'reviewedSourceSha256':entry['sourceSha256'],
+               'engineSha256':target_hash,'reviewedEngineSha256':entry['engineSha256'],
+               'matchedEngineId':matched['id'] if matched is not None else None,'matchingMethod':match_method,'namedEngineIds':named_ids,'targetMatchCount':len(matching_targets)}
+        candidate_identity=reviewed_identity(kind,source,target) if target is not None else None
+        if 'identity' in entry:issue.update(reviewedIdentity=entry['identity'],candidateIdentity=candidate_identity)
+        # 旧名称重建出的完整指纹仍须命中人工证据；只允许名称改成当前公开名称。
+        if (not identity_conflict and kind in ('cards','items') and target is not None and matched is not None and matched['id']==target['id']
+            and source_hash==entry['sourceSha256']
+            and isinstance(entry.get('engineName'),str) and normalized(target['name'])==normalized(source['name'])
+            and digest({**target,'name':entry['engineName']})==entry['engineSha256']):
+            if resolutions is not None:resolutions.append({**issue,'resolution':'engine_name_aligned','reviewedEngineName':entry['engineName'],'engineName':target['name']})
+            return target
+        if (not identity_conflict and target is not None and entry.get('identity')==candidate_identity):
+            entry.update(sourceSha256=source_hash,engineSha256=target_hash)
+            if resolutions is not None:resolutions.append({**issue,'resolution':'reviewed_identity_preserved','identity':entry['identity'],'identityEvidence':entry.get('identityEvidence')})
+            return target
+        raise ReviewedMappingError(issue)
     return target
 
 def customization_material(level,grows,effects,triggers):
@@ -297,13 +345,13 @@ def build(source,effects_file,esbuild=None,*,mapping_only=False):
     skill_lookup=lookup(skills);item_lookup=lookup(items,item_name);cards_map={};items_map={};custom_map={};source_sets={};target_sets={};unmapped={'cards':[],'items':[],'customizations':[]}
     triggers={row['id']:row for row in semantics.get('ProduceExamTrigger',[])};grows={row['id']:row for row in semantics['ProduceCardGrowEffect']};effects={row['id']:row for row in tables['ProduceExamEffect']};custom_rows={}
     for row in semantics['ProduceCardCustomize']:custom_rows.setdefault(row['id'],[]).append(row)
-    reviewed_matches=[]
+    reviewed_matches=[];reviewed_resolutions=[]
     card_matching={'effects':[],'rejected':[],'nameVerified':0,'nameOnly':0};custom_price_differences=[]
     for row in tables['ProduceCard']:
         if row['upgradeCount']>1 or row['definition'].get('libraryHidden') or row['rarity']=='ProduceCardRarity_Legend' or row['category']=='ProduceCardCategory_Trouble':continue
         target,method=match_skill_card(row,skills,skill_lookup,effects,custom_rows,grows,customs,triggers)
         reviewed_key=json.dumps([row['id'],row['upgradeCount']],ensure_ascii=False,separators=(',',':'))
-        fallback=reviewed_target(reviewed,'cards',reviewed_key,row,skills)
+        fallback=reviewed_target(reviewed,'cards',reviewed_key,row,skills,matched=target,match_method=method,resolutions=reviewed_resolutions)
         if fallback:
             if not card_structure_matches(row,fallback):raise ValueError('已核对卡片的结构不一致：'+reviewed_key)
             target,method=fallback,'reviewed_identity';reviewed_matches.append({'kind':'card','key':reviewed_key,'engineId':target['id']})
@@ -319,7 +367,8 @@ def build(source,effects_file,esbuild=None,*,mapping_only=False):
     for row in tables['ProduceItem']:
         if row['definition'].get('libraryHidden') or not row['definition']['isExamEffect']:continue
         target=match_item(row,items,item_lookup)
-        fallback=reviewed_target(reviewed,'items',row['id'],row,items)
+        named=[value for value in items if value['upgraded']==row['isUpgraded'] and value['plan']==PLANS.get(row['definition']['planType']) and matching_name(value['name'],value['upgraded'])==matching_name(row['name'],row['isUpgraded'])]
+        fallback=reviewed_target(reviewed,'items',row['id'],row,items,matched=target,match_method='ambiguous_normalized_name' if len(named)>1 else None,resolutions=reviewed_resolutions)
         if fallback:
             if fallback['upgraded']!=row['isUpgraded'] or fallback['plan']!=PLANS.get(row['definition']['planType']):raise ValueError('已核对道具的结构不一致：'+row['id'])
             target=fallback;reviewed_matches.append({'kind':'item','key':row['id'],'engineId':target['id']})
@@ -331,7 +380,7 @@ def build(source,effects_file,esbuild=None,*,mapping_only=False):
         semantic_candidates=[row for row in customs if card_ids&target_sets.get(row['id'],set()) and row['max']==len(levels) and any(custom_matches(levels,grows,effects,row,skills_by_id[id],triggers) for id in card_ids&target_sets.get(row['id'],set()))]
         candidates=[row for row in semantic_candidates if [int(x) for x in str(row['price']).split(',')]==prices] or semantic_candidates
         materials=[customization_material(level,grows,effects,triggers) for level in levels]
-        fallback=reviewed_target(reviewed,'customizations',id,materials,customs)
+        fallback=reviewed_target(reviewed,'customizations',id,materials,customs,resolutions=reviewed_resolutions)
         if fallback:
             if fallback['max']!=len(levels) or not card_ids<=target_sets.get(fallback['id'],set()):raise ValueError('已核对附魔的适用卡片或等级不一致：'+id)
             candidates=[fallback];reviewed_matches.append({'kind':'customization','key':id,'engineId':fallback['id']})
@@ -352,6 +401,8 @@ def build(source,effects_file,esbuild=None,*,mapping_only=False):
             if not custom or str(custom[0]) in str(target['availableCustomizations']).split(','):continue
             levels=sorted(custom_rows[id],key=lambda value:value['customizeCount'])
             if custom_matches(levels,grows,effects,customs_by_id[custom[0]],target,triggers):card_customs[json.dumps([row['id'],row['upgradeCount'],id],separators=(',',':'))]=custom[0]
+    # 只有全部身份与结构检查完成才写候选证据；回归和审计通过后由更新入口整体应用。
+    if any(row['resolution']=='reviewed_identity_preserved' for row in reviewed_resolutions):REVIEWED_PATH.write_text(json.dumps(reviewed,ensure_ascii=False,indent=2)+'\n')
     if not mapping_only:
         entry="export {IdolConfig,StageConfig,IdolStageConfig,StageEngine,StagePlayer,STRATEGIES,resetRand,S} from './packages/gakumas-engine/index.js';\nexport {SkillCards,PItems,Customizations,Stages} from './packages/gakumas-data/index.js';\n"
         with tempfile.TemporaryDirectory(prefix='engine-build-',dir=ROOT/'local') as temporary:
@@ -377,9 +428,16 @@ def build(source,effects_file,esbuild=None,*,mapping_only=False):
     (ROOT/'domain/contest-stage-index.mjs').write_text('// 由 tools/build_contest_engine.py 生成的轻量能力索引；不包含引擎算法。\nexport const contestStageIndex='+json.dumps(stage_index,ensure_ascii=False,separators=(',',':'))+';\n')
     mapping={'source':{'repository':'gakumas-tools/gakumas-tools','commit':COMMIT,'statusEffectEvidenceSha256':hashlib.sha256(EVIDENCE_PATH.read_bytes()).hexdigest(),'reviewedMappingsSha256':hashlib.sha256(REVIEWED_PATH.read_bytes()).hexdigest(),'effectsRevision':master['revision'],'effectsSha256':hashlib.sha256(effects_file.read_bytes()).hexdigest()},'cards':cards_map,'cardCustomizations':card_customs,'items':items_map,'customizations':custom_map,'stages':stages_map}
     (ROOT/'domain/contest-engine-map.mjs').write_text('// 由 tools/build_contest_engine.py 生成；只包含公开目录身份与已核对映射。\nexport const contestEngineMap='+json.dumps(mapping,ensure_ascii=False,separators=(',',':'))+';\n')
-    report={'mappedCards':len(cards_map),'mappedItems':len(items_map),'mappedCustomizationLevels':len(custom_map),'unmapped':unmapped,'cardMatching':card_matching,'customPriceDifferences':custom_price_differences,'reviewedMappings':reviewed_matches}
+    report={'source':mapping['source'],'mappedCards':len(cards_map),'mappedItems':len(items_map),'mappedCustomizationLevels':len(custom_map),'unmapped':unmapped,'cardMatching':card_matching,'customPriceDifferences':custom_price_differences,'reviewedMappings':reviewed_matches,'reviewedMappingResolutions':reviewed_resolutions}
     return report
 
-if __name__=='__main__':
+def main():
     parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--source',type=Path,required=True);parser.add_argument('--effects',type=Path,required=True);mode=parser.add_mutually_exclusive_group(required=True);mode.add_argument('--esbuild',type=Path);mode.add_argument('--mapping-only',action='store_true',help='仅重建公开资料映射，保留已固定的引擎模块');parser.add_argument('--report',type=Path,required=True);args=parser.parse_args()
-    report=build(args.source,args.effects,args.esbuild,mapping_only=args.mapping_only);args.report.write_text(json.dumps(report,ensure_ascii=False,indent=2)+'\n');print(json.dumps({key:value for key,value in report.items() if key not in ('unmapped','cardMatching','customPriceDifferences','reviewedMappings')}))
+    try:report=build(args.source,args.effects,args.esbuild,mapping_only=args.mapping_only)
+    except (ValueError,KeyError,TypeError,OSError,subprocess.CalledProcessError) as error:
+        report={'state':'blocked','issues':[{'kind':'reviewed_mapping_changed',**error.issue} if isinstance(error,ReviewedMappingError) else {'kind':'engine_build_failed','message':str(error)}]}
+        args.report.parent.mkdir(parents=True,exist_ok=True);args.report.write_text(json.dumps(report,ensure_ascii=False,indent=2)+'\n')
+        raise
+    args.report.parent.mkdir(parents=True,exist_ok=True);args.report.write_text(json.dumps(report,ensure_ascii=False,indent=2)+'\n');print(json.dumps({key:value for key,value in report.items() if key not in ('unmapped','cardMatching','customPriceDifferences','reviewedMappings','reviewedMappingResolutions')}))
+
+if __name__=='__main__':main()
