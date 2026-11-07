@@ -149,18 +149,73 @@ def run_validation(command,step,**kwargs):
         raise
 
 
+def verify_plan_baseline(plan,baseline):
+    previous=plan.get('previous_lock')
+    previous_commit=previous.get('commit') if isinstance(previous,dict) else plan.get('repository_base_commit')
+    expected=baseline['engine_commit'] if baseline['state']=='ready' else plan.get('repository_base_commit')
+    if (plan.get('base_commit')!=expected or previous_commit!=expected
+            or baseline['state']=='bootstrap' and previous is not None):
+        error=ValueError('自动引擎更新计划未绑定冻结的已部署基线，请基于该冻结版本重新生成固定计划')
+        error.engine_update_step='baseline'
+        error.engine_update_issue={'kind':'plan_baseline_mismatch','planBaseCommit':plan.get('base_commit'),
+                                   'planPreviousCommit':previous_commit,'frozenEngineCommit':baseline['engine_commit']}
+        raise error
+
+
+def apply_outputs(candidate,output,changed,report):
+    backup=output/'apply-backup'
+    application={'backup':'apply-backup','files':{},'attempted':[],'backup_complete':False}
+    try:
+        # 在任何写回之前保留全部原文件及双侧哈希，失败时不删除恢复依据。
+        backup.mkdir()
+        for name in changed:
+            saved=backup/name;saved.parent.mkdir(parents=True,exist_ok=True)
+            before=sha((ROOT/name).read_bytes())
+            shutil.copyfile(ROOT/name,saved)
+            if sha(saved.read_bytes())!=before:raise OSError('引擎产物备份哈希不一致：'+name)
+            application['files'][name]={'before_sha256':before,
+                                        'after_sha256':sha((candidate/name).read_bytes())}
+        write(backup/'manifest.json',{'files':application['files']})
+        application['backup_complete']=True
+        for name in changed:
+            # 失败的复制也可能截断目标，因此必须先登记尝试，再复制和核对。
+            application['attempted'].append(name)
+            shutil.copyfile(candidate/name,ROOT/name)
+            if sha((ROOT/name).read_bytes())!=application['files'][name]['after_sha256']:
+                raise OSError('引擎产物写回后哈希不一致：'+name)
+        result={**report,'applied':True,'application':{**application,'state':'applied'}}
+        write(output/'report.json',result)
+        return result
+    except Exception as error:
+        failures=[]
+        for name in reversed(application['attempted']):
+            try:
+                shutil.copyfile(backup/name,ROOT/name)
+                if sha((ROOT/name).read_bytes())!=application['files'][name]['before_sha256']:
+                    raise OSError('恢复后哈希不一致')
+            except OSError as restore_error:
+                failures.append({'file':name,'kind':type(restore_error).__name__,'message':str(restore_error)})
+        error.engine_update_step='apply'
+        error.engine_update_application={**application,'state':'failed','restored':not failures,'restore_errors':failures}
+        raise
+
+
 def _update(site,output,esbuild,plan=None,apply=False,baseline_snapshot=None):
     if baseline_snapshot is None:raise ValueError('需要冻结的已部署模拟基线 --baseline-snapshot')
     baseline_snapshot=Path(baseline_snapshot).resolve();baseline_bytes=baseline_snapshot.read_bytes();baseline=read_baseline_snapshot(baseline_snapshot)
     manifest,effects=site_content(site);master=read(effects);output=Path(output);output.mkdir(parents=True,exist_ok=True)
-    if (output/'candidate').exists():raise ValueError('引擎候选目录已存在，请使用新的输出目录')
+    if any((output/name).exists() for name in ('candidate','plan.json','report.json','apply-backup')):
+        raise ValueError('引擎候选目录已存在，请使用新的输出目录')
     # 检测阶段的固定提交在构建阶段再次核对，不在两次读取之间改用新的 HEAD。
+    supplied_plan=plan is not None
     if plan is None:
         config=ROOT/'resources/content-publication.json'
         previous=deployed_lock(read(config)['site_url']) if config.exists() else None
         plan=inspect(previous=previous)
-    elif inspect(plan['candidate_commit'],plan.get('previous_lock'))!=plan:raise ValueError('自动引擎更新输入已变化')
     write(output/'plan.json',plan)
+    verify_plan_baseline(plan,baseline)
+    if supplied_plan and inspect(plan['candidate_commit'],plan.get('previous_lock'))!=plan:
+        raise ValueError('自动引擎更新输入已变化')
     mapping=(ROOT/'domain/contest-engine-map.mjs').read_text().split('export const contestEngineMap=',1)[1].strip().removesuffix(';')
     current=json.loads(mapping)['source']
     if current['commit']==plan['selected_commit'] and current['effectsSha256']==sha(effects.read_bytes()):
@@ -182,9 +237,9 @@ def _update(site,output,esbuild,plan=None,apply=False,baseline_snapshot=None):
     run_validation(['node',str(ROOT/'tools/audit_contest_engine.mjs'),'--site',str(Path(site).resolve()),'--program',str(candidate.resolve()),'--baseline-snapshot',str(baseline_snapshot),'--baseline',str(ROOT/'tools/contest-engine-compatibility-baseline.json'),'--report',str((output/'audit.json').resolve())],'audit')
     if baseline_snapshot.read_bytes()!=baseline_bytes:raise ValueError('已部署模拟基线在验证期间发生变化')
     changed=[name for name in OUTPUTS if (ROOT/name).read_bytes()!=(candidate/name).read_bytes()]
-    report={'updated':bool(changed),'applied':apply,'files':changed,'plan':plan,'baseline_snapshot_sha256':sha(baseline_bytes),'deployedBaseline':baseline};write(output/'report.json',report)
-    if apply:
-        for name in changed:shutil.copyfile(candidate/name,ROOT/name)
+    report={'updated':bool(changed),'applied':False,'files':changed,'plan':plan,'baseline_snapshot_sha256':sha(baseline_bytes),'deployedBaseline':baseline}
+    if apply:return apply_outputs(candidate,output,changed,report)
+    write(output/'report.json',report)
     return report
 
 
@@ -193,9 +248,11 @@ def update(site,output,esbuild,plan=None,apply=False,baseline_snapshot=None):
     except (ValueError,RuntimeError,KeyError,TypeError,OSError,subprocess.CalledProcessError) as error:
         output=Path(output)
         # 保留首轮失败及其固定输入，重复使用候选目录时不覆盖原诊断。
-        if (output/'plan.json').exists() and not (output/'report.json').exists():
+        application=getattr(error,'engine_update_application',None)
+        if (output/'plan.json').exists() and (not (output/'report.json').exists() or application is not None):
             report={'updated':False,'applied':False,'state':'blocked','failedStep':getattr(error,'engine_update_step','prepare'),
-                    'plan':read(output/'plan.json'),'issues':[{'kind':type(error).__name__,'message':str(error)}]}
+                    'plan':read(output/'plan.json'),'issues':[getattr(error,'engine_update_issue',{'kind':type(error).__name__,'message':str(error)})]}
+            if application is not None:report['application']=application
             if isinstance(error,subprocess.CalledProcessError):report['exitCode']=error.returncode
             write(output/'report.json',report)
         raise

@@ -184,6 +184,129 @@ class EngineUpdateTest(unittest.TestCase):
                 self.assertTrue(report['updated']);self.assertTrue(report['applied'])
                 self.assertEqual((root/'domain/upstream-contest-engine.mjs').read_text(),'built engine')
 
+    def test_apply_copy_failure_restores_outputs_and_preserves_verified_backups(self):
+        for restore_failure in (False,True):
+            with self.subTest(restore_failure=restore_failure),TemporaryDirectory() as temporary,ExitStack() as stack:
+                root=Path(temporary);effects,after,plan=self.update_fixture(root)
+                original={name:(root/name).read_bytes() for name in engine.OUTPUTS}
+                self.update_patches(stack,root,effects,after,plan);calls=[]
+                def run(command,**kwargs):
+                    calls.append(command)
+                    if len(calls)==1:
+                        for name in engine.OUTPUTS:(root/'output/candidate'/name).write_text('candidate')
+                stack.enter_context(patch.object(engine.subprocess,'run',side_effect=run))
+                real_copy=engine.shutil.copyfile;attempted=[]
+                def copy(source,destination,**kwargs):
+                    source,destination=Path(source),Path(destination)
+                    if source.is_relative_to(root/'output/candidate') and destination in [root/name for name in engine.OUTPUTS]:
+                        attempted.append(str(destination.relative_to(root)))
+                        if len(attempted)==2:
+                            destination.write_text('partial')
+                            raise OSError('synthetic apply failure')
+                    if restore_failure and attempted and source==root/'output/apply-backup'/attempted[0]:
+                        raise OSError('synthetic restore failure')
+                    return real_copy(source,destination,**kwargs)
+                stack.enter_context(patch.object(engine.shutil,'copyfile',side_effect=copy))
+                with self.assertRaisesRegex(OSError,'synthetic apply failure'):
+                    engine.update(root/'site',root/'output',root/'esbuild',plan,apply=True,baseline_snapshot=root/'baseline.json')
+                self.assertEqual(len(calls),3)
+                report=engine.read(root/'output/report.json');application=report['application']
+                self.assertEqual(report['state'],'blocked');self.assertEqual(report['failedStep'],'apply')
+                self.assertFalse(report['updated']);self.assertFalse(report['applied'])
+                self.assertTrue(application['backup_complete']);self.assertEqual(application['restored'],not restore_failure)
+                self.assertEqual(application['attempted'],attempted)
+                manifest=engine.read(root/'output/apply-backup/manifest.json')
+                for name in application['files']:
+                    self.assertEqual((root/'output/apply-backup'/name).read_bytes(),original[name])
+                    self.assertEqual(manifest['files'][name]['before_sha256'],sha(original[name]))
+                if restore_failure:
+                    self.assertEqual([row['file'] for row in application['restore_errors']],[attempted[0]])
+                    self.assertNotEqual((root/attempted[0]).read_bytes(),original[attempted[0]])
+                else:
+                    self.assertEqual({name:(root/name).read_bytes() for name in engine.OUTPUTS},original)
+                    previous=(root/'output/report.json').read_bytes()
+                    with self.assertRaisesRegex(ValueError,'候选目录已存在'):
+                        engine.update(root/'site',root/'output',root/'esbuild',plan,apply=True,baseline_snapshot=root/'baseline.json')
+                    self.assertEqual((root/'output/report.json').read_bytes(),previous)
+
+    def test_apply_receipt_is_written_after_all_files_and_failure_rolls_back(self):
+        for receipt_failure in (False,True):
+            with self.subTest(receipt_failure=receipt_failure),TemporaryDirectory() as temporary,ExitStack() as stack:
+                root=Path(temporary);effects,after,plan=self.update_fixture(root)
+                original={name:(root/name).read_bytes() for name in engine.OUTPUTS}
+                self.update_patches(stack,root,effects,after,plan);calls=[]
+                def run(command,**kwargs):
+                    calls.append(command)
+                    if len(calls)==1:
+                        for name in engine.OUTPUTS:(root/'output/candidate'/name).write_text('candidate')
+                stack.enter_context(patch.object(engine.subprocess,'run',side_effect=run))
+                real_write=engine.write;receipts=[]
+                def write(path,value):
+                    if Path(path)==root/'output/report.json':
+                        receipts.append(copy.deepcopy(value))
+                        if value['applied']:
+                            for name in value['files']:
+                                self.assertEqual((root/name).read_bytes(),(root/'output/candidate'/name).read_bytes())
+                            if receipt_failure:
+                                Path(path).write_text('{')
+                                raise OSError('synthetic receipt failure')
+                    return real_write(path,value)
+                stack.enter_context(patch.object(engine,'write',side_effect=write))
+                if receipt_failure:
+                    with self.assertRaisesRegex(OSError,'synthetic receipt failure'):
+                        engine.update(root/'site',root/'output',root/'esbuild',plan,apply=True,baseline_snapshot=root/'baseline.json')
+                    self.assertEqual({name:(root/name).read_bytes() for name in engine.OUTPUTS},original)
+                    report=engine.read(root/'output/report.json')
+                    self.assertFalse(report['applied']);self.assertTrue(report['application']['restored'])
+                    self.assertEqual(report['state'],'blocked')
+                else:
+                    report=engine.update(root/'site',root/'output',root/'esbuild',plan,apply=True,baseline_snapshot=root/'baseline.json')
+                    self.assertTrue(report['applied']);self.assertEqual(report['application']['state'],'applied')
+                    self.assertEqual(len(receipts),1)
+
+    def test_plan_must_match_frozen_baseline_before_build_or_no_change_return(self):
+        for engine_changed,content_changed in ((True,True),(False,False)):
+            with self.subTest(engine_changed=engine_changed),TemporaryDirectory() as temporary,ExitStack() as stack:
+                root=Path(temporary);effects,after,plan=self.update_fixture(root,engine_changed=engine_changed,content_changed=content_changed)
+                original={name:(root/name).read_bytes() for name in engine.OUTPUTS}
+                baseline=engine.read(root/'baseline.json');baseline['engine_commit']='3'*40
+                baseline['fingerprint']=baseline_fingerprint(baseline);engine.write(root/'baseline.json',baseline)
+                self.update_patches(stack,root,effects,after,plan)
+                inspect=stack.enter_context(patch.object(engine,'inspect'))
+                run=stack.enter_context(patch.object(engine.subprocess,'run'))
+                with self.assertRaisesRegex(ValueError,'未绑定冻结的已部署基线'):
+                    engine.update(root/'site',root/'output',root/'esbuild',plan,apply=True,baseline_snapshot=root/'baseline.json')
+                inspect.assert_not_called();run.assert_not_called()
+                self.assertFalse((root/'output/candidate').exists())
+                self.assertEqual({name:(root/name).read_bytes() for name in engine.OUTPUTS},original)
+                report=engine.read(root/'output/report.json')
+                self.assertEqual(report['state'],'blocked');self.assertEqual(report['failedStep'],'baseline')
+                self.assertEqual(report['issues'][0]['kind'],'plan_baseline_mismatch')
+                self.assertEqual(report['issues'][0]['frozenEngineCommit'],'3'*40)
+
+    def test_frozen_baseline_requires_matching_previous_lock_and_allows_bootstrap(self):
+        for state,previous in (('ready','mismatch'),('ready','verified'),('bootstrap',None),('bootstrap','verified')):
+            with self.subTest(state=state,previous=previous),TemporaryDirectory() as temporary,ExitStack() as stack:
+                root=Path(temporary);effects,after,plan=self.update_fixture(root)
+                baseline=engine.read(root/'baseline.json')
+                if state=='bootstrap':
+                    baseline.update(state='bootstrap',engine_commit=None,readyStageIds=[],**{key:None for key in HASH_FIELDS})
+                else:
+                    baseline['engine_commit']='3'*40
+                    plan['base_commit']='3'*40
+                if previous is not None:
+                    plan['previous_lock']={**self.lock,'commit':('4' if previous=='mismatch' else '3')*40}
+                baseline['fingerprint']=baseline_fingerprint(baseline);engine.write(root/'baseline.json',baseline)
+                self.update_patches(stack,root,effects,after,plan)
+                run=stack.enter_context(patch.object(engine.subprocess,'run'))
+                if previous=='mismatch' or state=='bootstrap' and previous is not None:
+                    with self.assertRaisesRegex(ValueError,'未绑定冻结的已部署基线'):
+                        engine.update(root/'site',root/'output',root/'esbuild',plan,baseline_snapshot=root/'baseline.json')
+                    run.assert_not_called()
+                else:
+                    report=engine.update(root/'site',root/'output',root/'esbuild',plan,baseline_snapshot=root/'baseline.json')
+                    self.assertTrue(report['updated']);self.assertFalse(report['applied']);self.assertEqual(run.call_count,3)
+
     def test_update_requires_explicit_frozen_deployed_baseline(self):
         with TemporaryDirectory() as temporary:
             root=Path(temporary);effects,after,plan=self.update_fixture(root)

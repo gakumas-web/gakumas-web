@@ -98,11 +98,15 @@ def matching_name(value,upgraded):
 def match_item(row,items,item_lookup):
     plan=PLANS.get(row['definition'].get('planType'));upgraded=row['isUpgraded']
     key=(item_name(row['name']),upgraded,plan)
-    if key in item_lookup:return item_lookup[key]
-    name=matching_name(row['name'],upgraded)
-    matches=[target for target in items if target['upgraded']==upgraded and target['plan']==plan and matching_name(target['name'],upgraded)==name]
-    if len(matches)!=1:return None
-    target=matches[0];definition=row['definition']
+    if key in item_lookup:
+        target=item_lookup[key]
+        if target is None:return None
+    else:
+        name=matching_name(row['name'],upgraded)
+        matches=[target for target in items if target['upgraded']==upgraded and target['plan']==plan and matching_name(target['name'],upgraded)==name]
+        if len(matches)!=1:return None
+        target=matches[0]
+    definition=row['definition']
     source='pIdol' if definition.get('originIdolCardId') else 'support' if definition.get('originSupportCardId') else 'produce'
     rarity={'ProduceItemRarity_R':'R','ProduceItemRarity_Sr':'SR','ProduceItemRarity_Ssr':'SSR'}.get(definition['rarity'])
     return target if target['mode']=='stage' and target['sourceType']==source and target['rarity']==rarity else None

@@ -1,4 +1,4 @@
-"""检查 Git 候选文件，或按相同清单导出独立源码包；不读取被忽略的本地材料。"""
+"""检查 Git 候选文件，或按相同清单导出独立源码包；不读取未跟踪且被忽略的本地材料。"""
 
 import argparse
 import os
@@ -9,6 +9,7 @@ import subprocess
 from tempfile import TemporaryDirectory
 
 ROOT = Path(__file__).resolve().parents[1]
+PRIVATE_PARTS = {'local', 'dist', '.git', 'node_modules', '__pycache__', '.gakumas-ca-initializing'}
 FORBIDDEN_SUFFIXES = {'.pem', '.p12', '.pfx', '.apk', '.exe', '.dll', '.so', '.log', '.pcap', '.pcapng'}
 PATTERNS = {
     '个人绝对路径': re.compile(rb'/(?:home|Users)/[A-Za-z0-9][^\s"\x27]*/|[A-Z]:[\\/]+Users[\\/]+[^\s"\x27]+'),
@@ -28,12 +29,26 @@ def candidates():
         subprocess.run(['git', 'init', '--bare', '--quiet', str(git_dir)], check=True, env=env)
         command = ['git', '-c', 'core.excludesFile=/dev/null', '--git-dir='+str(git_dir), '--work-tree='+str(ROOT)]
         result = subprocess.run(command+['ls-files', '--others', '--exclude-standard', '-z'], check=True, capture_output=True, env=env, cwd=ROOT)
-        return sorted(name for name in result.stdout.decode().split('\0') if name)
+        names = set(name for name in os.fsdecode(result.stdout).split('\0') if name)
+        # 已跟踪文件即使后来被忽略，也属于实际公开快照，必须纳入检查。
+        # 独立导出目录没有 Git 元数据时，仍按隔离清单检查，不借用父仓库。
+        if (ROOT / '.git').exists():
+            tracked = subprocess.run(
+                ['git', '-C', str(ROOT), 'ls-files', '--cached', '-z'],
+                check=True, capture_output=True, env=env)
+            names.update(name for name in os.fsdecode(tracked.stdout).split('\0') if name)
+        return sorted(names)
 
 
 def inspect(names):
     failures = []
     for name in names:
+        relative = Path(name)
+        # 误跟踪不能把本地维护与保留材料变成公开候选，拒绝后不读正文。
+        if (PRIVATE_PARTS.intersection(relative.parts) or relative.name == 'AGENTS.md'
+                or relative.name.startswith('.env')):
+            failures.append((name, '本地材料路径进入候选集'))
+            continue
         path = ROOT/name
         if path.is_symlink() or not path.is_file():
             failures.append((name, '候选文件不是普通文件'))

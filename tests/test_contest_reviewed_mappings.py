@@ -12,6 +12,23 @@ import build_contest_engine as builder
 from build_contest_engine import reviewed_target,match_skill_card,match_item,normalized,digest,ReviewedMappingError
 
 class ReviewedMappingTests(unittest.TestCase):
+    def test_item_name_paths_share_category_checks_and_reject_ambiguity(self):
+        source={'id':'public-item','name':'道具','isUpgraded':False,
+                'definition':{'planType':'ProducePlanType_Plan2','rarity':'ProduceItemRarity_Ssr','originIdolCardId':'idol'}}
+        for suffix in ('','♪'):
+            target={'id':17,'name':'道具'+suffix,'upgraded':False,'plan':'logic',
+                    'mode':'stage','sourceType':'pIdol','rarity':'SSR'}
+            lookup={(builder.item_name(target['name']),False,'logic'):target}
+            self.assertIs(match_item(source,[target],lookup),target)
+            for field,value in (('mode','produce'),('sourceType','support'),('rarity','R')):
+                with self.subTest(suffix=suffix,field=field):
+                    changed={**target,field:value}
+                    lookup={(builder.item_name(changed['name']),False,'logic'):changed}
+                    self.assertIsNone(match_item(source,[changed],lookup))
+            duplicate={**target,'id':18}
+            lookup={(builder.item_name(target['name']),False,'logic'):None}
+            self.assertIsNone(match_item(source,[target,duplicate],lookup))
+
     def test_reviewed_identities_and_both_fingerprints(self):
         reviewed=json.loads((ROOT/'tools/contest-engine-reviewed-mappings.json').read_text());data=json.loads((ROOT/'tests/fixtures/public-data/contest-reviewed-mappings.json').read_text())
         groups={};sources={}
