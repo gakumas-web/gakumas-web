@@ -370,6 +370,31 @@ class EngineUpdateTest(unittest.TestCase):
         changed=copy.deepcopy(master);changed['tables']['ProduceExamEffect'][0]['definition']['value']=5
         with self.assertRaises(ValueError):verify_evidence(evidence,changed,tables)
 
+    def test_evidence_accepts_only_reviewed_defaults_added_to_existing_records(self):
+        evidence={'statusEnchants':[],'triggers':[{'id':'t'}],'searches':[{'id':'q'}],
+                  'effectDefinitions':{'e':{'id':'e','value':4}}}
+        tables={'ProduceExamStatusEnchant':[],
+                'ProduceExamTrigger':[{'id':'t','examMissionProduceDescriptions':[]}],
+                'ProduceCardSearch':[{'id':'q','fusionCountMin':0,'fusionCountMax':0,
+                                      'plan4GroupTypes':[],'isFusionTopOnly':False,
+                                      'produceCardPickFusionType':'ProduceCardPickFusionType_Unknown'}]}
+        definition={'id':'e','value':4,'produceExamPickFusionExchangeType':'ProduceExamPickFusionExchangeType_Unknown'}
+        master={'tables':{'ProduceExamEffect':[{'id':'e','definition':definition}]}}
+        self.assertEqual(verify_evidence(evidence,master,tables),{'e':definition})
+        for table,field,value in [('ProduceExamTrigger','examMissionProduceDescriptions',[{'text':'新条件'}]),
+                                  ('ProduceCardSearch','fusionCountMax',1),
+                                  ('ProduceCardSearch','fusionCountMin',False),
+                                  ('ProduceCardSearch','isFusionTopOnly',True)]:
+            with self.subTest(field=field):
+                changed=copy.deepcopy(tables)
+                changed[table][0][field]=value
+                with self.assertRaises(ValueError):
+                    verify_evidence(evidence,master,changed)
+        changed=copy.deepcopy(master)
+        changed['tables']['ProduceExamEffect'][0]['definition']['produceExamPickFusionExchangeType']='non-default'
+        with self.assertRaises(ValueError):
+            verify_evidence(evidence,changed,tables)
+
 
 CURRENT_CONTENT_INPUTS=('GAKUMAS_CONTEST_UPDATE_CONTENT','GAKUMAS_CONTEST_UPDATE_PLAN','GAKUMAS_CONTEST_UPDATE_BASELINE','GAKUMAS_CONTEST_UPDATE_ESBUILD')
 

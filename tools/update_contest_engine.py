@@ -109,14 +109,32 @@ def deployed_lock(site_url):
 
 def verify_evidence(evidence,master,tables):
     extra={'produceDescriptions','playProduceDescriptions','playEffectProduceDescriptions'}
+    # 兼容原记录新增的已核实默认值，保留对非默认融合条件和触发变化的阻断。
+    defaults_by_table={
+        'ProduceExamTrigger':{'examMissionProduceDescriptions':[]},
+        'ProduceCardSearch':{'fusionCountMin':0,'fusionCountMax':0,'plan4GroupTypes':[],
+                             'isFusionTopOnly':False,'produceCardPickFusionType':'ProduceCardPickFusionType_Unknown'},
+    }
     for key,name in [('statusEnchants','ProduceExamStatusEnchant'),('triggers','ProduceExamTrigger'),('searches','ProduceCardSearch')]:
         rows={row['id']:row for row in tables[name]}
+        defaults=defaults_by_table.get(name,{})
         for old in evidence[key]:
             current=rows.get(old['id'])
-            if current is None or any(current.get(key)!=value for key,value in old.items()) or set(current)-set(old)-extra:raise ValueError('持续效果补充证据发生变化：'+old['id'])
+            if current is None or any(current.get(key)!=value for key,value in old.items()):
+                raise ValueError('持续效果补充证据发生变化：'+old['id'])
+            for field in set(current)-set(old)-extra:
+                if field not in defaults or type(current[field]) is not type(defaults[field]) or current[field]!=defaults[field]:
+                    raise ValueError('持续效果补充证据发生变化：'+old['id'])
     effects={row['id']:row['definition'] for row in master['tables']['ProduceExamEffect']}
+    fusion_field='produceExamPickFusionExchangeType'
+    verified={}
     for key,expected in evidence['effectDefinitions'].items():
-        if effects.get(key)!=expected:raise ValueError('已核对效果定义发生变化：'+key)
+        current=effects.get(key)
+        if current!=expected and (fusion_field in expected or current!={
+                **expected,fusion_field:'ProduceExamPickFusionExchangeType_Unknown'}):
+            raise ValueError('已核对效果定义发生变化：'+key)
+        verified[key]=current
+    return verified
 
 
 def prepare_evidence(evidence,master,upstream_commit):
@@ -127,8 +145,9 @@ def prepare_evidence(evidence,master,upstream_commit):
     for name in ['ProduceExamStatusEnchant','ProduceExamTrigger','ProduceCardSearch']:
         raw=download('https://raw.githubusercontent.com/vertesan/gakumasu-diff/'+upstream_commit+'/'+name+'.yaml')
         hashes[name+'.yaml']=sha(raw);tables[name]=yaml.load(raw,Loader=yaml.CSafeLoader)
-    verify_evidence(evidence,master,tables)
-    return {**evidence,'contentRevision':master['revision'],'source':{**evidence['source'],'commit':upstream_commit,'files':hashes}}
+    definitions=verify_evidence(evidence,master,tables)
+    return {**evidence,'effectDefinitions':definitions,'contentRevision':master['revision'],
+            'source':{**evidence['source'],'commit':upstream_commit,'files':hashes}}
 
 
 def site_content(site):
